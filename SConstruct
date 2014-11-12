@@ -134,7 +134,7 @@ if config['release']:
 else:
     release_version = ''
 
-svn_revision = str(OLToolbox.get_svn_revision(mandatory = False))
+svn_revision = "1.0" #str(OLToolbox.get_svn_revision(mandatory = False))
 
 # Install directory; only effect is that this is put into
 # the openloops library as a string. TODO: override by command line argument;
