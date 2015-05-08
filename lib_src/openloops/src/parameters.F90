@@ -35,6 +35,18 @@ module ol_data_types_/**/REALKIND
   end type polcont
 
 #ifdef PRECISION_dp
+  type carray2
+    complex(REALKIND), allocatable :: arr(:,:)
+  end type
+
+  type l2lc_rdata
+    integer, allocatable :: r(:,:), c(:,:)
+  end type l2lc_rdata
+
+  type l2lc_data
+    type(l2lc_rdata), allocatable :: arr(:)
+  end type l2lc_data
+
   type me_cache
     real(REALKIND), allocatable :: psp(:,:), me(:)
   end type me_cache
@@ -43,8 +55,18 @@ module ol_data_types_/**/REALKIND
 end module ol_data_types_/**/REALKIND
 
 
+#ifdef PRECISION_dp
+module ol_global_decl
+  implicit none
+  integer, parameter :: MaxParticles = 9
+end module ol_global_decl
+#endif
+
+
+
 module ol_momenta_decl_/**/REALKIND
-  use KIND_TYPES, only: REALKIND, MaxParticles
+  use KIND_TYPES, only: REALKIND
+  use ol_global_decl, only: MaxParticles
   implicit none
   ! Internal momenta for up to 'MaxParticles' external particles
   ! Components 1:4 = light cone representation; component 5 = squared momentum
@@ -62,20 +84,22 @@ module ol_momenta_decl_/**/REALKIND
       momenta_nan_check = 0
     else
       ! contains NaN
-      write(*,*) "WARNING: corrupted phase space point"
+      write(*,*) "[OpenLoops] === WARNING ==="
+      write(*,*) "[OpenLoops] corrupted phase space point:"
       do i = 1, size(P,2)
         write(*,*) P(:,i)
       end do
       momenta_nan_check = 1
+      write(*,*) "[OpenLoops] ==============="
     end if
   end function momenta_nan_check
 
 end module ol_momenta_decl_/**/REALKIND
 
 
-
 module ol_external_decl_/**/REALKIND
-  use KIND_TYPES, only: REALKIND, MaxParticles
+  use KIND_TYPES, only: REALKIND
+  use ol_global_decl, only: MaxParticles
   implicit none
   ! phase space point cache; used to print the ps-point if tensor reduction fails
   integer,        save :: nParticles = 0 ! set by conv_mom_scatt2in
@@ -88,6 +112,10 @@ module ol_external_decl_/**/REALKIND
   ! used for the gauge fixing of the vector polarization. Used in subroutine wf_gf_V.
   ! A zero entry means that it's not a massless vector particle.
   integer,  save :: Ward_array(MaxParticles) = 0 ! select particle "i" for the Ward identity -> Ward_array(i) = 1
+#ifdef PRECISION_dp
+  ! number of incoming particles for phase space configuation and cleaning
+  integer, save :: n_scatt = 2
+#endif
 end module ol_external_decl_/**/REALKIND
 
 
@@ -104,20 +132,31 @@ end module ol_pseudotree_/**/REALKIND
 
 
 
+module ol_tensor_storage_/**/REALKIND
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), allocatable, save :: tensor_stored(:)
+  integer, save :: rank_stored
+  integer, save :: array_length_stored ! length of the array associated with rank_stored
+  integer, save :: tensor_storage_maxrank = -1
+end module ol_tensor_storage_/**/REALKIND
+
+
+
 module ol_parameters_decl_/**/REALKIND
   ! Declarations and initial values for numerical and physical parameters like masses, widths, and couplings.
   ! Loading the module for the first time initialises the parameters with their default values (given in this module).
   ! Note that when a value has been changed using parameters_init(val=...) loading the module
   ! will not reset the value to its default.
   use KIND_TYPES, only: REALKIND
-  use ol_version, only: splash_todo
+  use ol_version, only: splash_todo, welcome_length ! only to expose to init_ui
 !   use TI_call_interface
   implicit none
   ! Counted up by 1 each time parameters_init() is called
   integer, save :: parameters_status = 0
+#ifdef PRECISION_dp
   integer, save :: parameters_verbose = 0
   integer, save :: verbose = 0
-#ifdef PRECISION_dp
   integer, parameter :: procname_length = 80
   character(procname_length) :: current_processname = 'none' ! set by vamp2generic()
   integer, parameter :: max_parameter_length = 255 ! used for stability_logdir, install_path,
@@ -132,7 +171,10 @@ module ol_parameters_decl_/**/REALKIND
   character(len=max_parameter_length) :: tmp_dir = "."
   character(len=max_parameter_length) :: allowed_libs = ""
   character(len=max_parameter_length) :: approximation = ""
+  character(len=max_parameter_length) :: model = "sm"
   character(len=max_parameter_length) :: shopping_list = "OL_shopping.m"
+  logical, save :: write_shopping_list = .false.
+  logical, save :: write_params_at_start = .false.
   logical, save :: stability_logdir_not_created = .true.
   character(16) :: pid_string ! 11 for pid, "-", 4 random characters
   ! OpenLoops installation path; used to locate info files and process libraries
@@ -162,7 +204,8 @@ module ol_parameters_decl_/**/REALKIND
   integer :: order_ew = -1
   integer :: order_qcd = -1
   integer :: ckmorder = 0
-  ! select tensor library for EW renormalization: 0 = none, 1 = coli, 7 = DD TODO: auto set to amp_switch
+  ! select tensor library for EW renormalization: 0 = none, 1 = Coli, 3=OneLOop, 7 = DD
+  ! automatically set according to redlib (redlib=1->1,7->7,other->3)
   integer, save :: ew_renorm_switch = 3
   integer, save :: do_ew_renorm = 0
   integer, save :: cms_on = 1
@@ -187,6 +230,8 @@ module ol_parameters_decl_/**/REALKIND
   real(REALKIND), save :: scalefactor = 1
   logical,        save :: reset_scalefactor = .false.
   integer,        save :: scaling_mode = 1 ! 1: reduction only, 3: everything
+  real(REALKIND), save :: psp_tolerance = 1.e-9
+
   ! Particle masses and widths
   real(REALKIND), save :: rME_unscaled = 0,                    wME_unscaled = 0 ! electron mass and width
   real(REALKIND), save :: rMM_unscaled = 0,                    wMM_unscaled = 0 ! muon mass and width
@@ -197,6 +242,15 @@ module ol_parameters_decl_/**/REALKIND
   real(REALKIND), save :: rMC_unscaled = 0,                    wMC_unscaled = 0 ! charm-quark mass and width
   real(REALKIND), save :: rMB_unscaled = 0._/**/REALKIND,      wMB_unscaled = 0 ! bottom-quark mass and width
   real(REALKIND), save :: rMT_unscaled = 172._/**/REALKIND,    wMT_unscaled = 0 ! top-quark mass and width
+  real(REALKIND), save :: rYE_unscaled = 0
+  real(REALKIND), save :: rYM_unscaled = 0
+  real(REALKIND), save :: rYL_unscaled = 0
+  real(REALKIND), save :: rYU_unscaled = 0
+  real(REALKIND), save :: rYD_unscaled = 0
+  real(REALKIND), save :: rYS_unscaled = 0
+  real(REALKIND), save :: rYC_unscaled = 0
+  real(REALKIND), save :: rYB_unscaled = 0,                    wYB_unscaled = 0
+  real(REALKIND), save :: rYT_unscaled = 172._/**/REALKIND,    wYT_unscaled = 0
   real(REALKIND), save :: rMW_unscaled = 80.399_/**/REALKIND,  wMW_unscaled = 0 ! W boson mass LEP PDG 2008/2009 and width
   real(REALKIND), save :: rMZ_unscaled = 91.1876_/**/REALKIND, wMZ_unscaled = 0 ! Z boson mass LEP PDG 2008/2009 and width
   real(REALKIND), save :: rMX_unscaled = 0._/**/REALKIND,  wMX_unscaled = 0._/**/REALKIND ! auxiliary field for Z
@@ -208,16 +262,16 @@ module ol_parameters_decl_/**/REALKIND
   real(REALKIND), save :: alpha_QED = 1/128._/**/REALKIND
   ! Everything beyond this line is derived from the values given above and initialised by parameters_init().
   real(REALKIND), save :: rescalefactor = 1.1
-  ! scaled masses and widths
-  real(REALKIND), save :: rME, wME
-  real(REALKIND), save :: rMM, wMM
-  real(REALKIND), save :: rML, wML
-  real(REALKIND), save :: rMU, wMU
-  real(REALKIND), save :: rMD, wMD
-  real(REALKIND), save :: rMS, wMS
-  real(REALKIND), save :: rMC, wMC
-  real(REALKIND), save :: rMB, wMB
-  real(REALKIND), save :: rMT, wMT
+  ! scaled masses, widths and yukawas
+  real(REALKIND), save :: rME, wME, rYE
+  real(REALKIND), save :: rMM, wMM, rYM
+  real(REALKIND), save :: rML, wML, rYL
+  real(REALKIND), save :: rMU, wMU, rYU
+  real(REALKIND), save :: rMD, wMD, rYD
+  real(REALKIND), save :: rMS, wMS, rYS
+  real(REALKIND), save :: rMC, wMC, rYC
+  real(REALKIND), save :: rMB, wMB, rYB, wYB
+  real(REALKIND), save :: rMT, wMT, rYT, wYT
   real(REALKIND), save :: rMW, wMW
   real(REALKIND), save :: rMZ, wMZ
   real(REALKIND), save :: rMH, wMH
@@ -226,6 +280,10 @@ module ol_parameters_decl_/**/REALKIND
   ! Complex masses, complex and real squared masses
   complex(REALKIND), save ::  ME,   MM,   ML,   MU,   MD,   MS,   MC,   MB,   MT,   MW,   MZ,   MH,  MX,    MY
   complex(REALKIND), save ::  ME2,  MM2,  ML2,  MU2,  MD2,  MS2,  MC2,  MB2,  MT2,  MW2,  MZ2,  MH2, MX2,   MY2
+  complex(REALKIND), save ::  YE,   YM,   YL,   YU,   YD,   YS,   YC,   YB,   YT
+  complex(REALKIND), save ::  YE2,  YM2,  YL2,  YU2,  YD2,  YS2,  YC2,  YB2,  YT2
+  complex(REALKIND), save ::  YC2pair, YB2pair, YT2pair ! pair masses: only non-zero if the SU(2) partner is active
+  real(REALKIND),    save :: rYE2, rYM2, rYL2, rYU2, rYD2, rYS2, rYC2, rYB2, rYT2
   real(REALKIND),    save :: rME2, rMM2, rML2, rMU2, rMD2, rMS2, rMC2, rMB2, rMT2, rMW2, rMZ2, rMH2, rMX2, rMY2
   ! collinear mass regulator for photon WF CT
   real(REALKIND),    save :: MREG
@@ -235,11 +293,34 @@ module ol_parameters_decl_/**/REALKIND
   complex(REALKIND), save :: cw, cw2, cw3, cw4, sw, sw2, sw3 ,sw4, sw6
   ! Right/left couplings of a Z boson to neutrinos, leptons, up- and down-type quarks
   complex(REALKIND), save :: gZn(2), gZl(2), gZu(2), gZd(2)
-  ! Right/left coupling for Higgs(H), Chi(X) = Z-Goldstone, Phi(P) = W-Goldstone
-  complex(REALKIND), save :: gH(2), gX(2), gPud(2), gPcs(2), gPtb(2), gPdu(2), gPsc(2), gPbt(2), gPnl(2), gPln(2)
+  ! Right(1)/left(2) couplings for Higgs(H), Chi(X) = Z-Goldstone, Phi(P) = W-Goldstone
+  complex(REALKIND), save :: gH(2)   = [  cONE, cONE ]
+  complex(REALKIND), save :: gX(2)   = [ -cONE, cONE ]
+  complex(REALKIND), save :: gPnl(2) = [  cONE, ZERO ]
+  complex(REALKIND), save :: gPln(2) = [  ZERO, cONE ]
+  complex(REALKIND), save :: gPud(2), gPcs(2), gPtb(2), gPdu(2), gPsc(2), gPbt(2)
   complex(REALKIND) :: gZRH, gZLH
   ! Vertex scale factors for naive deviations from the Standard Model (changes don't affect CT/R2)
   real(REALKIND), save :: lambdaHHH = 1, lambdaHWW = 1, lambdaHZZ = 1
+  ! Coefficients of Higgs FormFactors/Pseudo-Observables
+  real(REALKIND), save :: kappaWW = 1
+  real(REALKIND), save :: kappaZZ = 1
+  real(REALKIND), save :: epsilonWW = 0
+  real(REALKIND), save :: aepsilonWW = 0
+  real(REALKIND), save :: epsilonZZ = 0
+  real(REALKIND), save :: aepsilonZZ = 0
+  real(REALKIND), save :: epsilonZA = 0
+  real(REALKIND), save :: aepsilonZA = 0
+  real(REALKIND), save :: epsilonAA = 0
+  real(REALKIND), save :: aepsilonAA = 0
+  real(REALKIND), save :: epsilonZnn(3) = 0
+  real(REALKIND), save :: epsilonZll(3) = 0
+  real(REALKIND), save :: epsilonZdd(3) = 0
+  real(REALKIND), save :: epsilonZuu(3) = 0
+  ! take the following real for the moment. In general can be complex
+  real(REALKIND), save :: epsilonWqq(3) = 0
+  real(REALKIND), save :: epsilonWln(3) = 0
+
 
 end module ol_parameters_decl_/**/REALKIND
 
@@ -278,8 +359,7 @@ module ol_loop_parameters_decl_/**/REALKIND
   integer,        save :: TP_is_on = 1 ! switch on/off tadpole-like contributions
   integer,        save :: IR_is_on = 1 ! 0 = off, 1 = return poles, 2 = add I operator
   ! i-operator mode: 1 = QCD, 2 = EM, 3 = QCD+EM, none otherwise;
-  ! TODO: remove this as soon as the mode is set automatically per process
-  integer,        save :: ioperator_mode = 1
+  integer,        save :: ioperator_mode = 3
   integer,        save :: polecheck_is = 0
 
   integer,        save :: stability_mode = 14 ! 11: no trigger, default: 14
@@ -340,7 +420,8 @@ module ol_loop_parameters_decl_/**/REALKIND
 
   integer,        save      :: nc    = 3          ! number of colours
   integer,        save      :: nf = 6, nf_up = 3, nf_down =3 ! number of quarks (total, up-type, down-type)
-  integer,        save      :: nq_nondecoupl = 5  ! number of quarks which don't decouple above threshold
+  integer,        save      :: nq_nondecoupl = 0  ! number of quarks which don't decouple above threshold,
+                                                  ! i.e. always contribute to the alpha_s running
   integer,        save      :: N_lf  = 5          ! number of massless quark flavours
 ! ifdef PRECISION_dp
 #endif
@@ -359,6 +440,12 @@ module ol_loop_parameters_decl_/**/REALKIND
   real(REALKIND), save      :: x_UV  = 1       ! rescaling factor for dim-reg scale in UV-divergent quantities
   real(REALKIND), save      :: x_IR  = 1       ! rescaling factor for dim-reg scale in IR-divergent quantities
   real(REALKIND), parameter :: kappa = 2/3._/**/REALKIND ! kappa parameter used in dipole subtraction
+  real(REALKIND), save :: muyc_unscaled = 0 ! yukawa renormalization scale for c quark
+  real(REALKIND), save :: muyb_unscaled = 0 ! yukawa renormalization scale for b quark
+  real(REALKIND), save :: muyt_unscaled = 0 ! yukawa renormalization scale for t quark
+  real(REALKIND), save :: muyc
+  real(REALKIND), save :: muyb
+  real(REALKIND), save :: muyt
 
   ! the following derived parameters are initilised by subroutine loop_parameters_init
   real(REALKIND), save :: de2_0_IR  ! numerical value of double IR pole using LH-accord convention (i=0)
@@ -366,11 +453,17 @@ module ol_loop_parameters_decl_/**/REALKIND
   real(REALKIND), save :: mureg2    ! squared renormalisation scale
   real(REALKIND), save :: mu2_UV    ! dim-reg scale for UV-divergent quantities
   real(REALKIND), save :: mu2_IR    ! dim-reg scale for IR-divergent quantities
+  real(REALKIND), save :: muyc2 ! squared yukawa renormalization scale for c quark
+  real(REALKIND), save :: muyb2 ! squared yukawa renormalization scale for b quark
+  real(REALKIND), save :: muyt2 ! squared yukawa renormalization scale for t quark
 
   ! the following renormalisation constants are initilised by subroutine QCD_renormalisation
   complex(REALKIND), save :: dZMC     = 0 ! charm-quark mass RC        : MC_bare = MC*(1+dZMC)
   complex(REALKIND), save :: dZMB     = 0 ! bottom-quark mass RC       : MB_bare = MB*(1+dZMB)
   complex(REALKIND), save :: dZMT     = 0 ! top-quark mass RC          : MT_bare = MT*(1+dZMT)
+  complex(REALKIND), save :: dZYC     = 0 ! charm-quark yukawa RC      : YC_bare = YC*(1+dZYC)
+  complex(REALKIND), save :: dZYB     = 0 ! bottom-quark yukawa RC     : YB_bare = YB*(1+dZYB)
+  complex(REALKIND), save :: dZYT     = 0 ! top-quark yukawa RC        : YT_bare = YT*(1+dZYT)
   real(REALKIND),    save :: dZg      = 0 ! gluon-field RC             : G_bare  = (1+dZg/2)*G_ren
   real(REALKIND),    save :: dZq      = 0 ! massless-quark field RC    : Q_bare  = (1+dZq/2)*Q_ren
   real(REALKIND),    save :: dZc      = 0 ! charm-quark field RC       : idem
@@ -408,7 +501,7 @@ module ol_loop_parameters_decl_/**/REALKIND
   complex(REALKIND), save :: ctStt
 
   ! Additional parameters for R2
-  complex(REALKIND), save :: MQ2sum, MQ2sum_pairs
+  complex(REALKIND), save :: MQ2sum, MQ2sumpairs
 
   ! Additional counterterms for R2 QCD
   complex(REALKIND), save :: ctZGG
@@ -424,6 +517,14 @@ module ol_loop_parameters_decl_/**/REALKIND
   complex(REALKIND), save :: ctAGGG(2)
   complex(REALKIND), save :: ctZGGG(2)
   integer,           save :: R2GGGG
+
+  ! Counterterms for HEFT
+  real(REALKIND), save :: ctHEFTggh(5)
+  real(REALKIND), save :: ctHEFTgggh
+  real(REALKIND), save :: ctHEFTggggh
+  real(REALKIND), save :: R2HEFTggggh
+  real(REALKIND), save :: R2HEFThqq
+  real(REALKIND), save :: R2HEFTghqq
 
   ! EW_renormalisation renormalisation constants
   complex(REALKIND), save :: dZMBEW     = 0 ! bottom-quark mass RC       : MB_bare = MB+dZMBEW)

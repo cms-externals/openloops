@@ -28,8 +28,12 @@ subroutine qcd_renormalisation
 ! conventions for UV/IR div. see subroutine loop_parameters_init.
 ! This subroutine is automatically called by loop_parameters_init.
 ! **********************************************************************
+! dZMC  = charm-quark mass RC        : MC_bare = MC*(1+dZMC)
 ! dZMB  = bottom-quark mass RC       : MB_bare = MB*(1+dZMB)
 ! dZMT  = top-quark mass RC          : MT_bare = MT*(1+dZMT)
+! dZYC  = charm-quark yukawa RC      : YC_bare = YC*(1+dZYC)
+! dZYB  = bottom-quark yukawa RC     : YB_bare = YB*(1+dZYB)
+! dZYT  = top-quark yukawa RC        : YT_bare = YT*(1+dZYT)
 ! dZg   = gluon-field RC             : A_bare  = (1+1/2*dZg)*A_ren
 ! dZq   = massless-quark field RC    : Q_bare  = (1+1/2*dZq)*Q_ren
 ! dZb   = bottom-quark field RC      : idem
@@ -56,7 +60,7 @@ subroutine qcd_renormalisation
 
   if (N_lf /= 3 .and. N_lf /= 4 .and. N_lf /= 5) then
     write(*,*) '[OpenLoops] ERROR in qcd_renormalisation:'
-    write(*,*) 'N_lf = ', N_lf, 'is not supported.'
+    write(*,*) '[OpenLoops] N_lf = ', N_lf, 'is not supported.'
     stop
   end if
 #endif
@@ -90,6 +94,9 @@ subroutine qcd_renormalisation
   dZMC  = 0
   dZMB  = 0
   dZMT  = 0
+  dZYC  = 0
+  dZYB  = 0
+  dZYT  = 0
   dZg   = 0
   dgQCD = 0
 
@@ -99,20 +106,32 @@ subroutine qcd_renormalisation
     dZg   = (5*ca)/3 * (deT_UV - deT_IR)
     ! On-shell renormalisation constants for quark wave functions
     dZq   = -cf * (deT_UV - deT_IR)       ! massless quarks
-    dZt   = -cf * (deT_UV + 2*deT_IR + 4) ! massive top-quark
     dZc   = dZq
     dZb   = dZq
+    dZt   = dZq
     if (MC /= 0) then
       dZc  = -cf * (deC_UV + 2*deC_IR + 4) ! massive charm-quark
       dZMC = -cf * (4 + 3*(de1_UV+log(mu2_UV/MC2)))
+    end if
+    if (YC /=0) then
+      dZYC = -cf * (4 + 3*(de1_UV+log(mu2_UV/muyc2)))
     end if
     if (MB /= 0) then
       dZb  = -cf * (deB_UV + 2*deB_IR + 4) ! massive bottom-quark
       dZMB = -cf * (4 + 3*(de1_UV+log(mu2_UV/MB2)))
     end if
+    if (YB /=0) then
+      dZYB = -cf * (4 + 3*(de1_UV+log(mu2_UV/muyb2)))
+    end if
     ! On-shell top-mass renormalisation at complex pole p^2 = MT^2
     ! dMT = MT * (-cf * (4 + 3*(de1_UV+log(mu2_UV/MT2))) + dZt)
-    dZMT  =       -cf * (4 + 3*(de1_UV+log(mu2_UV/MT2)))
+    if (MT /= 0) then
+      dZt   = -cf * (deT_UV + 2*deT_IR + 4) ! massive top-quark
+      dZMT = -cf * (4 + 3*(de1_UV+log(mu2_UV/MT2)))
+    end if
+    if (YT /=0) then
+      dZYT = -cf * (4 + 3*(de1_UV+log(mu2_UV/muyt2)))
+    end if
     ! MS-bar renormalization constant for gQCD, YM-contribution
     dgQCD = -(11*ca)/6 * (de1_UV + log(mu2_UV/mureg2))
   end if
@@ -138,10 +157,12 @@ subroutine qcd_renormalisation
       end if
     end if
     if (nf > 5) then
-      dZg = dZg - (4*tf)/3 * deT_UV
-      ! top-quark decoupling term
-      if (nq_nondecoupl < 6 .or. mureg <= rMT) then
-        dgQCD = dgQCD + (2*tf)*real(log(mureg2/MT2))/3
+      if (MT /= 0) then
+        dZg = dZg - (4*tf)/3 * deT_UV
+        ! top-quark decoupling term
+        if (nq_nondecoupl < 6 .or. mureg <= rMT) then
+          dgQCD = dgQCD + (2*tf)*real(log(mureg2/MT2))/3
+        end if
       end if
     end if
   end if
@@ -164,13 +185,17 @@ subroutine qcd_renormalisation
 
   ! Sum of squared quark masses
   MQ2sum = MU2 + MD2 + MS2
-  MQ2sum_pairs = MU2 + MD2
+  MQ2sumpairs = YU2 + YD2
   nf_up = 1
   nf_down = 2
+  YC2pair = 0
+  YB2pair = 0
+  YT2pair = 0
   if (nf > 3) then
     MQ2sum = MQ2sum + MC2
-    MQ2sum_pairs = MQ2sum_pairs + MS2 + MC2
+    MQ2sumpairs = MQ2sumpairs + YS2 + YC2
     nf_up = nf_up + 1
+    YC2pair = YC2
   end if
   if (nf > 4) then
     MQ2sum = MQ2sum + MB2
@@ -178,8 +203,10 @@ subroutine qcd_renormalisation
   end if
   if (nf > 5) then
     MQ2sum = MQ2sum + MT2
-    MQ2sum_pairs = MQ2sum_pairs + MB2 + MT2
+    MQ2sumpairs = MQ2sumpairs + YB2 + YT2
     nf_up = nf_up + 1
+    YB2pair = YB2
+    YT2pair = YT2
   end if
 
   ! set all counterterms to zero
@@ -222,6 +249,12 @@ subroutine qcd_renormalisation
   ctAGGG = [ 0, 0 ]
   ctZGGG = [ 0, 0 ]
   R2GGGG = 0
+  ctHEFTggh   = [0,0,0,0,0]
+  ctHEFTgggh  = 0
+  ctHEFTggggh = 0
+  R2HEFTggggh = 0
+  R2HEFThqq   = 0
+  R2HEFTghqq  = 0
 
   if (CT_is_on /= 0) then
     ! Only UV counterterms
@@ -247,15 +280,20 @@ subroutine qcd_renormalisation
     ctVcc  = (dZc)
     ctVbb  = (dZb)
     ctVqq  = (dZq)
-    ctScs  = [ -MS * (dZc/2 + dZq/2       ), MC * (dZc/2 + dZq/2 + dZMC) ]
-    ctSsc  = [ -MC * (dZc/2 + dZq/2 + dZMC), MS * (dZc/2 + dZq/2       ) ]
-    ctStb  = [ -MB * (dZt/2 + dZb/2 + dZMB), MT * (dZt/2 + dZb/2 + dZMT) ]
-    ctSbt  = [ -MT * (dZt/2 + dZb/2 + dZMT), MB * (dZt/2 + dZb/2 + dZMB) ]
+    ctScs  = [ -YS * (dZc/2 + dZq/2       ), YC * (dZc/2 + dZq/2 + dZYC) ]
+    ctSsc  = [ -YC * (dZc/2 + dZq/2 + dZYC), YS * (dZc/2 + dZq/2       ) ]
+    ctStb  = [ -YB * (dZt/2 + dZb/2 + dZYB), YT * (dZt/2 + dZb/2 + dZYT) ]
+    ctSbt  = [ -YT * (dZt/2 + dZb/2 + dZYT), YB * (dZt/2 + dZb/2 + dZYB) ]
     ctSqq  = (dZq)
-    ctScc  = (dZc + dZMC)
-    ctSbb  = (dZb + dZMB)
-    ctStt  = (dZt + dZMT)
+    ctScc  = (dZc + dZYC)
+    ctSbb  = (dZb + dZYB)
+    ctStt  = (dZt + dZYT)
 
+    ! HEFT
+    ! finite two-loop contribution: gGGH*11/4/pi*as -> 11
+    ctHEFTggh   = (11+2*dgQCD + dZg) * [ rZERO, -rONE, rZERO, rZERO, rONE]
+    ctHEFTgggh  = (11+3*dgQCD + 1.5_/**/REALKIND*dZg)
+    ctHEFTggggh = (11+4*dgQCD + 2*dZg)
   end if
 
   if (R2_is_on /= 0) then
@@ -291,6 +329,13 @@ subroutine qcd_renormalisation
       ctScc  = ctScc - 4*cf
       ctSbb  = ctSbb - 4*cf
       ctStt  = ctStt - 4*cf
+
+      ! HEFT
+      ctHEFTggh   = ctHEFTggh + [ 1, 89, 14, -17, -93 ] * (nc/24._/**/REALKIND)
+      ctHEFTgggh  = ctHEFTgggh - 15*nc/8._/**/REALKIND
+      R2HEFTggggh = 0.125_/**/REALKIND
+      R2HEFThqq   = 0.25_/**/REALKIND*(nc-1._/**/REALKIND/nc)
+      R2HEFTghqq  = 0.25_/**/REALKIND*(3._/**/REALKIND/nc-5*nc)
     end if
     if (SwF /= 0) then
       ! fermionic
@@ -311,10 +356,10 @@ subroutine qcd_renormalisation
       ctHHGG = tf*MQ2sum/(sw2*MW2)
       ctHXGG = 0
       ctXXGG = tf*MQ2sum/(sw2*MW2)
-      ctPPGG = tf*MQ2sum_pairs/(sw2*MW2)
+      ctPPGG = tf*MQ2sumpairs/(sw2*MW2)
       ! VGGG R2 coupling: [ 4/3*tf*sum_q(v_q), -12*tf*CI*sum_q(a_q) ]
       dummy_complex = -(4*tf)/9*(2*nf_up-nf_down)
-      ctAGGG = [ dummy_complex     , ZERO ]
+      ctAGGG = [ dummy_complex, ZERO ]
       ctZGGG = [ (nf_up*(3-8*sw2)+nf_down*(-3+4*sw2)) * tf/(9*cw*sw) , (nf_up-nf_down)*3*tf*CI/(sw*cw) ]
       R2GGGG = int(2*tf) ! switch on the 4-gluon R2
     end if

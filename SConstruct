@@ -29,8 +29,8 @@ Usage: scons [options] <loops>=proc1,proc2,...
   if 'l' is present, any combination of these is allowed (inalphabetic order),
   otherwise 't' must be alone
 - If a processes ends with a slash (/) it is treated as a process collection,
-  i.e. the corresponding list of processes from
-  the collection file on the web server is used.
+  i.e. the corresponding list of processes from the collection file on the web
+  server is used. The special collection all/ downloads all processes.
 - Several <loops> arguments can be given, even with the same <loops>.
 
 Options
@@ -47,10 +47,10 @@ gjobs=<n>
 glog=0/1
   Write generator output to a log file; implied if gjobs > 1.
 
-force-download=0/1
+force_download=0/1
   Download processes even if they seem to be up-to-date.
 
-process-update=0/1
+process_update=0/1
   If the downloader is used: select all downloaded processes
     (i.e. their version.info file contains 'process_update').
   If the generator is used: select all processes
@@ -98,8 +98,6 @@ import os
 import sys
 import subprocess
 
-sys.path.insert(0, os.path.abspath(os.path.join('pyol', 'build')))
-sys.path.insert(0, os.path.abspath(os.path.join('pyol', 'config')))
 sys.path.insert(0, os.path.abspath(os.path.join('pyol', 'tools')))
 
 import OLBaseConfig
@@ -110,6 +108,8 @@ from OLLibrary import CPPContainer, OLLibrary
 if '--help' in sys.argv or '-h' in sys.argv:
     print help_message
     Exit(0)
+
+scons_cmd = sys.argv[0]
 
 process_arguments = filter(lambda el: el[0] in
                            OLBaseConfig.loops_specifications, ARGLIST)
@@ -230,10 +230,13 @@ cuttools_dp_src = [
 
 # Samurai
 samurai_dp_src = [
-    'constants.f90', 'kinematic.f90', 'ltest.f90', 'maccu.f90', 'madds.f90', 'mcgs.f90',
-    'mfunctions.f90', 'mgetbase.f90', 'mgetc1.f90', 'mgetc2.f90', 'mgetc3.f90', 'mgetc4.f90',
-    'mgetc5.f90', 'mgetqs.f90', 'mglobal.f90', 'mrestore.f90', 'msamurai.f90', 'mtens.f90',
-    'mtests.f90', 'ncuts.f90', 'notfirst.f90', 'options.f90', 'precision.f90', 'save.f90']
+    'constants.f90', 'kinematic.f90', 'ltest.f90', 'maccu.f90', 'madds.f90',
+    'mcgs.f90', 'mfunctions.f90', 'mgetbase.f90', 'mgetc1.f90', 'mgetc2.f90',
+    'mgetc3.f90', 'mgetc4.f90', 'mgetc5.f90', 'mgetkin.f90', 'mgetqs.f90',
+    'mglobal.f90', 'mmasters.f90', 'mmisavholo.f90', 'mmisgolem.f90',
+    'mmishighrank.f90', 'mmislooptools.f90', 'mmisqcdloop.f90', 'mrestore.f90',
+    'msamurai.f90', 'mtens.f90', 'mtests.f90', 'ncuts.f90', 'notfirst.f90',
+    'options.f90', 'precision.f90', 'save.f90']
 
 # Collier
 collier_src_mp = [
@@ -280,7 +283,8 @@ if dd_version == '_06082014':
         "BuildTensors.F90", "cache.F90", "coli_aux2.F90", "coli_aux.F", "coli_b0.F", "coli_c0.F", "coli_d0.F", "coli_d0reg.F", "coli_stat.F90", "collier_aux.F90", "collier_coefs.F90", "COLLIER.F90", "collier_global.F90", "collier_init.F90", "collier_tensors.F90", "Combinatorics.F90", "dcuhre.f", "DD_2pt.F", "DD_3pt_coll.F", "DD_3pt.F", "DD_4pt.F", "DD_5pt.F", "DD_6pt.F", "DD_aux.F", "DD_to_COLLIER.F", "InitTensors.F90", "master.F90", "reductionAB.F90", "reductionC.F90", "reductionD.F90", "reductionEFG.F90", "reductionTN.F90", "TensorReduction.F90"]
 
 if compile_libraries:
-    cpp_container = CPPContainer(mp = config['precision'],
+    cpp_container = CPPContainer(scons_cmd = scons_cmd,
+                                 mp = config['precision'],
                                  version = release_version,
                                  revision = svn_revision,
                                  cpp_defs = cpp_defines,
@@ -390,6 +394,7 @@ env = Environment(tools = ['default', 'textfile'] + [config['fortran_compiler']]
                   ENV = {"PATH": env_path, "LD_LIBRARY_PATH": env_ld_library_path},
                   FORTRANFLAGS = config['f77_flags'] + config['generic_optimisation'],
                   F90FLAGS = config['f90_flags'] + config['generic_optimisation'],
+                  LINKFLAGS = config['link_flags'],
                   LIBPATH = [config['generic_lib_dir']],
                   RPATH = [Literal('\$$ORIGIN')])
 
@@ -477,26 +482,37 @@ collection_url = config['remote_process_url'] + '/%s/collections'
 
 def split_processlist(loops, procs):
     """Convert (loops=L, procs=P1,P2,P3,...) to [(L,P1),(L,P2),(L,P3),...].
-    Replace collections (process ending with /) by the list of processes
-    from the collection file on the server."""
+    Replace collections (process ending with '/' or '.coll') by the list
+    of processes from the collection file on the server."""
     proclist = sum([proclist.split(',') for proclist in procs.split()], [])
     proclist = [proc for proc in proclist if proc]
-    collections = [coll[:-1] for coll in proclist if coll.endswith('/')]
-    proclist = [(loops, proc) for proc in proclist if not proc.endswith('/')]
+    collections = [coll[:-1] + '.coll' for coll in proclist if coll.endswith('/')]
+    collections.extend([coll for coll in proclist if coll.endswith('.coll')])
+    proclist = [(loops, proc) for proc in proclist
+                if not (proc.endswith('/') or coll.endswith('.coll'))]
     for coll in collections:
         process_coll = []
-        if coll == 'all':
+        if coll == 'all.coll':
             for repo in config['process_repositories']:
                 process_db = OLToolbox.ProcessDB(db=(version_db_url % repo))
                 process_coll += process_db.content.keys()
         else:
             found_collection = False
+            first_repo = True
             for repo in config['process_repositories']:
-                process_coll_add = OLToolbox.import_list(
-                    os.path.join(collection_url % repo, coll), fatal=False)
+                if first_repo:
+                    # check if the collection is available locally
+                    process_coll_add = OLToolbox.import_list(coll, fatal=False)
+                else:
+                    process_coll_add = None
+                if process_coll_add is None:
+                    # check if the collection is available in the repository
+                    process_coll_add = OLToolbox.import_list(
+                        os.path.join(collection_url % repo, coll), fatal=False)
                 if process_coll_add is not None:
                     found_collection = True
-                    process_coll += process_coll_add
+                    process_coll.extend(process_coll_add)
+                first_repo = False
             if not found_collection:
                 print 'ERROR: process collection ' + coll + ' not found.'
                 Exit(1)
@@ -523,10 +539,13 @@ def find_process_src(generate = True):
     if generate: return (loops,process) for all processes which exist
     (i.e. there is a directory which contains version.info)
     if only download (generate = False): return only those processes
-    for which version.info contains 'process_version'
+    for which version.info contains 'hash'
     (i.e. they are controlled by the downloader)."""
     process_list = []
-    process_directories = os.listdir(config['process_src_dir'])
+    if os.path.isdir(config['process_src_dir']):
+        process_directories = os.listdir(config['process_src_dir'])
+    else:
+        return process_list
 
     for procdir in process_directories:
         version_info = OLToolbox.import_dictionary(
@@ -534,9 +553,9 @@ def find_process_src(generate = True):
             fatal = False)
         if version_info:
             loops = version_info['loops']
-            process_version = version_info.get('process_version', None)
-            if process_version or generate:
-                # download: only add if process_version != None;
+            process_hash = version_info.get('hash', None)
+            if process_hash or generate:
+                # download: only add if process_hash != None;
                 # generate: always add
                 process_list.append((loops, procdir))
 
@@ -546,7 +565,7 @@ def find_process_src(generate = True):
 def revoke_processes():
     """Revocation of deprecated processes.
     Remove processes (src, obj, lib) listed in 'revoke' on the server
-    if the process source directory contains version.info with process_update."""
+    if the process source directory contains version.info with 'hash'."""
     revocation_list = OLToolbox.import_list(os.path.join(collection_url, 'revoke'), fatal = False)
     if revocation_list is None:
         revocation_list = []
@@ -556,7 +575,7 @@ def revoke_processes():
         processlib_obj_dir = os.path.join(config['process_obj_dir'], proc)
         if os.path.isdir(processlib_src_dir):
             version_info = OLToolbox.import_dictionary(os.path.join(processlib_src_dir, 'version.info'), fatal = False)
-            if version_info and 'process_version' in version_info:
+            if version_info and 'hash' in version_info:
                 print 'revoking', proc
                 Execute(Delete(processlib_src_dir))
                 if os.path.isdir(processlib_obj_dir):
@@ -577,7 +596,7 @@ def download_processes(processes):
 
 def generate_process(loops, processlib):
     """Generate a process library"""
-    if subprocess.call(['scons', '-Q'] + generator_options + ['-f', config['code_generator_script'], 'PROC=' + processlib, 'LOOPS=' + loops]) != 0:
+    if subprocess.call([scons_cmd, '-Q'] + generator_options + ['-f', config['code_generator_script'], 'PROC=' + processlib, 'LOOPS=' + loops]) != 0:
         print 'ERROR: code generator failed.'
         Exit(1)
 
@@ -589,21 +608,15 @@ if config['process_update']:
     process_list.extend(find_process_src(generate_process_true))
 
 if download_process_true:
-    if process_list:
-        proc_ls = list(set([proc for loops, proc in process_list]))
-        revoke_processes()
-        download_processes(proc_ls)
+    proc_ls = list(set([proc for loops, proc in process_list]))
+    revoke_processes()
+    download_processes(proc_ls)
 
 process_list = map(get_auto_loops, process_list)
 
 process_list = list(set(process_list))
 
-
-env_born_process = env.Clone(F90FLAGS = config['f90_flags'] + config['born_optimisation'],
-                             RPATH = [Literal('\$$ORIGIN/../lib')])
-
-env_loop_process = env.Clone(F90FLAGS = config['f90_flags'] + config['loop_optimisation'],
-                             RPATH = [Literal('\$$ORIGIN/../lib')])
+env.Append(RPATH = [Literal('\$$ORIGIN/../lib')])
 
 
 for (loops, processlib) in process_list:
@@ -624,8 +637,9 @@ for (loops, processlib) in process_list:
     if config['compile'] > 0 and not GetOption('clean'):
 
         # list of process library source files
-        process_dp_src, process_mp_src, info_files = OLToolbox.get_processlib_src(loops,
-                                                         processlib, config['process_src_dir'])
+        process_dp_src, process_mp_src, info_files = OLToolbox.get_processlib_src(
+            loops, processlib, config['process_src_dir'],
+            compile_extra=config['compile_extra'])
 
         # prepend global libary info
         library_info_file = os.path.join(processlib_src_dir, 'info_' + processlib + '.txt')
@@ -634,6 +648,7 @@ for (loops, processlib) in process_list:
 
         # set up process library source files for preprocessing
         process_cpp_container = CPPContainer(
+            scons_cmd = scons_cmd,
             mp = config['precision'],
             cpp_defs = cpp_defines + [OLBaseConfig.loops_cppdefs[loopspec] for loopspec in loops],
             target = 'cpp_' + processlib,
@@ -662,11 +677,15 @@ for (loops, processlib) in process_list:
             Execute(Delete(delete_libs))
 
         # compile process library
-        if 'l' in loops:
-            libprocess = process_lib.compile(env = env_loop_process, shared = config['shared_libraries'])
-        else:
-            libprocess = process_lib.compile(env = env_born_process, shared = config['shared_libraries'])
-
+        libprocess = process_lib.compile(
+            env = env,
+            shared = config['shared_libraries'],
+            env_mod = [
+              ('^(virtual_\d|tensorsum_|loop_)',
+               {'F90FLAGS': config['f90_flags'] + config['loop_optimisation']}),
+              ('',
+               {'F90FLAGS': config['f90_flags'] + config['born_optimisation']})]
+        )
         # concatenate subprocess info files to a library info file
         libprocess_info = env.Substfile(processlib_info, info_files, LINESEPARATOR = '')
         libprocess += libprocess_info

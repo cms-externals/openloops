@@ -18,7 +18,8 @@
 
 
 module ol_kinematics_/**/REALKIND
-  use KIND_TYPES, only: MaxParticles
+  use KIND_TYPES
+  use ol_global_decl, only: MaxParticles
   implicit none
   integer :: n_
   integer :: binom2(MaxParticles) = [((n_*(n_-1))/2, n_=1, MaxParticles)]
@@ -119,6 +120,33 @@ end function cont_L_cmplx
 ! *********************************************************************
 subroutine rambo(sqrt_s, m_ex, p_rambo)
 ! *********************************************************************
+! Calls Rambo for 2 -> n-2 or 1 -> n-1 PS
+! *********************************************************************
+! sqrt_s         = total cms energy
+! m_ex(n)        = external particle masses
+! p_rambo(0:3,n) = momenta, n = 1,2 incoming; n = 3,..,n outgoing
+! *********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_external_decl_/**/DREALKIND, only: n_scatt
+  implicit none
+  real(REALKIND), intent(in)  :: sqrt_s, m_ex(:)
+  real(REALKIND), intent(out) :: p_rambo(0:3,size(m_ex))
+
+  if (n_scatt == 2) then
+    call rambo_2scatt(sqrt_s, m_ex, p_rambo)
+  else if (n_scatt == 1) then
+    call rambo_decay(sqrt_s, m_ex, p_rambo)
+  else
+    print*, "[OpenLoops] ERROR: Phase-space not available for scattering of: ",  n_scatt , " -> ", size(m_ex)-n_scatt
+    stop
+  end if
+
+end subroutine rambo
+
+
+! *********************************************************************
+subroutine rambo_2scatt(sqrt_s, m_ex, p_rambo)
+! *********************************************************************
 ! Generate 2 -> n-2 PS-point with P(1) + P(2) = P(3) + ... + P(n)
 ! Apply cleaning procedure to get full numerical precision
 ! *********************************************************************
@@ -132,7 +160,7 @@ subroutine rambo(sqrt_s, m_ex, p_rambo)
 !   kA + kB        = 0
 ! *********************************************************************
   use KIND_TYPES, only: REALKIND
-  use ol_rambo, only: rambo0 => rambo
+  use ol_ramboX, only: rambo0 => rambo
   implicit none
   real(REALKIND), intent(in)  :: sqrt_s, m_ex(:)
   real(REALKIND), intent(out) :: p_rambo(0:3,size(m_ex))
@@ -167,7 +195,39 @@ subroutine rambo(sqrt_s, m_ex, p_rambo)
   call rambo0(n-2, sqrt_s, m_ex(3:n), p_scatt, wgt)
   p_rambo(  0,3:n) = p_scatt(  4,1:n-2)
   p_rambo(1:3,3:n) = p_scatt(1:3,1:n-2)
-end subroutine rambo
+end subroutine rambo_2scatt
+
+
+! *********************************************************************
+subroutine rambo_decay(sqrt_s, m_ex, p_rambo)
+! *********************************************************************
+! Generate 1 -> n-1 PS-point with P(1) = P(2) + ... + P(n)
+! Apply cleaning procedure to get full numerical precision
+! *********************************************************************
+! sqrt_s         = total cms energy
+! m_ex(n)        = external particle masses
+! p_rambo(0:3,n) = momenta, n = 2,..,n outgoing
+! *********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_ramboX, only: rambo0 => rambo
+  implicit none
+  real(REALKIND), intent(in)  :: sqrt_s, m_ex(:)
+  real(REALKIND), intent(out) :: p_rambo(0:3,size(m_ex))
+  real(REALKIND) :: p_scatt(4,size(m_ex)-1), wgt
+  integer :: n, k
+  n = size(m_ex)
+  if( m_ex(1) == 0 ) then
+    print*, "[OpenLoops] Warning: decay of massless particle!"
+  else
+    p_rambo(0,1) =  sqrt_s
+    p_rambo(1,1) =  0
+    p_rambo(2,1) =  0
+    p_rambo(3,1) =  0
+  end if
+  call rambo0(n-1, sqrt_s, m_ex(2:n), p_scatt, wgt)
+  p_rambo(  0,2:n) = p_scatt(  4,1:n-1)
+  p_rambo(1:3,2:n) = p_scatt(1:3,1:n-1)
+end subroutine rambo_decay
 
 
 subroutine rambo_c(sqrt_s, m_ex, n, p_rambo) bind(c,name="ol_rambo")
@@ -194,7 +254,7 @@ subroutine rambo(sqrt_s, m_ex, p_rambo)
   real(REALKIND), intent(in)  :: sqrt_s, m_ex(:)
   real(REALKIND), intent(out) :: p_rambo(0:3,size(m_ex))
   p_rambo = 0 ! prevent compiler warning
-  write(*,*) 'ERROR: Rambo is not available.'
+  write(*,*) '[OpenLoops] ERROR: Rambo is not available.'
   stop
 end subroutine rambo
 
@@ -206,7 +266,7 @@ subroutine rambo_c(sqrt_s, m_ex, n, p_rambo) bind(c,name="ol_rambo")
   real(c_double), intent(out) :: p_rambo(0:3,n)
   real(c_double), intent(in)  :: sqrt_s, m_ex(n)
   p_rambo = 0 ! prevent compiler warning
-  write(*,*) 'ERROR: Rambo is not available.'
+  write(*,*) '[OpenLoops] ERROR: Rambo is not available.'
   stop
 end subroutine rambo_c
 
@@ -228,6 +288,7 @@ subroutine clean_mom_in(P_in, m_ext2, P, n)
 ! so that energy conservation is fulfilled up to terms of O(eps^3)
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND, DREALKIND
+  use ol_parameters_decl_/**/REALKIND, only: psp_tolerance
   implicit none
   real(DREALKIND), intent(in)  :: P_in(0:3,n)
   integer,         intent(in)  :: n
@@ -239,7 +300,6 @@ subroutine clean_mom_in(P_in, m_ext2, P, n)
   real(REALKIND)  :: eps1, eps
   integer         :: nex, i, pout_max_pos, pout_max_pos_arr(1)
   real            :: prec
-  real, parameter :: tolerance = 1.e-9
 
   P = P_in
 
@@ -256,10 +316,11 @@ subroutine clean_mom_in(P_in, m_ext2, P, n)
   ! check momentum conservation
   do i = 0, 3
     prec = abs(sum(P(i,:)))/E_ref
-    if (prec > tolerance) then
-      write(*,*) "*** WARNING ***"
-      write(*,*) "OpenLoops subroutine clean_mom: inconsistent phase space point."
-      write(*,*) "Momentum conservation is only satisfied to", -log10(prec), "digits."
+    if (prec > psp_tolerance) then
+      write(*,*) "[OpenLoops] === WARNING ==="
+      write(*,*) "[OpenLoops] OpenLoops subroutine clean_mom: inconsistent phase space point."
+      write(*,*) "[OpenLoops] Momentum conservation is only satisfied to", -log10(prec), "digits."
+      write(*,*) "[OpenLoops] ==============="
     end if
   end do
 
@@ -268,10 +329,11 @@ subroutine clean_mom_in(P_in, m_ext2, P, n)
     P2(nex) = P(1,nex)*P(1,nex) + P(2,nex)*P(2,nex) + P(3,nex)*P(3,nex)
     P0(nex) = sign(sqrt(P2(nex) + m_ext2(nex)), P(0,nex))
     prec = abs(P(0,nex)-P0(nex))/E_ref
-    if(prec > tolerance) then
-      write(*,*) "*** WARNING ***"
-      write(*,*) "OpenLoops subroutine clean_mom: inconsistent phase space point."
-      write(*,*) "On-shell condition is only satisfied to", -log10(prec), "digits."
+    if(prec > psp_tolerance) then
+      write(*,*) "[OpenLoops] === WARNING ==="
+      write(*,*) "[OpenLoops] OpenLoops subroutine clean_mom: inconsistent phase space point."
+      write(*,*) "[OpenLoops] On-shell condition is only satisfied to", -log10(prec), "digits."
+      write(*,*) "[OpenLoops] ==============="
     end if
   end do
 
@@ -331,11 +393,11 @@ subroutine clean_mom_in(P_in, m_ext2, P, n)
     end if
   end do
 
-  ! print momena after cleaning
-!   do i = 1, n
-!     write(*,*) P(:,i), (P(0,i)**2-P(1,i)**2-P(2,i)**2-P(3,i)**2)-m_ext2(i)
-!   end do
-!   write(*,*) sum(P(0,:)), sum(P(1,:)), sum(P(2,:)), sum(P(3,:))
+  ! print momenta after cleaning
+!    do i = 1, n
+!      write(*,*) P(:,i), (P(0,i)**2-P(1,i)**2-P(2,i)**2-P(3,i)**2)-m_ext2(i)
+!    end do
+!    write(*,*) sum(P(0,:)), sum(P(1,:)), sum(P(2,:)), sum(P(3,:))
 !   write(*,*)
 
 end subroutine clean_mom_in
@@ -374,7 +436,7 @@ subroutine dirty_mom(P_in, P, n, DIG)
 ! Needs RAMBO subroutine rans().
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND, DREALKIND
-  use ol_rambo, only: rans
+  use ol_ramboX, only: rans
   implicit none
   integer,        intent(in)  :: n, DIG
   real(REALKIND), intent(in)  :: P_in(0:3,n)
@@ -400,7 +462,7 @@ subroutine dirty_mom(P_in,P, n, DIG)
   integer,        intent(in)  :: n, DIG
   real(REALKIND), intent(in)  :: P_in(0:3,n)
   real(REALKIND), intent(out) :: P(0:3,n)
-  write(*,*) 'ERROR: dirty_mom() requires Rambo.'
+  write(*,*) '[OpenLoops] ERROR: dirty_mom() requires Rambo.'
   stop
 end subroutine dirty_mom
 ! #ifdef USE_RAMBO
@@ -411,16 +473,18 @@ end subroutine dirty_mom
 subroutine conv_mom_scatt2in(P_scatt, m_ext2, P_in_clean, perm_inv, n)
 ! Keep two incoming momenta and reverse outgoing momenta.
 ! Apply phase space cleaning and crossing.
+! ToDo: cleaning for n_scatt /= 2
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND, DREALKIND
   use ol_external_decl_/**/REALKIND, only: nParticles, P_ex, inverse_crossing
+  use ol_external_decl_/**/DREALKIND, only: n_scatt
   use ol_parameters_decl_/**/DREALKIND, only: scalefactor
   implicit none
-  integer,         intent(in)  :: n
-  real(DREALKIND), intent(in)  :: P_scatt(0:3,n)
-  real(REALKIND),  intent(in)  :: m_ext2(n)
-  real(REALKIND),  intent(out) :: P_in_clean(0:3,n)
-  integer,         intent(in)  :: perm_inv(n)
+  integer,           intent(in)  :: n
+  real(DREALKIND),   intent(in)  :: P_scatt(0:3,n)
+  real(REALKIND),    intent(in)  :: m_ext2(n)
+  real(REALKIND),    intent(out) :: P_in_clean(0:3,n)
+  integer,           intent(in)  :: perm_inv(n)
   real(DREALKIND) :: P_in(0:3,n)
   real(REALKIND)  :: P_clean(0:3,n), m_ext2_perm(n)
   integer         :: k
@@ -430,12 +494,16 @@ subroutine conv_mom_scatt2in(P_scatt, m_ext2, P_in_clean, perm_inv, n)
   do k = 1, n
     m_ext2_perm(perm_inv(k)) = m_ext2(k)
   end do
-  P_in(:,1:2) =   scalefactor * P_scatt(:,1:2)
-  P_in(:,3:)  = - scalefactor * P_scatt(:,3:)
-  ! Clean momenta to get full numerical precision.
-  ! Do the cleaning in the original permutation where the first two momenta are incoming.
-  ! Otherwise the beam alignment (zero components) might be spoiled by the cleaning.
-  call clean_mom_in(P_in, m_ext2_perm, P_clean, n)
+  P_in(:,1:n_scatt) =   scalefactor * P_scatt(:,1:n_scatt)
+  P_in(:,n_scatt+1:)  = - scalefactor * P_scatt(:,n_scatt+1:)
+  if (n_scatt == 2) then
+    ! Clean momenta to get full numerical precision.
+    ! Do the cleaning in the original permutation where the first two momenta are incoming.
+    ! Otherwise the beam alignment (zero components) might be spoiled by the cleaning.
+    call clean_mom_in(P_in, m_ext2_perm, P_clean, n)
+  else
+    P_clean = P_in
+  end if
   do k = 1, n
     P_in_clean(:,k) = P_clean(:,perm_inv(k))
   end do
@@ -517,7 +585,7 @@ end subroutine write_INmom
 ! **********************************************************************
 subroutine internal_momenta(P, Npart)
 ! **********************************************************************
-! P(0:3,Npart) = external real-valued four-momenta (stantdard representation)
+! P(0:3,Npart) = external real-valued four-momenta (standard representation)
 ! Npart        = total (in & out) external particle number
 ! Q(1:5,1:Npart^2-2) = internal four-momenta in light-cone representation;
 !                      the fifth component is the C-valued squared momentum.

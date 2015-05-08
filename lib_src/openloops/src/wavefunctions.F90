@@ -54,7 +54,8 @@ subroutine wf_V(P, M, POL, J_V)
 ! J_V(1:4) = EPS^*(-P,POL)
 !          = outgoing vector boson wave function (light-cone representation)
 ! **********************************************************************
-  use KIND_TYPES, only: MaxParticles
+  use KIND_TYPES
+  use ol_global_decl, only: MaxParticles
   use ol_external_decl_/**/REALKIND, only: P_ex, Ward_array
   use ol_parameters_decl_/**/DREALKIND, only: Ward_tree, Ward_loop
   use ol_kinematics_/**/REALKIND, only: Std2LC_Rep
@@ -182,7 +183,8 @@ end subroutine wf_interface_V
 
 
 subroutine wf_gf_V(P,POL,J_V)
-  use KIND_TYPES, only: MaxParticles
+  use KIND_TYPES
+  use ol_global_decl, only: MaxParticles
   use ol_external_decl_/**/REALKIND, only: gf_array, inverse_crossing
   use ol_parameters_decl_/**/REALKIND, only: CI
   use ol_momenta_decl_/**/REALKIND, only: Q
@@ -337,7 +339,7 @@ subroutine wfIN_V(P, M, POL, EPS)
   complex(REALKIND) :: EPHI_PLUS, EPHI_MINUS
 
   if (P(0) < 0) then
-    write (*,*) 'wfIN_V: P0 < 0 forbidden'
+    write (*,*) '[OpenLoops] ERROR in subroutine wfIN_V: P0 < 0 forbidden'
     stop
   end if
 
@@ -380,6 +382,8 @@ subroutine wfIN_V(P, M, POL, EPS)
     EPHI_PLUS  = (P(1) + CI*P(2)) / P_T ! substitute for cmplx()
     EPHI_MINUS = (P(1) - CI*P(2)) / P_T ! substitute for cmplx()
 
+  else
+    write(*,*) '[OpenLoops] ERROR in subroutine wfIN_V: P^2_T < 0 forbidden'
   end if
 
   if (POL == 1) then ! plus polarisation
@@ -489,7 +493,7 @@ subroutine wfIN_Q(P, M, POL, WF)
   complex(REALKIND) :: ZETA
 
   if (P(0) < 0) then
-    write(*,*) 'U_WF: P0 < 0 forbidden'
+    write(*,*) '[OpenLoops] ERROR in subroutine wfIN_Q: P0 < 0 forbidden'
     stop
   end if
 
@@ -663,7 +667,8 @@ end subroutine wf_A
 ! **********************************************************************
 subroutine wf_V(P, M, POL, V)
 ! **********************************************************************
-  use KIND_TYPES, only: MaxParticles
+  use KIND_TYPES
+  use ol_global_decl, only: MaxParticles
   use ol_external_decl_/**/REALKIND, only: P_ex, Ward_array
   use ol_parameters_decl_/**/DREALKIND, only: Ward_tree, Ward_loop
   use ol_data_types_/**/REALKIND, only: wfun
@@ -872,7 +877,8 @@ subroutine wf_V(P, M, POL, V)
 ! V(k)%j(1:4) = EPS^*(-P,POL(k))
 !             = outgoing vector boson wave function (light-cone representation)
 ! **********************************************************************
-  use KIND_TYPES, only: MaxParticles
+  use KIND_TYPES
+  use ol_global_decl, only: MaxParticles
   use ol_external_decl_/**/REALKIND, only: P_ex, Ward_array
   use ol_parameters_decl_/**/DREALKIND, only: Ward_tree, Ward_loop
   use ol_kinematics_/**/REALKIND, only: Std2LC_Rep

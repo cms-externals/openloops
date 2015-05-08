@@ -17,16 +17,6 @@
 ! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
 
 
-module ol_OPP_storing_/**/REALKIND
-  use KIND_TYPES, only: REALKIND
-  implicit none
-  complex(REALKIND), save :: Gtensor_stored(210) ! stored as an array of rank 6
-  integer,           save :: rank_stored
-  integer,           save :: array_length_stored ! length of the array associated with rank_stored
-end module ol_OPP_storing_/**/REALKIND
-
-
-
 module ol_loop_routines_/**/REALKIND
   implicit none
   contains
@@ -40,7 +30,7 @@ subroutine tensor_integral(rank, momenta, masses_2, TI)
   use ol_loop_parameters_decl_/**/DREALKIND, only: tensor_reduction_error
   use ol_external_decl_/**/REALKIND, only: nParticles, P_ex, crossing, inverse_crossing
   use ol_tensor_bookkeeping, only: rank_to_size, tensor_size
-  use ol_Std2LC_converter_/**/REALKIND, only: Std_Contr2LC_Tensor
+  use ol_Std2LC_converter_/**/REALKIND, only: lorentz2lc_tensor
   use ol_kinematics_/**/REALKIND, only: LC2Std_Rep_cmplx, momenta_invariants
 #ifdef COLLIER_LEGACY
   use bt_Interface, only: CalcTensorTNr, CalcTensorFr ! direct reduction routines
@@ -80,19 +70,19 @@ subroutine tensor_integral(rank, momenta, masses_2, TI)
   ! Error handling should be in a separate routine which handles errors from all reduction libraries.
   ! Call might be moved to the process code.
   if (tensor_reduction_error > 0) then
-    write(*,*) "*** TENSOR INTEGRAL REDUCTION ERROR ***"
+    write(*,*) "[OpenLoops] === TENSOR INTEGRAL REDUCTION ERROR ==="
     if (TI_library == 1) then
-      write(*,*) "library: Coli"
+      write(*,*) "[OpenLoops] library: Coli"
     else if (TI_library == 2) then
-      write(*,*) "library: DD"
+      write(*,*) "[OpenLoops] library: DD"
     end if
-    write(*,*) "process: ", current_processname
-    write(*,*) "phase space point:"
+    write(*,*) "[OpenLoops] process: ", current_processname
+    write(*,*) "[OpenLoops] phase space point:"
     do l = 1, nParticles
       write(*,*) P_ex(:,l)
       crossing(inverse_crossing(l)) = l
     end do
-    write(*,*) "crossing:", crossing(1:nParticles)
+    write(*,*) "[OpenLoops] crossing:", crossing(1:nParticles)
     T2dim = 0
   end if
 
@@ -110,7 +100,7 @@ subroutine tensor_integral(rank, momenta, masses_2, TI)
 #endif
 #endif
 
-  call Std_Contr2LC_Tensor(T_Lor, TI)
+  call lorentz2lc_tensor(rank, T_Lor, TI)
 #else
   TI = 0 ! prevent compiler warning
   print *, '[OpenLoops] ERROR in tensor_integral: Collier is not available'
@@ -325,7 +315,7 @@ function TI2_call(rank, momenta, masses_2, Gsum, TI)
     call samurai_interface(rank, momenta, masses_2, Gsum, TI2_call)
   else
     write(*,*) '[OpenLoops] ERROR in TI2_call: amp_switch out of range: ', a_switch
-    write(*,*) 'note that modes 2 and 3 are not supported in loop^2.'
+    write(*,*) '[OpenLoops] note that modes 2 and 3 are not supported in loop^2.'
     stop
   end if
 end function TI2_call
@@ -430,14 +420,14 @@ end subroutine G0initialisation
 subroutine cts_numerator(q, amp)
   use KIND_TYPES, only: REALKIND
   use ol_loop_momentum_/**/REALKIND, only: loop_mom_tens
-  use ol_OPP_storing_/**/REALKIND
+  use ol_tensor_storage_/**/REALKIND
   implicit none
   complex(REALKIND), intent(in)  :: q(0:3)
   complex(REALKIND), intent(out) :: amp
   complex(REALKIND) :: Qtensor(array_length_stored), QloopLC(1:4)
 
-  call loop_mom_tens(q, rank_stored, Qtensor)
-  amp = tensor_contract(Qtensor, Gtensor_stored) ! contract up to the length of Qtensor
+  call loop_mom_tens(q, Qtensor)
+  amp = tensor_contract(Qtensor, tensor_stored) ! contract up to the length of Qtensor
 
 end subroutine cts_numerator
 
@@ -446,7 +436,7 @@ end subroutine cts_numerator
 function samurai_num(ncut, q, mu2)
   use KIND_TYPES, only: REALKIND
   use ol_loop_momentum_/**/REALKIND, only: loop_mom_tens
-  use ol_OPP_storing_/**/REALKIND
+  use ol_tensor_storage_/**/REALKIND
   implicit none
   complex(REALKIND), intent(in) :: q(4) ! q = [p_x,p_y,p_z,E]
   complex(REALKIND), intent(in) :: mu2
@@ -457,8 +447,8 @@ function samurai_num(ncut, q, mu2)
   q_tmp(0)   = q(4)
   q_tmp(1:3) = q(1:3)
 
-  call loop_mom_tens(q_tmp, rank_stored, Qtensor)
-  samurai_num = tensor_contract(Qtensor, Gtensor_stored) ! contract up to the length of Qtensor
+  call loop_mom_tens(q_tmp, Qtensor)
+  samurai_num = tensor_contract(Qtensor, tensor_stored) ! contract up to the length of Qtensor
 
 end function samurai_num
 
@@ -468,7 +458,7 @@ subroutine cuttools_interface(rank, momenta, masses2, Gtensor, M2)
   use KIND_TYPES, only: REALKIND, DREALKIND
   use ol_loop_parameters_decl_/**/DREALKIND, only: opprootsvalue, mureg, de1_UV, de1_IR, de2_i_IR
   use ol_kinematics_/**/REALKIND, only: LC2Std_Rep
-  use ol_OPP_storing_/**/REALKIND
+  use ol_tensor_storage_/**/REALKIND
   use ol_tensor_bookkeeping, only: tensor_size
 #ifdef USE_CUTTOOLS
   use cts_numdummies, only: dpnumdummy, mpnumdummy
@@ -487,14 +477,13 @@ subroutine cuttools_interface(rank, momenta, masses2, Gtensor, M2)
   logical            :: cts_stable
 
   if (de1_UV /= de1_IR) then
-    write(*,*) '========'
-    write(*,*) 'ERROR in subroutine cuttools_interface:'
-    write(*,*) 'pole1_UV != pole1_IR is not allowed with CutTools.'
-    write(*,*) '========'
+    write(*,*) '[OpenLoops] === ERROR ==='
+    write(*,*) '[OpenLoops] pole1_UV != pole1_IR is not allowed with CutTools.'
+    write(*,*) '[OpenLoops] ============='
     stop
   end if
 
-  Gtensor_stored(:size(Gtensor)) = Gtensor
+  tensor_stored(:size(Gtensor)) = Gtensor
   rank_stored = rank
   array_length_stored = tensor_size(rank)
 
@@ -530,7 +519,7 @@ subroutine samurai_interface(rank, momenta, masses2, Gtensor, M2)
   use ol_loop_parameters_decl_/**/REALKIND, only: &
     & mureg2, de1_UV, de1_IR, de2_i_IR
   use ol_kinematics_/**/REALKIND, only: LC2Std_Rep
-  use ol_OPP_storing_/**/REALKIND
+  use ol_tensor_storage_/**/REALKIND
   use ol_tensor_bookkeeping, only: tensor_size
 #ifdef USE_SAMURAI
   use msamurai, only: samurai
@@ -542,19 +531,18 @@ subroutine samurai_interface(rank, momenta, masses2, Gtensor, M2)
   complex(REALKIND), intent(out) :: M2
 #if defined(USE_SAMURAI) && defined(PRECISION_dp)
   complex(REALKIND) :: sam_amp_array(-2:0), sam_r1
-  real(REALKIND)    :: mom(0:3), sam_pp(0:size(masses2)-1,4), sam_m2(size(masses2))
+  real(REALKIND)    :: mom(0:3), sam_pp(0:size(masses2)-1,4)
   integer           :: l
   logical           :: sam_test
 
   if (de1_UV /= de1_IR) then
-    write(*,*) '========'
-    write(*,*) 'ERROR in subroutine samurai_interface:'
-    write(*,*) 'pole1_UV != pole1_IR is not allowed with Samurai.'
-    write(*,*) '========'
+    write(*,*) '[OpenLoops] === ERROR ==='
+    write(*,*) '[OpenLoops] pole1_UV != pole1_IR is not allowed with Samurai.'
+    write(*,*) '[OpenLoops] ========'
     stop
   end if
 
-  Gtensor_stored(:size(Gtensor)) = Gtensor
+  tensor_stored(:size(Gtensor)) = Gtensor
   rank_stored = rank
   array_length_stored = tensor_size(rank)
 
@@ -565,8 +553,7 @@ subroutine samurai_interface(rank, momenta, masses2, Gtensor, M2)
     sam_pp(l,4) = mom(0)
   end do
 
-  sam_m2 = abs(masses2)
-  call samurai(samurai_num, sam_amp_array, sam_r1, sam_pp, sam_m2, size(masses2), rank, 1, mureg2, sam_test)
+  call samurai(samurai_num, sam_amp_array, sam_r1, sam_pp, masses2, size(masses2), rank, 1, mureg2, sam_test) !, cache_flag, scalar_cache)
 
   M2 = sam_amp_array(0) + sam_amp_array(-1)*de1_IR + sam_amp_array(-2)*de2_i_IR
 ! #if defined(USE_SAMURAI) && defined(PRECISION_dp)

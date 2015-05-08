@@ -20,10 +20,6 @@
 module kind_types
   implicit none
 
-  !!! THIS DOES NOT BELONG HERE !!!
-  integer, parameter :: MaxParticles = 9
-  !!! THIS DOES NOT BELONG HERE !!!
-
   integer, parameter :: intkind1 = selected_int_kind(2)
   integer, parameter :: intkind2 = selected_int_kind(4)
 #ifdef USE_sp

@@ -6,21 +6,21 @@
 
 # Python 2 executable: if "python2" doesn't exist, use "python"
 command -v python2 > /dev/null && PYTHON="python2" || PYTHON="python"
+# SCons executable: prefer the user's installation and use scons-local as fallback
+command -v scons > /dev/null && SCONS="scons -Q" || SCONS="./scons -Q"
 # directory for generic libraries
 LIBDIR="lib"
 # directory for process libraries
 PROCLIBDIR="proclib"
 # directory for Python programs
-PYOLRUNDIR="pyol/run"
+PYOLBINDIR="pyol/bin"
 # directories for Python modules
-PYOLCONFDIR="pyol/config"
 PYOLMODDIR="pyol/tools"
-PYOLDLDIR="pyol/download"
 
 if [ -z $BASH_VERSION ]; then
   # the script is sourced from a shell which is not Bash
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$LIBDIR":"$PROCLIBDIR"
-  export PYTHONPATH=$PYTHONPATH:"$LIBDIR":"$PROCLIBDIR":"$PYOLRUNDIR":"$PYOLMODDIR"
+  export PYTHONPATH=$PYTHONPATH:"$PYOLMODDIR"
 
   echo "Relative paths set, i.e. programs must be run from the OpenLoops directory."
   echo "Use Bash if you need absolute paths."
@@ -43,13 +43,11 @@ else
 
   LIBDIR="$BASEDIR/$LIBDIR"
   PROCLIBDIR="$BASEDIR/$PROCLIBDIR"
-  PYOLRUNDIR="$BASEDIR/$PYOLRUNDIR"
-  PYOLCONFDIR="$BASEDIR/$PYOLCONFDIR"
+  PYOLBINDIR="$BASEDIR/$PYOLBINDIR"
   PYOLMODDIR="$BASEDIR/$PYOLMODDIR"
-  PYOLDLDIR="$BASEDIR/$PYOLDLDIR"
 
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$LIBDIR":"$PROCLIBDIR"
-  export PYTHONPATH=$PYTHONPATH:"$LIBDIR":"$PROCLIBDIR":"$PYOLRUNDIR":"$PYOLCONFDIR":"$PYOLMODDIR"
+  export PYTHONPATH=$PYTHONPATH:"$PYOLMODDIR"
 
   if [ "${BASH_SOURCE[0]}" != "$0" ]; then
     # if the script is sourced
@@ -80,8 +78,16 @@ case "$1" in
     echo "  interactive(int)       -- open a Python interpreter with the openloops"
     echo "                            module loaded and paths set;"
     echo "                            options are passed to Python."
+    echo "  update                 -- update OpenLoops and installed processes"
+    echo "                            (only if installed from SVN)."
+    echo "  update --processes     -- update installed processes."
+    echo "  libinstall <process(es)> -- download and compile process libraries."
     echo "  run <process>          -- calculate a sample of phase space points"
-    echo "                            for all sub-processesfor of the process <process>;"
+    echo "                            for all sub-processes for of the process <process>."
+    echo "  clean <process(es)>    -- remove object code and libraries of specified processes."
+    echo "  clean --all            -- remove object code and libraries of all processes."
+    echo "  rm <process(es)>       -- remove source, object code and libraries of specified processes."
+    echo "  rm --all               -- remove source, object code and libraries of all processes."
     echo "  check(chk) <file/proc> -- create/validate process test data for the process <proc>"
     echo "                            or as defined in the file <file>."
     echo "  execute(exe) <script>  -- run the Python script following 'execute';"
@@ -92,8 +98,8 @@ case "$1" in
     echo "Options for 'run' and 'check':"
     echo "  energy=<energy>            The energy used in the phase space generation"
     echo "                             (default is default_energy)."
-    echo "  subprocesses=sub1,sub2,... The subprocess which should be included."
-    echo "                             Default includes all sub-processes"
+    echo "  subprocesses=sub1,sub2,... The subprocess(es) which should be included."
+    echo "                             Default includes all subprocesses"
     echo "                             which are in the process library."
     echo "                             Individual crossings can be given to each"
     echo "                             subprocess e.g. like sub1[1,2,...]"
@@ -105,8 +111,7 @@ case "$1" in
     echo "  save=0/1/<file>/new        Save data to file -- new: if the default"
     echo "                             data file does not exist, yet."
     echo ""
-    echo "  Also all parameters of the the Parameters constructor are accepted"
-    echo "  (masses, couplings and other settings)."
+    echo "  Other key=value options are used to initialise OpenLoops parameters."
     echo ""
     echo "Options for 'show':"
     echo "  verbose=<level>            verbose=0 only some generic information,"
@@ -128,14 +133,14 @@ case "$1" in
 
   "interactive"|"int")
     shift
-    $PYTHON -i "$PYOLRUNDIR/interactive.py" "$@";;
+    $PYTHON -i "$PYOLBINDIR/interactive.py" "$@";;
 
   "run")
     shift
     to_run="$1"
     if [ -n "$to_run" ]; then
       shift
-      $PYTHON "$PYOLRUNDIR/run.py" "$to_run" "$@"
+      $PYTHON "$PYOLBINDIR/run.py" "$to_run" "$@"
     else
       echo "A process must be specified."
       exit 1
@@ -146,7 +151,7 @@ case "$1" in
     to_run="$1"
     if [ -n "$to_run" ]; then
       shift
-      $PYTHON "$PYOLRUNDIR/run.py" "--check" "$to_run" "$@"
+      $PYTHON "$PYOLBINDIR/run.py" "--check" "$to_run" "$@"
     else
       echo "A process or a process check definition file must be specified."
       exit 1
@@ -168,7 +173,7 @@ case "$1" in
     to_show="$1"
     if [ -n "$to_show" ]; then
       shift
-      $PYTHON "$PYOLRUNDIR/show.py" "$to_show" "$@"
+      $PYTHON "$PYOLBINDIR/show.py" "$to_show" "$@"
     else
       echo "A process or test data file must be specified."
       exit 1
@@ -176,7 +181,78 @@ case "$1" in
 
   "upload")
     shift
-    $PYTHON "$PYOLDLDIR/upload_process.py" "$@";;
+    $PYTHON "$PYOLBINDIR/upload_process.py" "$@";;
+
+  "update")
+    shift
+    svn up
+    if [ "$?" == "0" ]; then
+      if [ "$1" == "--processes" -o "$1" == "-p" ]; then
+        shift
+      fi
+      $SCONS process_update=1 compile=2 "$@"
+    else
+      if [ "$1" == "--processes" -o "$1" == "-p" ]; then
+        shift
+        $SCONS process_update=1 compile=2 "$@"
+      else
+        echo "[OpenLoops] Automatic update is only supported for installations from SVN."
+        echo "Too keep the installed OpenLoops version and update the installed"
+        echo "processes only, run"
+        echo "$ ./openloops update --processes"
+        exit 1
+      fi
+    fi
+    ;;
+
+  "libinstall"|"lib")
+    shift
+    options=""
+    processes=""
+    for arg in "$@"; do
+      if [[ "$arg" == "-"* || "$arg" == *"="* ]]; then
+        options="$options $arg"
+      else
+        processes="$processes $arg"
+      fi
+    done
+    $SCONS auto="$processes" $options generator=2
+    ;;
+
+  "rm")
+    shift
+    if [ "$1" == "--all" -o "$1" == "-a" ]; then
+      rm -fr process_src
+      rm -fr process_obj
+      rm -fr proclib
+    else
+      for arg in "$@"; do
+        if [[ "$arg" != "-"* && "$arg" != *"="* ]]; then
+          rm -fr process_src/$arg
+          rm -fr process_obj/$arg
+          find proclib -type f -regex "proclib/libopenloops_${arg}_[^_]*" -delete
+        fi
+      done
+    fi
+    ;;
+
+  "clean")
+    shift
+    if [ "$1" == "--all" -o "$1" == "-a" ]; then
+      rm -fr process_obj
+      rm -fr proclib
+    else
+      for arg in "$@"; do
+        if [[ "$arg" != "-"* && "$arg" != *"="* ]]; then
+          rm -fr process_obj/$arg
+          find proclib -type f -regex "proclib/libopenloops_${arg}_[^_]*" -delete
+        fi
+      done
+    fi
+    ;;
+
+  "stabilityplot")
+    $PYTHON "$PYOLBINDIR/plot_stability.py" "$@";;
 
   *)
     echo "Unknown mode: $1"

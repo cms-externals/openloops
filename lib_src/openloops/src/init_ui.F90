@@ -39,7 +39,7 @@ module ol_init
   integer, save :: n_cleanup_routines = 0
 
   interface set_if_modified
-    module procedure set_if_modified_int, set_if_modified_double
+    module procedure set_if_modified_int, set_if_modified_double, set_if_modified_cmplx
   end interface set_if_modified
 
   interface set_parameter
@@ -101,6 +101,17 @@ module ol_init
     end if
   end subroutine set_if_modified_double
 
+  subroutine set_if_modified_cmplx(current, new)
+    use ol_parameters_decl_/**/DREALKIND, only: parameters_changed
+    implicit none
+    complex(DREALKIND), intent(inout) :: current
+    real(DREALKIND), intent(in) :: new
+    if (current /= new) then
+      current = new
+      parameters_changed = 1
+    end if
+  end subroutine set_if_modified_cmplx
+
 
   subroutine setparameter_int(param, val, err)
     ! Set an OpenLoops integer parameter.
@@ -118,10 +129,19 @@ module ol_init
     error = 0
     setparameter_was_called = .true.
 
+    if (verbose > 3) then
+      print*, "[OpenLoops] setparameter_int: ", trim(param), val
+    end if
+
     select case (param)
 
       case ("redlib1")
         call set_if_modified(a_switch, val)
+        if (val == 1 .or. val == 7) then
+          call set_if_modified(ew_renorm_switch, val)
+        else
+          call set_if_modified(ew_renorm_switch, 3)
+        end if
       case ("redlib2")
         call set_if_modified(a_switch_rescue, val)
       case ("redlib3", "redlib_qp")
@@ -131,6 +151,11 @@ module ol_init
         call set_if_modified(a_switch, val)
         call set_if_modified(a_switch_rescue, val)
         call set_if_modified(redlib_qp, val)
+        if (val == 1 .or. val == 7) then
+          call set_if_modified(ew_renorm_switch, val)
+        else
+          call set_if_modified(ew_renorm_switch, 3)
+        end if
       case ("stability_mode")
 #ifndef USE_qp
         if (val == 13 .or. val == 14 .or. val == 22 .or. val == 23 .or. &
@@ -156,11 +181,14 @@ module ol_init
           print *, "[OpenLoops] unrecognised scaling_mode:", val
           error = 1
         end if
-      case ("write_psp")
+      case ("write_psp", "write_points")
         write_psp = val
+      case ("write_parameters", "parameters_write")
+        if (val == 0) write_params_at_start = .false.
+        if (val == 1) write_params_at_start = .true.
       case ("nf", "n_quarks")
         call set_if_modified(nf, val)
-      case ("nq_nondecoupled")
+      case ("nq_nondecoupled", "minnf_alphasrun")
         call set_if_modified(nq_nondecoupl, val)
       case ("nc", "ncolours", "ncolors")
         ! affects only renormalisation, r2, and ir-subtraction
@@ -173,6 +201,7 @@ module ol_init
         coupling_ew(0) = val
       case ("coupling_ew_1", "coupling_ew_l")
         coupling_ew(1) = val
+        call set_if_modified(do_ew_renorm, 1)
       case ("order_ew")
         coupling_ew(0) = val
         coupling_ew(1) = 0
@@ -254,29 +283,37 @@ module ol_init
         call set_if_modified(dd_red_mode, val)
       case ("use_coli_cache")
         call set_if_modified(coli_cache_use, val)
-      case ("ol_params_verbose")
+      case ("ol_params_verbose", "parameters_verbose")
         parameters_verbose = val
       case ("verbose")
         verbose = val
-      case ("no_splash")
+      case ("no_splash", "nosplash")
         if (val == 1) then
           splash_todo = .false.
           olo_splash_done = .true.
           cts_splash_todo = .false.
         end if
-        verbose = val
+      case ("splash")
+        if (val == 0) then
+          splash_todo = .false.
+          olo_splash_done = .true.
+          cts_splash_todo = .false.
+        end if
       case ("preset")
         if (val == 1) then
           call set_if_modified(a_switch, 5)
           call set_if_modified(stability_mode, 14)
+          call set_if_modified(ew_renorm_switch, 3)
         else if (val == 2) then
           call set_if_modified(a_switch, 1)
           call set_if_modified(a_switch_rescue, 7)
           call set_if_modified(stability_mode, 23)
+          call set_if_modified(ew_renorm_switch, 1)
         else if (val == 3) then
           call set_if_modified(a_switch, 1)
           call set_if_modified(a_switch_rescue, 7)
           call set_if_modified(stability_mode, 21)
+          call set_if_modified(ew_renorm_switch, 1)
         end if
       case default
         error = 1
@@ -333,7 +370,7 @@ module ol_init
         val = scaling_mode
       case ("nf", "n_quarks")
         val = nf
-      case ("nq_nondecoupled")
+      case ("nq_nondecoupled", "minnf_alphasrun")
         val = nq_nondecoupl
       case ("nc", "ncolours", "ncolors")
         val = nc
@@ -417,6 +454,8 @@ module ol_init
         val = parameters_verbose
       case ("verbose")
         val = verbose
+      case ("welcome_length")
+        val = welcome_length
 
       case default
         error = 1
@@ -455,6 +494,10 @@ module ol_init
     error = 0
     setparameter_was_called = .true.
 
+    if (verbose > 3) then
+      print*, "[OpenLoops] setparameter_double: ", trim(param), val
+    end if
+
     select case (param)
 
       case ("mu", "renscale")
@@ -471,40 +514,79 @@ module ol_init
         call set_if_modified(rescalefactor, val)
       case ("mass(1)", "d_mass", "rmd")
         call set_if_modified(rMD_unscaled, val)
+        call set_if_modified(rYD_unscaled, val)
       case ("width(1)", "d_width", "wmd")
         call set_if_modified(wMD_unscaled, val)
+      case ("yuk(1)", "d_yuk")
+        call set_if_modified(rYD_unscaled, val)
       case ("mass(2)", "u_mass", "rmu")
         call set_if_modified(rMU_unscaled, val)
+        call set_if_modified(rYU_unscaled, val)
       case ("width(2)", "u_width", "wmu")
         call set_if_modified(wMU_unscaled, val)
+      case ("yuk(2)", "u_yuk")
+        call set_if_modified(rYU_unscaled, val)
       case ("mass(3)", "s_mass", "rms")
         call set_if_modified(rMS_unscaled, val)
+        call set_if_modified(rYS_unscaled, val)
       case ("width(3)", "s_width", "wms")
         call set_if_modified(wMS_unscaled, val)
+      case ("yuk(3)", "s_yuk")
+        call set_if_modified(rYS_unscaled, val)
       case ("mass(4)", "c_mass", "rmc")
         call set_if_modified(rMC_unscaled, val)
+        call set_if_modified(rYC_unscaled, val)
       case ("width(4)", "c_width", "wmc")
         call set_if_modified(wMC_unscaled, val)
+      case ("yuk(4)", "c_yuk")
+        call set_if_modified(rYC_unscaled, val)
+      case ("muy(4)", "c_muy")
+        call set_if_modified(muyc_unscaled, val)
       case ("mass(5)", "b_mass", "rmb")
         call set_if_modified(rMB_unscaled, val)
+        call set_if_modified(rYB_unscaled, val)
       case ("width(5)", "b_width", "wmb")
         call set_if_modified(wMB_unscaled, val)
+        call set_if_modified(wYB_unscaled, val)
+      case ("yuk(5)", "b_yuk")
+        call set_if_modified(rYB_unscaled, val)
+      case ("yukw(5)", "b_yukw")
+        call set_if_modified(wYB_unscaled, val)
+      case ("muy(5)", "b_muy")
+        call set_if_modified(muyb_unscaled, val)
       case ("mass(6)", "t_mass", "rmt")
         call set_if_modified(rMT_unscaled, val)
+        call set_if_modified(rYT_unscaled, val)
       case ("width(6)", "t_width", "wmt")
         call set_if_modified(wMT_unscaled, val)
+        call set_if_modified(wYT_unscaled, val)
+      case ("yuk(6)", "t_yuk")
+        call set_if_modified(rYT_unscaled, val)
+      case ("yukw(6)", "t_yukw")
+        call set_if_modified(wYT_unscaled, val)
+      case ("muy(6)", "t_muy")
+        call set_if_modified(muyt_unscaled, val)
       case ("mass(11)", "e_mass", "rme")
         call set_if_modified(rME_unscaled, val)
+        call set_if_modified(rYE_unscaled, val)
       case ("width(11)", "e_width", "wme")
         call set_if_modified(wME_unscaled, val)
+      case ("yuk(11)", "e_yuk")
+        call set_if_modified(rYE_unscaled, val)
       case ("mass(13)", "mu_mass", "rmm")
         call set_if_modified(rMM_unscaled, val)
+        call set_if_modified(rYM_unscaled, val)
       case ("width(13)", "mu_width", "wmm")
         call set_if_modified(wMM_unscaled, val)
+      case ("yuk(13)", "m_yuk")
+        call set_if_modified(rYM_unscaled, val)
       case ("mass(15)", "tau_mass", "rml")
         call set_if_modified(rML_unscaled, val)
+        call set_if_modified(rYL_unscaled, val)
       case ("width(15)", "tau_width", "wml")
         call set_if_modified(wML_unscaled, val)
+      case ("yuk(15)", "l_yuk")
+        call set_if_modified(rYL_unscaled, val)
       case ("mass(23)", "z_mass", "rmz")
         call set_if_modified(rMZ_unscaled, val)
       case ("width(23)", "z_width", "wmz")
@@ -518,9 +600,19 @@ module ol_init
       case ("width(25)", "h_width", "wmh")
         call set_if_modified(wMH_unscaled, val)
       case("x_width", "wx")
+        if (trim(model) /= "sm_vaux") then
+          print*, "[OpenLoops] Warning: x_width can only be used with model sm_vaux"
+        end if
         call set_if_modified(wMX_unscaled, val)
       case("y_width", "wy")
+        if (trim(model) /= "sm_vaux") then
+          print*, "[OpenLoops] Warning: y_width can only be used with model sm_vaux"
+        end if
         call set_if_modified(wMY_unscaled, val)
+      case("hqq_right")
+        call set_if_modified(gH(1), val)
+      case("hqq_left")
+        call set_if_modified(gH(2), val)
 
       case ("fact_uv")
         call set_if_modified(x_uv, 1/val)
@@ -567,6 +659,8 @@ module ol_init
       case ("dd_d_threshold")
         if (d_pv_threshold /= val) dd_not_init = .true.
         call set_if_modified(d_pv_threshold, val)
+      case("psp_tolerance")
+        psp_tolerance = val
 
       case ("lambda_hhh")
         call set_if_modified(lambdaHHH, val)
@@ -707,7 +801,6 @@ module ol_init
         val = rMH
       case ("width(25)", "h_width", "wmh")
         val = wMH
-
       case ("fact_uv")
         val = 1/x_uv
       case ("fact_ir")
@@ -748,6 +841,8 @@ module ol_init
         val = c_pv_threshold
       case ("dd_d_threshold")
         val = d_pv_threshold
+      case ("psp_tolerance")
+        val = psp_tolerance
 
       case ("lambda_hhh")
         val = lambdaHHH
@@ -785,64 +880,78 @@ module ol_init
     ! sets error flag: 0=ok, 1=ignored, 2=error(unused)
     use ol_parameters_decl_/**/DREALKIND
     use ol_loop_parameters_decl_/**/DREALKIND
+    use ol_generic, only: to_lowercase, to_string
     implicit none
     character(*), intent(in) :: param
     character(*), intent(in) :: val
     integer, intent(out), optional :: err
     real(DREALKIND) :: real_parameter
+    integer :: i
 
     error = 0
     setparameter_was_called = .true.
 
-    select case (param)
+    if (verbose > 3) then
+      print *, "[OpenLoops] setparameter_string: " // trim(param)  // " " // trim(val)
+    end if
+
+    if (len(val) > max_parameter_length) then
+      print *, "[OpenLoops] ol_setparameter_string: " // trim(param) // " value must not exceed " // &
+             & trim(to_string(max_parameter_length)) // " characters"
+      stop
+    end if
+
+    select case (trim(param))
 
       case ("install_path")
-        if (len(val) > max_parameter_length) then
-          print *, "[OpenLoops] ol_setparameter_string: install_path must not exceed 255 characters"
-          stop
-        end if
         install_path = val
       case ("stability_logdir")
-        if (len(val) > max_parameter_length) then
-          print *, "[OpenLoops] ol_setparameter_string: stability_logdir must not exceed 255 characters"
-          stop
-        end if
         if (stability_logdir /= val) then
           stability_logdir_not_created = .true.
           stability_logdir = val
         end if
       case ("tmp_dir")
-        if (len(val) > max_parameter_length) then
-          print *, "[OpenLoops] ol_setparameter_string: tmp_dir must not exceed 255 characters"
-          stop
-        end if
         tmp_dir = val
       case ("samurai_imeth")
         if (len(val) > 4) then
-          print *, "[OpenLoops] ol_setparameter_string: samurai_imeth must not exceed 255 characters"
+          print *, "[OpenLoops] ol_setparameter_string: " // trim(param) // " value must not exceed 4 characters"
           stop
         end if
         if (set_imeth /= val) samurai_not_init = .true.
         set_imeth = val
       case ("allowed_libs", "allowed_libraries", "allowedlibs", "allowedlibraries")
-        if (len(val) > max_parameter_length) then
-          print *, "[OpenLoops] ol_setparameter_string: allowed_libs must not exceed 255 characters"
+        if (len(val) > max_parameter_length-2) then
+          ! needs a leading and a trailing space
+          print *, "[OpenLoops] ol_setparameter_string: " // trim(param) // " value must not exceed " // &
+                 & trim(to_string(max_parameter_length-2)) // " characters"
           stop
         end if
         allowed_libs = val
+        do i = 1, max_parameter_length
+          if (allowed_libs(i:i) == ",") allowed_libs(i:i) = " "
+        end do
+        ! leading and trailing space(s) are needed as boundaries
+        allowed_libs = " " // adjustl(allowed_libs)
       case ("approximation", "approx")
-        if (len(val) > max_parameter_length) then
-          print *, "[OpenLoops] ol_setparameter_string: approximation must not exceed 255 characters"
-          stop
-        end if
         approximation = val
       case ("shopping_list", "shopping_card", "ol_shopping")
-        if (len(val) > max_parameter_length) then
-          print *, "[OpenLoops] ol_setparameter_string: shopping_list must not exceed 255 characters"
-          stop
+        if (trim(val) /= "1") then
+          shopping_list = val
         end if
-        shopping_list = val
-
+        write_shopping_list = .true.
+      case ("model")
+        if (to_lowercase(trim(val)) == "sm" &
+          .or. to_lowercase(trim(val)) == "sm_vaux" &
+          .or. to_lowercase(trim(val)) == "sm_yuksel") then
+            model = to_lowercase(trim(val))
+            call set_if_modified(nf, 6)
+        else if (to_lowercase(trim(val)) == "heft" .or. to_lowercase(trim(val)) == "sm+ehc") then
+          model = "heft"
+          call set_if_modified(nf, 5)
+        else
+          print *, "[OpenLoops] unknown model: " // trim(val) // ", model set to: " // trim(model)
+          error = 1
+        end if
 
       case default
 
@@ -874,12 +983,14 @@ module ol_init
 
 
   subroutine parameters_flush() bind(c,name="ol_parameters_flush")
+    use ol_parameters_decl_/**/DREALKIND, only: parameters_changed
     use ol_parameters_init_/**/DREALKIND, only: parameters_init, loop_parameters_init
     implicit none
     if (setparameter_was_called) then
       call parameters_init()
       call loop_parameters_init()
       setparameter_was_called = .false.
+      parameters_changed = 0
     end if
   end subroutine parameters_flush
 
@@ -929,7 +1040,7 @@ module ol_init
     integer :: f_val
     call c_f_string(param, f_param, max_parameter_name_length)
     f_val = val
-    call set_parameter(f_param, f_val)
+    call set_parameter(trim(f_param), f_val)
   end subroutine setparameter_int_c
 
   subroutine getparameter_int_c(param, val) bind(c,name="ol_getparameter_int")
@@ -941,7 +1052,7 @@ module ol_init
     character(max_parameter_name_length) :: f_param
     integer :: f_val
     call c_f_string(param, f_param, max_parameter_name_length)
-    call get_parameter(f_param, f_val)
+    call get_parameter(trim(f_param), f_val)
     val = f_val
   end subroutine getparameter_int_c
 
@@ -955,7 +1066,7 @@ module ol_init
     real(DREALKIND) :: f_val
     call c_f_string(param, f_param, max_parameter_name_length)
     f_val = val
-    call set_parameter(f_param, f_val)
+    call set_parameter(trim(f_param), f_val)
   end subroutine setparameter_double_c
 
   subroutine getparameter_double_c(param, val) bind(c,name="ol_getparameter_double")
@@ -967,7 +1078,7 @@ module ol_init
     character(max_parameter_name_length) :: f_param
     real(DREALKIND) :: f_val
     call c_f_string(param, f_param, max_parameter_name_length)
-    call get_parameter(f_param, f_val)
+    call get_parameter(trim(f_param), f_val)
     val = f_val
   end subroutine getparameter_double_c
 
@@ -981,7 +1092,7 @@ module ol_init
     character(max_parameter_length) :: f_val
     call c_f_string(param, f_param, max_parameter_name_length)
     call c_f_string(val, f_val, max_parameter_length)
-    call set_parameter(f_param, f_val)
+    call set_parameter(trim(f_param), trim(f_val))
   end subroutine setparameter_string_c
 
 
