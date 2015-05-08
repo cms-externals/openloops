@@ -1,0 +1,2 @@
+ppllll nmnmxeexddx 1 EW=4,0 QCD=0,1 CKMORDER=0 MODEL=sm Type=lt ME=0 MM=0 nc=3 nf=6 MU=0 MD=0 MS=0 MC=0 LeadingColour=0
+ppllll nmnmxeexbbx condmap=nmnmxeexddx MB=0
