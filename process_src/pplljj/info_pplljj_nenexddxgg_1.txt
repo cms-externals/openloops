@@ -1,0 +1,2 @@
+pplljj nenexddxgg 1 EW=2,0 QCD=2,1 CKMORDER=0 MODEL=sm Type=lt ME=0 nc=3 nf=6 MU=0 MD=0 MS=0 MC=0 LeadingColour=0
+pplljj nenexbbxgg condmap=nenexddxgg MB=0
