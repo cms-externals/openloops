@@ -178,15 +178,15 @@ subroutine intdip_Gj(j,flavj,M2j,Q2_aux,Gj)
       Gj(1) = 1
       Gj(0) = 0.5_/**/REALKIND*log(M2j/mu2_IR) - 2
     else
-      write(*,*) 'subroutine intdip_Gj: arguments out of range'
-      write(*,*) 'allowed range M2j > 0'
-      write(*,*) 'M2j = ', M2j
+      write(*,*) '[OpenLoops] subroutine intdip_Gj: arguments out of range'
+      write(*,*) '[OpenLoops] allowed range M2j > 0'
+      write(*,*) '[OpenLoops] M2j = ', M2j
       stop
     end if
   else
-    write(*,*) 'subroutine intdip_Gj: arguments out of range'
-    write(*,*) 'allowed range flavj=1,2'
-    write(*,*) 'flavj = ', flavj
+    write(*,*) '[OpenLoops] subroutine intdip_Gj: arguments out of range'
+    write(*,*) '[OpenLoops] allowed range flavj=1,2'
+    write(*,*) '[OpenLoops] flavj = ', flavj
     stop
   end if
 
@@ -296,10 +296,10 @@ subroutine intdip_Fjk(j,k,Tjk,flavj,M2j,M2k,Q2_aux,Fjk)
              -pi2_6                   &
              +log(rho)*log(Q2jk/Sjk))/Nujk
   else
-    write(*,*) 'subroutine intdip_Fjk: arguments out of range'
-    write(*,*) 'allowed range M2j, M2k >= 0'
-    write(*,*) 'M2j = ', M2j
-    write(*,*) 'M2k = ', M2k
+    write(*,*) '[OpenLoops] subroutine intdip_Fjk: arguments out of range'
+    write(*,*) '[OpenLoops] allowed range M2j, M2k >= 0'
+    write(*,*) '[OpenLoops] M2j = ', M2j
+    write(*,*) '[OpenLoops] M2k = ', M2k
     stop
   end if
 
@@ -319,9 +319,9 @@ subroutine intdip_Fjk(j,k,Tjk,flavj,M2j,M2k,Q2_aux,Fjk)
         if (SwF /= 0) Nuj_nonsing = Nuj_nonsing + (kappa-2._/**/REALKIND/3._/**/REALKIND)*M2k/Sjk*log(2*Mk/(Qjk+Mk))*(2*tf*N_lf)/3
       end if
     else
-      write(*,*) 'subroutine intdip_Fjk: arguments out of range'
-      write(*,*) 'allowed range M2k >= 0'
-      write(*,*) 'M2k =', M2k
+      write(*,*) '[OpenLoops] subroutine intdip_Fjk: arguments out of range'
+      write(*,*) '[OpenLoops] allowed range M2k >= 0'
+      write(*,*) '[OpenLoops] M2k =', M2k
       stop
     end if
 
@@ -341,16 +341,16 @@ subroutine intdip_Fjk(j,k,Tjk,flavj,M2j,M2k,Q2_aux,Fjk)
                   & + log((Qjk-Mk)/Qjk) - 2*log(((Qjk-Mk)**2-M2j)/Q2jk) - 2*M2j/Sjk*log(Mj/(Qjk-Mk)) &
                   & - Mk/(Qjk-Mk) + 2*Mk*(2*Mk-Qjk)/Sjk + 3*pi2_6
     else
-      write(*,*) 'subroutine intdip_Fjk: arguments out of range'
-      write(*,*) 'allowed range M2j, M2k >= 0'
-      write(*,*) 'M2j =',M2j
-      write(*,*) 'M2k =',M2k
+      write(*,*) '[OpenLoops] subroutine intdip_Fjk: arguments out of range'
+      write(*,*) '[OpenLoops] allowed range M2j, M2k >= 0'
+      write(*,*) '[OpenLoops] M2j =',M2j
+      write(*,*) '[OpenLoops] M2k =',M2k
       stop
     end if
   else
-    write(*,*) 'subroutine intdip_Fjk: arguments out of range'
-    write(*,*) 'allowed range flavj=1,2'
-    write(*,*) 'flavj =', flavj
+    write(*,*) '[OpenLoops] subroutine intdip_Fjk: arguments out of range'
+    write(*,*) '[OpenLoops] allowed range flavj=1,2'
+    write(*,*) '[OpenLoops] flavj =', flavj
     stop
   end if
 

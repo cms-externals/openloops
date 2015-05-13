@@ -30,9 +30,18 @@
 module ol_generic
   ! precision independent generic routines
   implicit none
+
+  character(len=26), private, parameter :: lower_case = 'abcdefghijklmnopqrstuvwxyz'
+  character(len=26), private, parameter :: upper_case = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
   interface to_string
     module procedure integer_to_string, integerlist_to_string
   end interface to_string
+
+  interface to_int
+    module procedure string_to_integer
+  end interface to_int
+
 
   contains
 
@@ -56,6 +65,19 @@ module ol_generic
     end do
     integerlist_to_string = trim(integerlist_to_string) // trim(integer_to_string(x(size(x)))) // "]"
   end function integerlist_to_string
+
+
+  function string_to_integer(c)
+    implicit none
+    character(len=*), intent(in) :: c
+    integer :: string_to_integer
+    integer :: stat
+    read(c,*,iostat=stat) string_to_integer
+    if (stat /= 0) then
+!      print*, "[OpenLoops] Error: string to integer conversion not possible for string: ", c
+      string_to_integer = -huge(string_to_integer)
+    end if
+  end function string_to_integer
 
 
   pure function factorial(k)
@@ -85,9 +107,29 @@ module ol_generic
   end function binomial
 
 
+  function nth_permutation(arr, n)
+    ! return the n-th permutation of arr, defined by the set of canonically
+    ! order permutations of [1,..,size(arr)] (same ordering as Mathematica's Permutation[]).
+    implicit none
+    integer, intent(in) :: arr(:), n
+    integer :: nth_permutation(size(arr))
+    integer :: arrcp(size(arr)), sz, nn, pos, ppos, fac
+    sz = size(arr)
+    arrcp = arr
+    ppos = n - 1
+    do nn = 1, size(arr)
+      fac = factorial(sz-nn)
+      pos = ppos/fac
+      ppos = ppos - pos*fac
+      nth_permutation(nn) = arrcp(pos+1)
+      arrcp(pos+1:sz-nn) = arrcp(pos+2:sz-nn+1)
+    end do
+  end function nth_permutation
+
+
   function perm_pos(perm)
     ! Unique mapping of a permutation perm(1:n) -> integer in [1..n!].
-    ! In canonically ordered list of all permutations
+    ! In a canonically ordered list of all permutations
     ! (like Mathematica's Permutations[Range[n]]),
     ! perm is at position perm_pos
     implicit none
@@ -108,6 +150,63 @@ module ol_generic
       perm_pos = perm_pos + (pos1-1)*factorial(n)
     end do
   end function perm_pos
+
+
+  recursive subroutine compositions2(compos, n, maxpart)
+    ! Store all unordered compositions of the integer n into integers >= 2
+    ! in the allocatable array compos. Each composition compos(:,k) is ordered
+    ! by constituents, larger first. The compositions array is ordered by
+    ! constituents at the beginning of the composition, smaller first,
+    ! independent of the composition length (i.e. not sorted by length).
+    ! The optional parameter maxpart sets the maximal allowed size of the constituents.
+    implicit none
+    integer, allocatable, intent(out) :: compos(:,:)
+    integer, intent(in) :: n
+    integer, intent(in), optional :: maxpart
+    integer :: maxp, j, k, next
+    integer, allocatable :: thisc(:,:), lowerc(:,:)
+    if (n == 0) then
+      allocate(compos(0,1))
+      return
+    else if (n == 1) then
+      allocate(thisc(1,10))
+    else
+      allocate(thisc(n/2,10))
+    end if
+    if (present(maxpart)) then
+      maxp = maxpart
+    else
+      maxp = n
+    end if
+    next = 1
+    do k = 2, min(n-2, maxp)
+      call compositions2(lowerc, n-k, k)
+      do j = 1, size(lowerc,2)
+        if (size(thisc,2) == next) then
+          allocate(compos(n/2,next))
+          compos = thisc
+          deallocate(thisc)
+          allocate(thisc(n/2,10*next))
+          thisc(:,1:next) = compos
+          deallocate(compos)
+        end if
+        thisc(:,next) = 0
+        thisc(1,next) = k
+        thisc(2:size(lowerc,1)+1,next) = lowerc(:,j)
+        next = next + 1
+      end do
+      deallocate(lowerc)
+    end do
+    next = next - 1
+    if (n <= maxp) then
+      next = next + 1
+      thisc(:,next) = 0
+      thisc(1,next) = n
+    end if
+    allocate(compos(size(thisc,1),next))
+    compos = thisc(:,1:next)
+    deallocate(thisc)
+  end subroutine compositions2
 
 
   function compositions(n, k)
@@ -195,6 +294,19 @@ module ol_generic
   end function random_string
 
 
+  function to_lowercase(instr)
+    ! return instr with uppercase letters converted to lowercase
+    implicit none
+    character(*), intent(in) :: instr
+    character(len(instr)) :: to_lowercase
+    integer :: i, n
+    to_lowercase = instr
+    do i = 1, len(to_lowercase)
+      n = index(upper_case, to_lowercase(i:i))
+      if (n /= 0) to_lowercase(i:i) = lower_case(n:n)
+    end do
+  end function to_lowercase
+
 end module ol_generic
 
 
@@ -213,17 +325,10 @@ module ol_iso_c_utilities
   !   character(kind=c_char), dimension(*), intent(in) :: c_str
   !   character(len=:), allocatable, intent(out) :: f_str
   !   - convert a null terminated C character array to a Fortran allocatable string;
-  ! function to_lowercase(instr)
-  !   character(*), intent(in) :: instr
-  !   character(len(instr)) :: to_lowercase
-  !   - return instr converted to lower case;
   use, intrinsic :: iso_c_binding, only: c_char
   implicit none
 
   character(kind=c_char), save, target, private :: dummy_string(1) = "?"
-
-  character(len=26), private, parameter :: lower_case = 'abcdefghijklmnopqrstuvwxyz'
-  character(len=26), private, parameter :: upper_case = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
   interface
     function strlen(string) bind(c)
@@ -274,6 +379,25 @@ module ol_iso_c_utilities
   end subroutine c_f_string_static
 
 
+!   subroutine f_c_string_static(f_str, c_str, maxlen)
+!     use, intrinsic :: iso_c_binding, only: c_char, c_ptr, c_loc, c_f_pointer
+!     implicit none
+!     character(len=*), intent(in) :: f_str
+!     character(kind=c_char), dimension(size(f_str)), intent(out), target :: c_str
+!     type(c_ptr) :: c_str_ptr
+!     character(len=maxlen), intent(out) :: f_str
+!     character(kind=c_char), pointer :: f_str_ptr(:)
+!     integer :: slen, i
+!     c_str_ptr = c_loc(c_str)
+!     slen = strlen(c_str_ptr)
+!     call c_f_pointer(c_str_ptr, f_str_ptr, shape = [slen])
+!     f_str = ""
+!     do i = 1, slen
+!       f_str(i:i) = f_str_ptr(i)
+!     end do
+!   end subroutine c_f_string_static
+! 
+
 ! deactivate to circumvent a bug in certain gfortran versions.
 ! Previously used in register_process_c, olp_setparameter_c, olp_printparameter_c, olp_start_c
 !   subroutine c_f_string_alloc(c_str, f_str)
@@ -293,20 +417,6 @@ module ol_iso_c_utilities
 !       f_str(i:i) = f_str_ptr(i)
 !     end do
 !   end subroutine c_f_string_alloc
-
-
-  function to_lowercase(instr)
-    ! return instr with uppercase letters converted to lowercase
-    implicit none
-    character(*), intent(in) :: instr
-    character(len(instr)) :: to_lowercase
-    integer :: i, n
-    to_lowercase = instr
-    do i = 1, len(to_lowercase)
-      n = index(upper_case, to_lowercase(i:i))
-      if (n /= 0) to_lowercase(i:i) = lower_case(n:n)
-    end do
-  end function to_lowercase
 
 end module ol_iso_c_utilities
 

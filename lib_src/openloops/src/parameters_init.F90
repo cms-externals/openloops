@@ -50,8 +50,9 @@ subroutine parameters_init(Mass_E, Mass_M, Mass_L, Mass_U, Mass_D, Mass_S, Mass_
   ! Assign values of physical input patameters.
   ! Use this subroutine with named arguments, e.g. parameters_init(Mass_B=0._/**/REALKIND) to set
   ! the bottom-quark mass to zero without changing other parameters.
-  ! Always use this routine to change parameters, otherwise factors which contain these
-  ! parameters will not be recalculated (see parameters_status).
+  !
+  ! Direct calls of this routine are deprecated. Use set_parameter() interface in module openloops/ol_init instead!
+  !
   use KIND_TYPES, only: REALKIND
   use ol_generic, only: to_string, random_string
   use ol_parameters_decl_/**/REALKIND
@@ -106,15 +107,6 @@ subroutine parameters_init(Mass_E, Mass_M, Mass_L, Mass_U, Mass_D, Mass_S, Mass_
   ! Check for optional arguments
   if (present(Coupl_Alpha_QED)) alpha_QED = Coupl_Alpha_QED
   if (present(Coupl_Alpha_QCD)) alpha_QCD = Coupl_Alpha_QCD
-  if (present(Mass_E))  rME_unscaled = Mass_E
-  if (present(Mass_M))  rMM_unscaled = Mass_M
-  if (present(Mass_L))  rML_unscaled = Mass_L
-  if (present(Mass_U))  rMU_unscaled = Mass_U
-  if (present(Mass_D))  rMD_unscaled = Mass_D
-  if (present(Mass_S))  rMS_unscaled = Mass_S
-  if (present(Mass_C))  rMC_unscaled = Mass_C
-  if (present(Mass_B))  rMB_unscaled = Mass_B
-  if (present(Mass_T))  rMT_unscaled = Mass_T
   if (present(Mass_W))  rMW_unscaled = Mass_W
   if (present(Mass_Z))  rMZ_unscaled = Mass_Z
   if (present(Mass_H))  rMH_unscaled = Mass_H
@@ -126,6 +118,42 @@ subroutine parameters_init(Mass_E, Mass_M, Mass_L, Mass_U, Mass_D, Mass_S, Mass_
   if (present(Width_Z)) wMZ_unscaled = Width_Z
   if (present(Width_Z)) wMX_unscaled = Width_Z
   if (present(Width_H)) wMH_unscaled = Width_H
+  if (present(Mass_E))  then
+    rME_unscaled = Mass_E
+    rYE_unscaled = Mass_M
+  end if
+  if (present(Mass_M))  then
+    rMM_unscaled = Mass_M
+    rYM_unscaled = Mass_M
+  end if
+  if (present(Mass_L))  then
+    rML_unscaled = Mass_L
+    rYL_unscaled = Mass_L
+  end if
+  if (present(Mass_U))  then
+    rMU_unscaled = Mass_U
+    rYU_unscaled = Mass_U
+  end if
+  if (present(Mass_D))  then
+    rMD_unscaled = Mass_D
+    rYD_unscaled = Mass_D
+  end if
+  if (present(Mass_S))  then
+    rMS_unscaled = Mass_S
+    rYS_unscaled = Mass_S
+  end if
+  if (present(Mass_C))  then
+    rMC_unscaled = Mass_C
+    rYC_unscaled = Mass_C
+  end if
+  if (present(Mass_B))  then
+    rMB_unscaled = Mass_B
+    rYB_unscaled = Mass_B
+  end if
+  if (present(Mass_T))  then
+    rMT_unscaled = Mass_T
+    rYT_unscaled = Mass_T
+  end if
 
   ! set mass of V-auxiliary fields
   rMX_unscaled = rMZ_unscaled
@@ -133,22 +161,33 @@ subroutine parameters_init(Mass_E, Mass_M, Mass_L, Mass_U, Mass_D, Mass_S, Mass_
 
   rME = scalefactor * rME_unscaled
   wME = scalefactor * wME_unscaled
+  rYE = scalefactor * rYE_unscaled
   rMM = scalefactor * rMM_unscaled
   wMM = scalefactor * wMM_unscaled
+  rYM = scalefactor * rYM_unscaled
   rML = scalefactor * rML_unscaled
   wML = scalefactor * wML_unscaled
+  rYL = scalefactor * rYL_unscaled
   rMU = scalefactor * rMU_unscaled
   wMU = scalefactor * wMU_unscaled
+  rYU = scalefactor * rYU_unscaled
   rMD = scalefactor * rMD_unscaled
   wMD = scalefactor * wMD_unscaled
+  rYD = scalefactor * rYD_unscaled
   rMS = scalefactor * rMS_unscaled
   wMS = scalefactor * wMS_unscaled
+  rYS = scalefactor * rYS_unscaled
   rMC = scalefactor * rMC_unscaled
   wMC = scalefactor * wMC_unscaled
+  rYC = scalefactor * rYC_unscaled
   rMB = scalefactor * rMB_unscaled
   wMB = scalefactor * wMB_unscaled
+  rYB = scalefactor * rYB_unscaled
+  wYB = scalefactor * wYB_unscaled
   rMT = scalefactor * rMT_unscaled
   wMT = scalefactor * wMT_unscaled
+  rYT = scalefactor * rYT_unscaled
+  wYT = scalefactor * wYT_unscaled
   rMW = scalefactor * rMW_unscaled
   wMW = scalefactor * wMW_unscaled
   rMZ = scalefactor * rMZ_unscaled
@@ -168,13 +207,16 @@ subroutine parameters_init()
   ! non-dp initialisation: synchronise with dp parameters
   use KIND_TYPES, only: REALKIND
   use ol_parameters_decl_/**/REALKIND
-  use ol_parameters_decl_/**/DREALKIND, only: scalefactor_dp => scalefactor, cms_on => cms_on, &
+  use ol_parameters_decl_/**/DREALKIND, only: &
+    & parameters_verbose, scalefactor_dp => scalefactor, cms_on => cms_on, &
     & parameters_status_dp => parameters_status, alpha_QED_dp => alpha_QED, alpha_QCD_dp => alpha_QCD, &
     & rME_dp => rME, wME_dp => wME, rMM_dp => rMM, wMM_dp => wMM, rML_dp => rML, wML_dp => wML, &
     & rMU_dp => rMU, wMU_dp => wMU, rMD_dp => rMD, wMD_dp => wMD, rMS_dp => rMS, wMS_dp => wMS, &
     & rMC_dp => rMC, wMC_dp => wMC, rMB_dp => rMB, wMB_dp => wMB, rMT_dp => rMT, wMT_dp => wMT, &
     & rMW_dp => rMW, wMW_dp => wMW, rMZ_dp => rMZ, wMZ_dp => wMZ, rMH_dp => rMH, wMH_dp => wMH, &
-    & rMX_dp => rMX, wMX_dp => wMX, rMY_dp => rMY, wMY_dp => wMY
+    & rMX_dp => rMX, wMX_dp => wMX, rMY_dp => rMY, wMY_dp => wMY, &
+    & rYE_dp => rYE, rYM_dp => rYM, rYL_dp => rYL, rYU_dp => rYU, rYD_dp => rYD, rYS_dp => rYS, &
+    & rYC_dp => rYC, rYB_dp => rYB, wYB_dp => wYB, rYT_dp => rYT, wYT_dp => wYT
   implicit none
 
   scalefactor = scalefactor_dp
@@ -211,6 +253,19 @@ subroutine parameters_init()
   rMH = rMH_dp
   wMH = wMH_dp
 
+  rYE = rYE_dp
+  rYM = rYM_dp
+  rYL = rYL_dp
+  rYU = rYU_dp
+  rYD = rYD_dp
+  rYS = rYS_dp
+  rYC = rYC_dp
+  rYB = rYB_dp
+  wYB = wYB_dp
+  rYT = rYT_dp
+  wYT = wYT_dp
+
+
 ! ifdef PRECISION_dp
 #endif
 
@@ -229,6 +284,17 @@ subroutine parameters_init()
   call masspowers(rMX, wMX, MX, MX2, rMX2)
   call masspowers(rMY, wMY, MY, MY2, rMY2)
   call masspowers(rMH, wMH, MH, MH2, rMH2)
+
+  call masspowers(rYE, rZERO, YE, YE2, rYE2)
+  call masspowers(rYM, rZERO, YM, YM2, rYM2)
+  call masspowers(rYL, rZERO, YL, YL2, rYL2)
+  call masspowers(rYU, rZERO, YU, YU2, rYU2)
+  call masspowers(rYD, rZERO, YD, YD2, rYD2)
+  call masspowers(rYS, rZERO, YS, YS2, rYS2)
+  call masspowers(rYC, rZERO, YC, YC2, rYC2)
+  call masspowers(rYB, wYB, YB, YB2, rYB2)
+  call masspowers(rYT, wYT, YT, YT2, rYT2)
+
   ! Dependent couplings
 
   !QCD
@@ -262,16 +328,12 @@ subroutine parameters_init()
   gZd  = [   -gZRH /3, gZLH*(-0.5_/**/REALKIND +    sw2 /3) ] ! down
   ! Right- (1) and left-handed (2) couplings of scalars to fermions
   ! gPud = P+ u~ d; gPdu = P- d~ u; gPnl = P+ n~ l; gPln = P- l~ n (all incoming)
-  gH   = [  cONE, cONE ]
-  gX   = [ -cONE, cONE ]
-  gPud = [   -MD,   MU ]
-  gPcs = [   -MS,   MC ]
-  gPtb = [   -MB,   MT ]
-  gPdu = [   -MU,   MD ]
-  gPsc = [   -MC,   MS ]
-  gPbt = [   -MT,   MB ]
-  gPnl = [  cONE, ZERO ]
-  gPln = [  ZERO, cONE ]
+  gPud = [   -YD,   YU ]
+  gPcs = [   -YS,   YC ]
+  gPtb = [   -YB,   YT ]
+  gPdu = [   -YU,   YD ]
+  gPsc = [   -YC,   YS ]
+  gPbt = [   -YT,   YB ]
 
   ! Number of time this function has been called:
 #ifdef PRECISION_dp
@@ -282,7 +344,7 @@ subroutine parameters_init()
 
   ! write parameters
   if (parameters_verbose == 1 ) then
-    call parameters_write
+    call parameters_write()
   end if
 
 end subroutine parameters_init
@@ -312,8 +374,10 @@ subroutine channel_on(ch)
 ! **********************************************************************
   use ol_parameters_decl_/**/DREALKIND, only: &
     next_channel_number, coli_cache_use, a_switch
+#ifdef USE_COLLIER
 #ifndef COLLIER_LEGACY
   use collier, only: initevent_cll
+#endif
 #endif
   implicit none
   integer, intent(inout) :: ch
@@ -386,6 +450,20 @@ end subroutine tensor_ints_init
 
 
 
+subroutine tensorrank_init(rank)
+  use ol_generic, only: binomial
+  use ol_tensor_storage_/**/REALKIND, only: tensor_stored, tensor_storage_maxrank
+  use ol_tensor_bookkeeping, only: initialised_rank, init_tensorbookkeeping
+  implicit none
+  integer, intent(in) :: rank
+  if (rank > initialised_rank) call init_tensorbookkeeping(rank)
+  if (allocated(tensor_stored)) deallocate(tensor_stored)
+  allocate(tensor_stored(binomial(rank+4,4)))
+  tensor_storage_maxrank = rank
+end subroutine tensorrank_init
+
+
+
 #ifdef PRECISION_dp
 ! **********************************************************************
 subroutine loop_parameters_init(renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, pole2_IR, polenorm_swi, &
@@ -436,11 +514,11 @@ subroutine loop_parameters_init(renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, 
 !          = F_j(0) - F(2)*[de2_i_shift-de2_j_shift]
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND
+  use ol_tensor_storage_/**/REALKIND, only: tensor_storage_maxrank
   use ol_parameters_decl_/**/REALKIND
   use ol_loop_parameters_decl_/**/REALKIND
   use ol_qcd_renormalisation_/**/REALKIND, only: qcd_renormalisation
 !   use ol_ew_renormalisation_/**/REALKIND, only: ew_renormalisation
-  use ol_tensor_bookkeeping, only: initialised_rank, init_tensorbookkeeping
 #ifdef USE_COLLIER
 #ifdef COLLIER_LEGACY
   use dd_init_/**/REALKIND, only: dd_setmode, dd_setparam
@@ -535,8 +613,6 @@ subroutine loop_parameters_init(renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, 
   if (present(IR_on)) IR_is_on = IR_on
   if (present(polecheck)) polecheck_is = polecheck
 
-  if (maxrank > initialised_rank) call init_tensorbookkeeping(maxrank)
-
   if (reset_scalefactor) then
     reset_mureg = .true.
     reset_oppthrs = .true.
@@ -545,6 +621,9 @@ subroutine loop_parameters_init(renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, 
 
   opprootsvalue = scalefactor * opprootsvalue_unscaled
   mureg = scalefactor * mureg_unscaled
+  muyc = scalefactor * muyc_unscaled
+  muyb = scalefactor * muyb_unscaled
+  muyt = scalefactor * muyt_unscaled
 
   ! convention for dim-reg Poles K_i(eps)/eps^N
   if (norm_swi == 0) then ! Les-Houches Accord normalisation (default)
@@ -564,12 +643,13 @@ subroutine loop_parameters_init(renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, 
 
 subroutine loop_parameters_init
   ! non-dp initialisation: synchronise with dp parameters
+  use ol_tensor_storage_/**/REALKIND, only: tensor_storage_maxrank
   use ol_parameters_decl_/**/REALKIND, only: pi2_6
   use ol_loop_parameters_decl_/**/REALKIND
   use ol_loop_parameters_decl_/**/DREALKIND, only: &
     & loop_parameters_status_dp => loop_parameters_status, norm_swi, a_switch, a_switch_rescue, redlib_qp, &
     & dd_qp_not_init, tensorlib_qp_not_init, renscale_dp => mureg, fact_UV_dp => x_UV, fact_IR_dp => x_IR, &
-    & pole1_UV_dp => de1_UV, pole1_IR_dp => de1_IR, pole2_IR_dp => de2_i_IR, do_ew_renorm
+    & pole1_UV_dp => de1_UV, pole1_IR_dp => de1_IR, pole2_IR_dp => de2_i_IR, do_ew_renorm, maxrank
 #if defined(USE_COLLIER) && defined(COLLIER_LEGACY)
   use dd_init_/**/REALKIND, only: dd_setmode, dd_setparam
 #endif
@@ -593,10 +673,29 @@ subroutine loop_parameters_init
 ! ifdef PRECISION_dp
 #endif
 
+  if (maxrank > tensor_storage_maxrank) call tensorrank_init(maxrank)
+
   de2_0_IR = de2_i_IR - de2_i_shift         ! LH-norm double pole
   de2_1_IR = de2_i_IR - de2_i_shift + pi2_6 ! COLI-norm double pole
   ! renormalisation scale
   mureg2 = mureg**2
+
+  if (muyc /= 0) then
+    muyc2 = muyc**2
+  else
+    muyc2 = YC2
+  end if
+  if (muyb /= 0) then
+    muyb2 = muyb**2
+  else
+    muyb2 = YB2
+  end if
+  if (muyt /= 0) then
+    muyt2 = muyt**2
+  else
+    muyt2 = YT2
+  end if
+
   ! dim reg scale in UV-div loops
   mu2_UV = (x_UV**2)*mureg2
   mu2_IR = (x_IR**2)*mureg2
@@ -605,10 +704,10 @@ subroutine loop_parameters_init
   ! initialise reduction libraries only in double precision
   ! (quad precision initialisation is handles within these libraries if applicable)
 
+#ifdef USE_COLLIER
 #ifdef COLLIER_LEGACY
   ! COLI initialisation
   if (a_switch == 1 .or. a_switch_rescue == 1 .or. a_switch == 2 .or. a_switch == 3) then
-#ifdef USE_COLLIER
     if (coli_not_init) then
       call defcoli ! assign default values to parameters of loop library
       coli_not_init = .false.
@@ -620,12 +719,10 @@ subroutine loop_parameters_init
     call setmuir2_coli(mu2_IR)
 ! #else
 !     write(*,*) 'ERROR: Collier (Coli) is deactivated.'
-#endif
   end if
 
   ! DD initialisation
   if (a_switch == 7 .or. a_switch_rescue == 7) then
-#ifdef USE_COLLIER
     if (dd_not_init) then
       mp2 = 0
 !     cacc         threshold precision to activate 3-point alternative reductions
@@ -641,7 +738,6 @@ subroutine loop_parameters_init
     call dd_setparam(de1_UV,mu2_UV,de2_1_IR,de1_IR,mu2_IR,mp2)
 ! #else
 !     write(*,*) 'ERROR: Collier (DD) is deactivated.'
-#endif
   end if
 ! #ifdef COLLIER_LEGACY
 #else
@@ -659,6 +755,8 @@ subroutine loop_parameters_init
     call setaccuracy_cll(cll_pvthr,cll_accthr,cll_mode3thr)
   end if
 ! #ifdef COLLIER_LEGACY
+#endif
+! #ifdef USE_COLLIER
 #endif
 
   ! Initialisation of CutTools
@@ -780,15 +878,15 @@ subroutine parameters_write()
   write(*,*) 'sw2       =', sw2
   write(*,*)
   write(*,*) 'particle masses and widths'
-  write(*,*) 'ME = ', MU, 'rME =', rMU, 'wME =', wMU
-  write(*,*) 'MM = ', MU, 'rMM =', rMU, 'wMM =', wMU
-  write(*,*) 'ML = ', MU, 'rML =', rMU, 'wML =', wMU
-  write(*,*) 'MU = ', MU, 'rMU =', rMU, 'wMU =', wMU
-  write(*,*) 'MD = ', MD, 'rMD =', rMD, 'wMD =', wMD
-  write(*,*) 'MS = ', MS, 'rMS =', rMS, 'wMS =', wMS
-  write(*,*) 'MC = ', MC, 'rMC =', rMC, 'wMC =', wMC
-  write(*,*) 'MB = ', MB, 'rMB =', rMB, 'wMB =', wMB
-  write(*,*) 'MT = ', MT, 'rMT =', rMT, 'wMT =', wMT
+  write(*,*) 'ME = ', ME, 'rME =', rME, 'wME =', wMU, 'YE =', YE
+  write(*,*) 'MM = ', MM, 'rMM =', rMM, 'wMM =', wMU, 'YM =', YM
+  write(*,*) 'ML = ', ML, 'rML =', rML, 'wML =', wMU, 'YL =', YL
+  write(*,*) 'MU = ', MU, 'rMU =', rMU, 'wMU =', wMU, 'YU =', YU
+  write(*,*) 'MD = ', MD, 'rMD =', rMD, 'wMD =', wMD, 'YD =', YD
+  write(*,*) 'MS = ', MS, 'rMS =', rMS, 'wMS =', wMS, 'YS =', YS
+  write(*,*) 'MC = ', MC, 'rMC =', rMC, 'wMC =', wMC, 'YC =', YC
+  write(*,*) 'MB = ', MB, 'rMB =', rMB, 'wMB =', wMB, 'YB =', YB
+  write(*,*) 'MT = ', MT, 'rMT =', rMT, 'wMT =', wMT, 'YT =', YT
   write(*,*) 'MW = ', MW, 'rMW =', rMW, 'wMW =', wMW
   write(*,*) 'MZ = ', MZ, 'rMZ =', rMZ, 'wMZ =', wMZ
   write(*,*) 'MH = ', MH, 'rMH =', rMH, 'wMH =', wMH

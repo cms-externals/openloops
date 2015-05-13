@@ -46,9 +46,9 @@ int main() {
     }
     std::cout << std::endl;
     std::cout << "Tree:      " << result[3] << std::endl;
-    std::cout << "Loop e^0:  " << result[3] << std::endl;
-    std::cout << "Loop e^-1: " << result[2] << std::endl;
-    std::cout << "Loop e^-2: " << result[1] << std::endl;
+    std::cout << "Loop e^0:  " << result[2] << std::endl;
+    std::cout << "Loop e^-1: " << result[1] << std::endl;
+    std::cout << "Loop e^-2: " << result[0] << std::endl;
     std::cout << "Accuracy:  " << acc << std::endl;
     std::cout << std::endl;
 

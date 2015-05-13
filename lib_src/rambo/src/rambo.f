@@ -1,5 +1,5 @@
 
-      module ol_rambo
+      module ol_ramboX
       contains
 
 !------------------------------------------------------
@@ -241,4 +241,4 @@
       ran= rangen(1)
       end subroutine rans
 
-      end module ol_rambo
+      end module ol_ramboX

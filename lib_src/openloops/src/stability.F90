@@ -64,18 +64,18 @@ function check_stability_write(n)
     check_stability_write = .true.
   else
     print *, "[OpenLoops] ERROR: invalid value of stability_log:", stability_log
-    print *, "                   must be 0(never) / 1(default:adaptive) / 2(always)"
+    print *, "[OpenLoops]        must be 0(never) / 1(default:adaptive) / 2(always)"
     stop
   end if
 end function check_stability_write
 
 
 subroutine write_histogram(processname, hist, triggered)
-  use ol_parameters_decl_/**/DREALKIND, only: pid_string, stability_logdir
+  use ol_parameters_decl_/**/DREALKIND, only: pid_string, stability_logdir, max_parameter_length
   implicit none
   character(len=*), intent(in) :: processname
   integer, intent(in) :: hist(20), triggered(:)
-  character(len=100) :: outfile
+  character(len=max_parameter_length) :: outfile
   integer :: outunit = 44
   outfile = trim(stability_logdir) // "/histogram_" // trim(processname) // "_" // trim(pid_string) // ".log"
   open(unit=outunit, file=outfile, form='formatted')
@@ -84,13 +84,15 @@ subroutine write_histogram(processname, hist, triggered)
 end subroutine write_histogram
 
 
-subroutine write_point(processname, psp, me)
-  use ol_parameters_decl_/**/DREALKIND, only: pid_string, stability_logdir
+subroutine write_point(processname, psp, mu, perm, me)
+  use ol_parameters_decl_/**/DREALKIND, only: pid_string, stability_logdir, max_parameter_length
   implicit none
   character(len=*), intent(in) :: processname
   real(DREALKIND), intent(in), optional :: psp(:,:)
+  real(DREALKIND), intent(in), optional :: mu
+  integer, intent(in), optional :: perm(:)
   real(DREALKIND), intent(in), optional :: me(:)
-  character(len=100) :: outfile
+  character(len=max_parameter_length) :: outfile
   integer :: outunit = 44, k
   outfile = trim(stability_logdir) // "/points_" // trim(processname) // "_" // trim(pid_string) // ".log"
   open(unit=outunit, file=outfile, form='formatted', position='append')
@@ -99,19 +101,26 @@ subroutine write_point(processname, psp, me)
     do k = 1, size(psp,2)
       write(outunit,*) 'p= ', psp(:,k)
     end do
-  else if (present(me)) then
-    write(outunit,*) 'me=', psp(:,k)
+  end if
+  if (present(mu)) then
+    write(outunit,*) 'mu=', mu
+  end if
+  if (present(perm)) then
+    write(outunit,*) 'perm=', perm
+  end if
+  if (present(me)) then
+    write(outunit,*) 'me=', me
   end if
   close(outunit)
 end subroutine write_point
 
 
 subroutine write_result(processname, data)
-  use ol_parameters_decl_/**/DREALKIND, only: pid_string, stability_logdir
+  use ol_parameters_decl_/**/DREALKIND, only: pid_string, stability_logdir, max_parameter_length
   implicit none
   character(len=*), intent(in) :: processname
   real(DREALKIND), intent(in) :: data(:)
-  character(len=100) :: outfile
+  character(len=max_parameter_length) :: outfile
   integer :: outunit = 44, k
   outfile = trim(stability_logdir) // "/points_" // trim(processname) // "_" // trim(pid_string) // ".log"
   open(unit=outunit, file=outfile, form='formatted', position='append')
@@ -156,14 +165,15 @@ subroutine stability_trigger(processname, np, hist, &
   ! **********************************************************************
   use KIND_TYPES, only: DREALKIND
   use ol_loop_parameters_decl_/**/DREALKIND, only: trigeff_targ, abscorr_unst, ratcorr_bad
-  use ol_parameters_decl_/**/DREALKIND, only: rONE, a_switch, a_switch_rescue, pid_string, stability_log, stability_logdir
+  use ol_parameters_decl_/**/DREALKIND, only: rONE, a_switch, a_switch_rescue, &
+    & pid_string, stability_log, stability_logdir, max_parameter_length
   use ol_generic, only: relative_deviation
   implicit none
   character(*), intent(in)    :: processname
   integer,      intent(inout) :: np(8), hist(20)
   real(DREALKIND), intent(inout) :: abscorr_thr, trigeff_local, sum_M2tree, M2loop0, abscorr0
   real(DREALKIND), intent(in)    :: abscorr1, M2loop0_rescue, M2tree, P_scatt(:,:)
-  character(100)  :: outfile
+  character(max_parameter_length)  :: outfile
   character(14)  :: stabstatus
   real(DREALKIND) :: abscorr_avg, abscorr_dev, kfac_deviation
   integer        :: outunit = 44
@@ -627,7 +637,8 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
   use ol_data_types_/**/DREALKIND, only: me_cache
   use ol_parameters_decl_/**/DREALKIND, only: verbose, current_processname, a_switch, &
     & a_switch_rescue, redlib_qp, write_psp, use_me_cache, parameters_changed
-  use ol_loop_parameters_decl_/**/DREALKIND, only: ratcorr_bad, ratcorr_bad_L2, stability_mode, abscorr_unst
+  use ol_loop_parameters_decl_/**/DREALKIND, only: ratcorr_bad, ratcorr_bad_L2, &
+    & stability_mode, abscorr_unst, mureg_unscaled
   use ol_generic, only: relative_deviation, factorial, perm_pos, to_string
   implicit none
   character(*), intent(in) :: processname
@@ -669,10 +680,6 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
   last_vme2 = -1
   last_vme2_scaled = -1
 
-  if (write_psp == 1) then
-    call write_point(processname, psp=P_scatt)
-  end if
-
   if (use_me_cache > 0) then
     ! (123+441=564) byte/me_cache (unallocated+allocated=total)
     ! 49 for arr(:); 74 for arr(:,:); 123 for psp(:,:), me(:)
@@ -683,19 +690,32 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
       cache%psp = -1
       allocate(cache%me(18))
     end if
+    if (verbose >= 2) then
+      if (all(cache%psp == P_scatt)) then
+        if (parameters_changed == 0) then
+          print *, "[OpenLoops] " // trim(current_processname) // trim(to_string(extperm)) // ' taken from the cache'
+        else
+          print *, '[OpenLoops] me-cache: same phase space point, but parameters changed'
+        end if
+      end if
+    end if
     if (all(cache%psp == P_scatt) .and. parameters_changed == 0) then
-      if (verbose >= 2) print *, trim(current_processname) // trim(to_string(extperm)) // ' taken from the cache'
       M2L0 = cache%me(1)
       M2L1 = cache%me(2:4)
       IRL1 = cache%me(5:7)
       M2L2 = cache%me(8:12)
       IRL2 = cache%me(13:17)
       last_relative_deviation = cache%me(18)
-      if (write_psp == 1) then
-        call write_point(processname, me=[M2L0, M2L1(0), M2L1(1), M2L1(2), M2L2(0)])
+      if (write_psp >= 2) then
+        call write_point(processname // "_cached", psp=P_scatt, mu=mureg_unscaled, &
+                       & perm=extperm, me=[M2L0, M2L1(0), M2L1(1), M2L1(2), M2L2(0)])
       end if
       return
     end if
+  end if
+
+  if (write_psp >= 1) then
+    call write_point(processname, psp=P_scatt, mu=mureg_unscaled, perm=extperm)
   end if
 
   if (stability_mode == 11) then
@@ -860,8 +880,8 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
 
   end if
 
-  if (write_psp == 1) then
-    call write_point(processname, me=[M2L0, M2L1(0), M2L1(1), M2L1(2), M2L2(0)])
+  if (write_psp >= 1) then
+    call write_point(processname, me=[M2L0, M2L1(0), M2L1(1), M2L1(2), M2L2(0), last_relative_deviation])
   end if
 
   ! fill matrix element cache

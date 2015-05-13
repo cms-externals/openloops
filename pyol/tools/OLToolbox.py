@@ -174,7 +174,29 @@ def get_svn_revision(mandatory=False):
 
 
 def get_subprocess_src(loops, sub_process, processlib_src_dir,
-                       nvirtualfiles=0):
+                       nvirtualfiles=0, override_loops=False):
+    """Return lists of double precision, multi precision and info files
+    which belong to a subprocess. Used to determine which files must be
+    compiled and which files are generated. Files to compile must be obtained
+    with override_loops=True. Files to generate must be obtained with
+    override_loops=False and the correct loops argument (taken from the
+    process definition; the info file does not exist yet)."""
+    info_files = [os.path.join(processlib_src_dir,
+                               'info_' + sub_process + '.txt')]
+    # Read info file for subprocess and check for 'Type' option
+    # to override loops specification.
+    if override_loops:
+        try:
+            fh = open(info_files[0], 'r')
+        except IOError:
+            print "Error reading process info file", info_files[0]
+            raise
+        info = fh.read()
+        fh.close()
+        for opt in info.split():
+            if opt.startswith('Type='):
+                loops = opt[5:]
+                break
 
     if loops == 't':
         dp_src = ['born_generic_' + sub_process + '.F90']
@@ -199,9 +221,6 @@ def get_subprocess_src(loops, sub_process, processlib_src_dir,
         if 'p' in loops:
             mp_src.append('pseudotree_' + sub_process + '.F90')
 
-    info_files = [os.path.join(processlib_src_dir,
-                               'info_' + sub_process + '.txt')]
-
     dp_src = [os.path.join(processlib_src_dir, srcfile) for srcfile in dp_src]
     mp_src = [os.path.join(processlib_src_dir, srcfile) for srcfile in mp_src]
 
@@ -209,12 +228,18 @@ def get_subprocess_src(loops, sub_process, processlib_src_dir,
 
 
 
-def get_processlib_src(loops, processlib, process_src_dir):
-
+def get_processlib_src(loops, processlib, process_src_dir, compile_extra=True):
+    """Return lists of double precision, multi precision and info files
+    which belong to a process library. Used to determine which files must be
+    compiled. Not used to determine which files are generated."""
     processlib_src_dir = os.path.join(process_src_dir, processlib)
     subprocesses = import_list(os.path.join(
         processlib_src_dir, 'process_definition', 'subprocesses.list'))
-
+    subprocesses_extra = import_list(os.path.join(
+        processlib_src_dir, 'process_definition', 'subprocesses_extra.list'),
+        fatal=False)
+    if subprocesses_extra and compile_extra:
+        subprocesses.extend(subprocesses_extra)
     dp_src = [os.path.join(processlib_src_dir,
                            'version_' + processlib + '.F90')]
     mp_src = []
@@ -222,7 +247,7 @@ def get_processlib_src(loops, processlib, process_src_dir):
 
     for sub_process in subprocesses:
         dp_add, mp_add, info_add = get_subprocess_src(
-            loops, sub_process, processlib_src_dir)
+            loops, sub_process, processlib_src_dir, override_loops=True)
         dp_src.extend(dp_add)
         mp_src.extend(mp_add)
         info_files.extend(info_add)

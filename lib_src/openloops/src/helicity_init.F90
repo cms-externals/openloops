@@ -28,7 +28,7 @@ subroutine heltable(n_in, n, tab)
   implicit none
   integer,           intent(in)  :: n_in(:)
   integer(intkind2), intent(out) :: n(:), tab(:,:)
-  integer :: i1, i2, i3, i4
+  integer :: i1, i2, i3, i4, i5
 
   n = n_in
 
@@ -50,6 +50,21 @@ subroutine heltable(n_in, n, tab)
           tab(2,i4) = i2
           tab(3,i4) = i3
           i4 = i4 + 1 ! <=> i4 = i3 + n(3) * (i2-1 + n(2) * (i1-1))
+        end do
+      end do
+    end do
+  else if (size(n) == 5) then
+    i5 = 1
+    do i1 = 1, n(1)
+      do i2 = 1, n(2)
+        do i3 = 1, n(3)
+          do i4 = 1, n(4)
+            tab(1,i5) = i1
+            tab(2,i5) = i2
+            tab(3,i5) = i3
+            tab(4,i5) = i4
+            i5 = i5 + 1
+          end do
         end do
       end do
     end do
@@ -134,8 +149,8 @@ subroutine helsync_flip(nsync, nhel, hel, eflip, exthel)
   integer :: nhelmax, e, h, k
 
   if (nsync /= 1) then
-    write(*,*) 'subroutine helsync_flip: stop'
-    write(*,*) 'nsync =', nsync, 'not allowed'
+    write(*,*) '[OpenLoops] ERROR in subroutine helsync_flip:'
+    write(*,*) '[OpenLoops] nsync =', nsync, 'not allowed'
     stop
   end if
 

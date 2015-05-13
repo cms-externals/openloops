@@ -22,18 +22,13 @@ module ol_version
   character(16) :: version = VERSION
   character(4) :: revision = REVISION
   logical :: splash_todo = .true.
-  interface
-    subroutine openloops_welcome(outstring)
-      implicit none
-      character(1200), intent(out), optional :: outstring
-    end subroutine openloops_welcome
-  end interface
+  integer, parameter :: welcome_length = 800
 
   contains
 
   subroutine welcome(outstring)
     implicit none
-    character(800), intent(out) :: outstring
+    character(welcome_length), intent(out) :: outstring
     character, parameter :: LF = char(10)
     outstring = &
       & " #########################################################" // LF // &
@@ -54,19 +49,19 @@ module ol_version
   subroutine welcome_c(outstring) bind(c,name="ol_welcome")
     use, intrinsic :: iso_c_binding, only: c_char
     implicit none
-    character(kind=c_char), intent(out) :: outstring(700)
-    character(800) :: welcome_str
+    character(kind=c_char), intent(out) :: outstring(welcome_length)
+    character(welcome_length) :: welcome_str
     integer :: i
     call welcome(welcome_str)
     do i = 1, len(trim(welcome_str))
       outstring(i) = welcome_str(i:i)
     end do
-    outstring(i+1) = char(0)
+    outstring(i) = char(0)
   end subroutine welcome_c
 
   subroutine print_welcome()
     implicit none
-    character(800) :: welcome_string
+    character(welcome_length) :: welcome_string
     call welcome(welcome_string)
     print *, trim(adjustl(welcome_string))
   end subroutine print_welcome

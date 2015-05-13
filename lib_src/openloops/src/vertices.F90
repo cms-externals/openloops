@@ -241,8 +241,8 @@ end subroutine vert_UV_W
 ! **********************************************************************
 subroutine vert_EV_V(J_V1, J_V2, J_V3, Jout_V)
 ! sigma vertex, where the sigma wave function is replaced by two gluon wave functions J_V1 and J_V2
-! Jout_V(d) = (g(a,c)*g(b,d) + g(1,4)*g(2,3)) * J_V1(a) * J_V1(b) * J_V1(c)
-!           = J_V1.J_V3 * J_V2(d) + J_V2.J_V3 * J_V1(d)
+! Jout_V(d) = (g(a,c)*g(b,d) - g(1,4)*g(2,3)) * J_V1(a) * J_V1(b) * J_V1(c)
+!           = J_V1.J_V3 * J_V2(d) - J_V2.J_V3 * J_V1(d)
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND
   use ol_contractions_/**/REALKIND, only: cont_VV
@@ -256,8 +256,8 @@ end subroutine vert_EV_V
 ! **********************************************************************
 subroutine vert_GGG_G(J_G1, J_G2, J_G3, Jout_G)
 ! Four-gluon vertex: factorised colour monomials f(a,b,x)*f(c,d,x) (same as EV_V)
-! Jout_G(d) = (g(a,c)*g(b,d) + g(1,4)*g(2,3)) * J_G1(a) * J_G1(b) * J_G1(c)
-!           = J_G1.J_G3 * J_G2(d) + J_G2.J_G3 * J_G1(d)
+! Jout_G(d) = (g(a,c)*g(b,d) - g(1,4)*g(2,3)) * J_G1(a) * J_G1(b) * J_G1(c)
+!           = J_G1.J_G3 * J_G2(d) - J_G2.J_G3 * J_G1(d)
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND
   use ol_contractions_/**/REALKIND, only: cont_VV
@@ -606,6 +606,97 @@ subroutine vert_VC_D(J_V, P1, J_C, P2, Jout_C)
   complex(REALKIND), intent(out) :: Jout_C(4)
   Jout_C(1) = J_C(1) * cont_VV(P1+P2, J_V)
 end subroutine vert_VC_D
+
+
+! **********************************************************************
+subroutine vert_GG_H(V1, P1, V2, P2, S_out)
+! Effective gluon gluon -> Higgs vertex
+! S_out = (P1.P2*g(1,2) - P1(2)*P2(1))*V1(1)*V2(2) = V1.V2*P1.P2 - P1.V2*P2.V1
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: V1(4), P1(4), V2(4), P2(4)
+  complex(REALKIND), intent(out) :: S_out(4)
+  S_out(1) = cont_VV(V1,V2)*cont_VV(P1,P2) - cont_VV(P1,V2)*cont_VV(P2,V1)
+end subroutine vert_GG_H
+
+
+! **********************************************************************
+subroutine vert_HG_G(S, V2, P2, V_out, P3)
+! Effective Higgs gluon -> gluon vertex
+! V_out(3) = (P2(3)*P3(2) - P2.P3*g(2,3))*S*V2(2) = S*P3.V2*P2(3) - S*P2.P3*V2(3)
+! note that P3 is outgoing
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S(4), V2(4), P2(4), P3(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  V_out = (S(1) * cont_VV(P3,V2)) * P2 - (S(1) * cont_VV(P2,P3)) * V2
+end subroutine vert_HG_G
+
+
+! **********************************************************************
+subroutine vert_GGG_H(V1, P1, V2, P2, V3, P3, S_out)
+! Effective gluon gluon gluon -> Higgs vertex
+! S_out = (g(1,2)*(P1-P2)(3) + g(2,3)*(P2-P3)(1) + g(3,1)*(P3-P1)(2)) * V1(1)*V2(2)*V3(3)
+!       = V1.V2*(P1-P2).V3 + V2.V3*(P2-P3).V1 + V3.V1*(P3-P1).V2
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: V1(4), P1(4), V2(4), P2(4), V3(4), P3(4)
+  complex(REALKIND), intent(out) :: S_out(4)
+  S_out(1) = cont_VV(V1,V2)*cont_VV(P1-P2,V3) + cont_VV(V2,V3)*cont_VV(P2-P3,V1) + cont_VV(V3,V1)*cont_VV(P3-P1,V2)
+end subroutine vert_GGG_H
+
+
+! **********************************************************************
+subroutine vert_HGG_G(S, V2, P2, V3, P3, V_out, P4)
+! Effective Higgs gluon gluon -> gluon vertex
+! V_out(4) = (g(2,3)*(P2-P3)(4) + g(3,4)*(P3+P4)(2) + g(4,2)*(-P4-P2)(3)) * S*V2(2)*V3(3)
+!          = S*V2.V3*(P2-P3)(4) + S*(P3+P4).V2*V3(4) - S*(P4+P2).V3*V2(4)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S(4), V2(4), P2(4), V3(4), P3(4), P4(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  V_out = (S(1) * cont_VV(V2,V3)) * (P2-P3) + (S(1) * cont_VV(P3+P4,V2)) * V3 - (S(1) * cont_VV(P4+P2,V3)) * V2
+end subroutine vert_HGG_G
+
+
+! **********************************************************************
+subroutine vert_GGGG_H(V1, V2, V3, V4, S_out)
+! Effective gluon gluon gluon gluon -> Higgs vertex
+! for factorised colour monomials f(a,b,x)*f(c,d,x)
+! S_out = (g(1,3)*g(2,4) - g(1,4)*g(2,3)) * V1(1) * V2(2) * V3(3) * V4(4)
+!       = V1.V3*V2.V4 - V1.V4*V2.V3
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: V1(4), V2(4), V3(4), V4(4)
+  complex(REALKIND), intent(out) :: S_out(4)
+  S_out(1) = cont_VV(V1,V3)*cont_VV(V2,V4) - cont_VV(V1,V4)*cont_VV(V2,V3)
+end subroutine vert_GGGG_H
+
+
+! **********************************************************************
+subroutine vert_HGGG_G(S, V2, V3, V4, V_out)
+! Effective Higgs gluon gluon gluon -> gluon vertex
+! for factorised colour monomials f(a,b,x)*f(c,d,x)
+! V_out(5) = (g(2,4)*g(3,5) - g(2,5)*g(3,4)) * S * V2(2) * V3(3) * V4(4)
+!          = S*V2.V4*V3(5) - S*V3.V4*V2(5)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S(4), V2(4), V3(4), V4(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  V_out = (S(1)*cont_VV(V2,V4)) * V3 - (S(1)*cont_VV(V3,V4)) * V2
+end subroutine vert_HGGG_G
 
 end module ol_vertices_/**/REALKIND
 
@@ -2844,5 +2935,174 @@ subroutine vert_VC_D(ntry, V, P1, C, P2, C_out, n, t)
   end if
 
 end subroutine vert_VC_D
+
+
+! **********************************************************************
+subroutine vert_GG_H(ntry, V1, P1, V2, P2, S_out, n, t)
+! Effective gluon gluon -> Higgs vertex
+! S_out = (P1.P2*g(1,2) - P1(2)*P2(1))*V1(1)*V2(2) = V1.V2*P1.P2 - P1.V2*P2.V1
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3, checkzero_scalar
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(3), t(2,n(3))
+  type(wfun),        intent(in)    :: V1(n(1)), V2(n(2))
+  complex(REALKIND), intent(in)    :: P1(4), P2(4)
+  type(wfun),        intent(out)   :: S_out(n(3))
+  integer :: h
+  do h = 1, n(3)
+    S_out(h)%j(1) = cont_PP(V1(t(1,h))%j, V2(t(2,h))%j) * cont_PP(P1, P2) &
+                & - cont_PP(P1, V2(t(2,h))%j) * cont_PP(P2, V1(t(1,h))%j)
+  end do
+  if (ntry == 1) then
+    call checkzero_scalar(S_out)
+    call helbookkeeping_vert3(ntry, V1, V2, S_out, n, t)
+  end if
+end subroutine vert_GG_H
+
+
+! **********************************************************************
+subroutine vert_HG_G(ntry, S, V2, P2, V_out, P3, n, t)
+! Effective Higgs gluon -> gluon vertex
+! V_out(3) = (P2(3)*P3(2) - P2.P3*g(2,3))*S*V2(2) = S*P3.V2*P2(3) - S*P2.P3*V2(3)
+! note that P3 is outgoing
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3, checkzero_scalar
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(3), t(2,n(3))
+  type(wfun),        intent(in)    :: S(n(1)), V2(n(2))
+  complex(REALKIND), intent(in)    :: P2(4), P3(4)
+  type(wfun),        intent(out)   :: V_out(n(3))
+  integer :: h
+  do h = 1, n(3)
+    V_out(h)%j = (S(t(1,h))%j(1) * cont_PP(P3, V2(t(2,h))%j)) * P2 &
+             & - (S(t(1,h))%j(1) * cont_PP(P2, P3)) * V2(t(2,h))%j
+  end do
+  if (ntry == 1) call helbookkeeping_vert3(ntry, S, V2, V_out, n, t)
+end subroutine vert_HG_G
+
+
+! **********************************************************************
+subroutine vert_GGG_H(ntry, V1, P1, V2, P2, V3, P3, S_out, n, t)
+! Effective gluon gluon gluon -> Higgs vertex
+! S_out = (g(1,2)*(P1-P2)(3) + g(2,3)*(P2-P3)(1) + g(3,1)*(P3-P1)(2)) * V1(1)*V2(2)*V3(3)
+!       = V1.V2*(P1-P2).V3 + V2.V3*(P2-P3).V1 + V3.V1*(P3-P1).V2
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert4, checkzero_scalar
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(4), t(3,n(4))
+  type(wfun),        intent(in)    :: V1(n(1)), V2(n(2)), V3(n(3))
+  complex(REALKIND), intent(in)    :: P1(4), P2(4), P3(4)
+  type(wfun),        intent(out)   :: S_out(n(4))
+  integer :: h
+  do h = 1, n(4)
+    S_out(h)%j(1) = cont_PP(V1(t(1,h))%j, V2(t(2,h))%j) * cont_PP(P1-P2, V3(t(3,h))%j) &
+                & + cont_PP(V2(t(2,h))%j, V3(t(3,h))%j) * cont_PP(P2-P3, V1(t(1,h))%j) &
+                & + cont_PP(V3(t(3,h))%j, V1(t(1,h))%j) * cont_PP(P3-P1, V2(t(2,h))%j)
+  end do
+  if (ntry == 1) then
+    call checkzero_scalar(S_out)
+    call helbookkeeping_vert4(ntry, V1, V2, V3, S_out, n, t)
+  end if
+end subroutine vert_GGG_H
+
+
+! **********************************************************************
+subroutine vert_HGG_G(ntry, S, V2, P2, V3, P3, V_out, P4, n, t)
+! Effective Higgs gluon gluon -> gluon vertex
+! ! V_out(4) = (g(2,3)*(P2-P3)(4) + g(3,4)*(P3-P4)(2) + g(4,2)*(P4-P2)(3)) * S*V2(2)*V3(3)
+! !          = S*V2.V3*(P2-P3)(4) + S*(P3-P4).V2*V3(4) + S*(P4-P2).V3*V2(4)
+! V_out(4) = (g(2,3)*(P2-P3)(4) + g(3,4)*(P3+P4)(2) + g(4,2)*(-P4-P2)(3)) * S*V2(2)*V3(3)
+!          = S*V2.V3*(P2-P3)(4) + S*(P3+P4).V2*V3(4) - S*(P4+P2).V3*V2(4)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert4
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(4), t(3,n(4))
+  type(wfun),        intent(in)    :: S(n(1)), V2(n(2)), V3(n(3))
+  complex(REALKIND), intent(in)    :: P2(4), P3(4), P4(4)
+  type(wfun),        intent(out)   :: V_out(n(4))
+  complex(REALKIND) :: P34_V2(n(2)), P42_V3(n(3))
+  integer :: h
+  do h = 1, n(2)
+    P34_V2(h) = cont_PP(P3+P4, V2(h)%j)
+  end do
+  do h = 1, n(3)
+    P42_V3(h) = cont_PP(P4+P2, V3(h)%j)
+  end do
+  do h = 1, n(4)
+    V_out(h)%j = (S(t(1,h))%j(1) * cont_PP(V2(t(2,h))%j, V3(t(3,h))%j)) * (P2-P3) &
+             & + (S(t(1,h))%j(1) * P34_V2(t(2,h))) * V3(t(3,h))%j &
+             & - (S(t(1,h))%j(1) * P42_V3(t(3,h))) * V2(t(2,h))%j
+  end do
+  if (ntry == 1) call helbookkeeping_vert4(ntry, S, V2, V3, V_out, n, t)
+end subroutine vert_HGG_G
+
+
+! **********************************************************************
+subroutine vert_GGGG_H(ntry, V1, V2, V3, V4, S_out, n, t)
+! Effective gluon gluon gluon gluon -> Higgs vertex
+! for factorised colour monomials f(a,b,x)*f(c,d,x)
+! S_out = (g(1,3)*g(2,4) - g(1,4)*g(2,3)) * V1(1) * V2(2) * V3(3) * V4(4)
+!       = V1.V3*V2.V4 - V1.V4*V2.V3
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert5, checkzero_scalar
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(5), t(4,n(5))
+  type(wfun),        intent(in)    :: V1(n(1)), V2(n(2)), V3(n(3)), V4(n(4))
+  type(wfun),        intent(out)   :: S_out(n(5))
+  integer :: h
+  do h = 1, n(5)
+    S_out(h)%j(1) = cont_PP(V1(t(1,h))%j, V3(t(3,h))%j) * cont_PP(V2(t(2,h))%j, V4(t(4,h))%j) &
+                & - cont_PP(V1(t(1,h))%j, V4(t(4,h))%j) * cont_PP(V2(t(2,h))%j, V3(t(3,h))%j)
+  end do
+  if (ntry == 1) then
+    call checkzero_scalar(S_out)
+    call helbookkeeping_vert5(ntry, V1, V2, V3, V4, S_out, n, t)
+  end if
+end subroutine vert_GGGG_H
+
+
+! **********************************************************************
+subroutine vert_HGGG_G(ntry, S, V2, V3, V4, V_out, n, t)
+! Effective Higgs gluon gluon gluon -> gluon vertex
+! for factorised colour monomials f(a,b,x)*f(c,d,x)
+! V_out(5) = (g(2,4)*g(3,5) - g(2,5)*g(3,4)) * S * V2(2) * V3(3) * V4(4)
+!          = S*V2.V4*V3(5) - S*V3.V4*V2(5)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert5
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(5), t(4,n(5))
+  type(wfun),        intent(in)    :: S(n(1)), V2(n(2)), V3(n(3)), V4(n(4))
+  type(wfun),        intent(out)   :: V_out(n(5))
+  integer :: h
+  do h = 1, n(5)
+    V_out(h)%j = (S(t(1,h))%j(1) * cont_PP(V2(t(2,h))%j, V4(t(4,h))%j)) * V3(t(3,h))%j &
+             & - (S(t(1,h))%j(1) * cont_PP(V3(t(3,h))%j, V4(t(4,h))%j)) * V2(t(2,h))%j
+  end do
+  if (ntry == 1) call helbookkeeping_vert5(ntry, S, V2, V3, V4, V_out, n, t)
+end subroutine vert_HGGG_G
 
 end module ol_h_vertices_/**/REALKIND

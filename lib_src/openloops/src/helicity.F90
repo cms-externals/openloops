@@ -82,8 +82,8 @@ subroutine helbookkeeping_prop(ntry, WF1, WF2, n)
   integer(intkind2) :: h1, i
 
   if (ntry > 1) then ! the following operations input table t in initialisation form
-    write(*,*) 'subroutine helbookkeeping_prop: stop'
-    write(*,*) 'ntry =', ntry,'not allowed'
+    write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_prop:'
+    write(*,*) '[OpenLoops] ntry =', ntry,'not allowed'
     stop
   end if
 
@@ -99,8 +99,8 @@ subroutine helbookkeeping_prop(ntry, WF1, WF2, n)
 
   do i = h1 + 1, n
     if (WF1(i)%e /= -1_intkind2) then
-      write(*,*) 'subroutine helbookkeeping_prop: stop'
-      write(*,*) 'i, h1, n, WF1(i)%e =', i, h1, n, WF1(i)%e
+      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_prop:'
+      write(*,*) '[OpenLoops] i, h1, n, WF1(i)%e =', i, h1, n, WF1(i)%e
       stop
     end if
     WF2(i)%e = -1_intkind2  ! mark vanishing helicity configurations
@@ -134,8 +134,8 @@ subroutine helbookkeeping_vert3(ntry, WF1, WF2, WF3, n, t)
   type(wfun)        :: WFaux
 
   if (ntry /= 1) then ! the following operations input table t in initialisation form
-    write(*,*) 'subroutine helbookkeeping_vert3: stop'
-    write(*,*) 'ntry =', ntry, 'not allowed'
+    write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert3:'
+    write(*,*) '[OpenLoops] ntry =', ntry, 'not allowed'
     stop
   end if
 
@@ -149,8 +149,8 @@ subroutine helbookkeeping_vert3(ntry, WF1, WF2, WF3, n, t)
   end do
   do i = h1+1, n(1)
     if (WF1(i)%e /= -1_intkind2) then
-      write(*,*) 'subroutine helbookkeeping_vert3: stop'
-      write(*,*) 'i, h1, n(1), WF1(i)%e =', i, h1, n(1), WF1(i)%e
+      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert3:'
+      write(*,*) '[OpenLoops] i, h1, n(1), WF1(i)%e =', i, h1, n(1), WF1(i)%e
       stop
     end if
   end do
@@ -166,8 +166,8 @@ subroutine helbookkeeping_vert3(ntry, WF1, WF2, WF3, n, t)
   end do
   do i = h2+1, n(2)
     if (WF2(i)%e /= -1_intkind2) then
-      write(*,*) 'subroutine helbookkeeping_vert3: stop'
-      write(*,*) 'i, h2, n(2), WF2(i)%e =', i, h2, n(2), WF2(i)%e
+      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert3:'
+      write(*,*) '[OpenLoops] i, h2, n(2), WF2(i)%e =', i, h2, n(2), WF2(i)%e
       stop
     end if
   end do
@@ -231,7 +231,7 @@ subroutine helbookkeeping_vert4(ntry, WF1, WF2, WF3, WF4, n, t)
 ! WF4(1:n(4))                         = output wfun array
 ! vanishing components moved at the end of WF4 array and marked via %e = -1
 ! non-zero WF4 components ordered according to global helicity label
-! WF1(h1), WF2(h2), WF3(h3) <-> WF4(h4) connection stored in table hi = t(i,h3) with i=1,2
+! WF1(h1), WF2(h2), WF3(h3) <-> WF4(h4) connection stored in table hi = t(i,h4) with i=1,2,3
 ! array sizes n(1), n(2), n(3), n(4) restricted to non-vanishing components
 ! **********************************************************************
   use KIND_TYPES, only: intkind1, intkind2
@@ -247,8 +247,8 @@ subroutine helbookkeeping_vert4(ntry, WF1, WF2, WF3, WF4, n, t)
   type(wfun)        :: WFaux
 
   if(ntry /= 1) then ! the following operations input table t in initialisation form
-    write(*,*) 'subroutine helbookkeeping_vert4: stop'
-    write(*,*) 'ntry =', ntry, 'not allowed'
+    write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert4:'
+    write(*,*) '[OpenLoops] ntry =', ntry, 'not allowed'
     stop
   end if
 
@@ -262,8 +262,8 @@ subroutine helbookkeeping_vert4(ntry, WF1, WF2, WF3, WF4, n, t)
   end do
   do i = h1 + 1, n(1)
     if (WF1(i)%e /= -1_intkind2) then
-      write(*,*) 'subroutine helbookkeeping_vert4: stop'
-      write(*,*) 'i, h1, n(1), WF1(i)%e =', i, h1, n(1), WF1(i)%e
+      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert4:'
+      write(*,*) '[OpenLoops] i, h1, n(1), WF1(i)%e =', i, h1, n(1), WF1(i)%e
       stop
     end if
   end do
@@ -279,8 +279,8 @@ subroutine helbookkeeping_vert4(ntry, WF1, WF2, WF3, WF4, n, t)
   end do
   do i = h2 + 1, n(2)
     if (WF2(i)%e /= -1_intkind2) then
-      write(*,*) 'subroutine helbookkeeping_vert4: stop'
-      write(*,*) 'i, h2, n(2), WF2(i)%e =', i, h2, n(2), WF2(i)%e
+      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert4:'
+      write(*,*) '[OpenLoops] i, h2, n(2), WF2(i)%e =', i, h2, n(2), WF2(i)%e
       stop
     end if
   end do
@@ -297,8 +297,8 @@ subroutine helbookkeeping_vert4(ntry, WF1, WF2, WF3, WF4, n, t)
   end do
   do i = h3 + 1, n(3)
     if (WF3(i)%e /= -1_intkind2) then
-      write(*,*) 'subroutine helbookkeeping_vert4: stop'
-      write(*,*) 'i, h3, n(3), WF3(i)%e =', i, h3, n(3), WF3(i)%e
+      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert4:'
+      write(*,*) '[OpenLoops] i, h3, n(3), WF3(i)%e =', i, h3, n(3), WF3(i)%e
       stop
     end if
   end do
@@ -360,6 +360,164 @@ end subroutine helbookkeeping_vert4
 
 
 ! **********************************************************************
+subroutine helbookkeeping_vert5(ntry, WF1, WF2, WF3, WF4, WF5, n, t)
+! ----------------------------------------------------------------------
+! WF1(1:n(1)),WF2(1:n(2)),WF3(1:n(3)), WF3(1:n(4)) = input wfun arrays
+! WF5(1:n(4))                                      = output wfun array
+! vanishing components moved at the end of WF5 array and marked via %e = -1
+! non-zero WF5 components ordered according to global helicity label
+! WF1(h1), WF2(h2), WF3(h3), WF(h4) <-> WF5(h5) connection stored in
+! table hi = t(i,h5) with i=1,2,3,4
+! array sizes n(1), n(2), n(3), n(4), n(5) restricted to non-vanishing components
+! **********************************************************************
+  use KIND_TYPES, only: intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(5), t(4,n(5))
+  type(wfun),        intent(in)    :: WF1(n(1)), WF2(n(2)), WF3(n(3)), WF4(n(4))
+  type(wfun),        intent(out)   :: WF5(n(5))
+  integer(intkind2) :: h1, h2, h3, h4, h5, i, n2_in, n3_in, n4_in
+  integer(intkind2) :: iq, imin, emin
+  integer(intkind2) :: taux(4)
+  type(wfun)        :: WFaux
+
+  if(ntry /= 1) then ! the following operations input table t in initialisation form
+    write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert5:'
+    write(*,*) '[OpenLoops] ntry =', ntry, 'not allowed'
+    stop
+  end if
+
+  ! sets n(1) = # of non-zero WF1 components and check that all zeros are at the end
+  h1 = n(1)
+  do i = 1, n(1)
+    if (WF1(i)%e == -1_intkind2) then
+      h1 = i - 1
+      exit
+    end if
+  end do
+  do i = h1 + 1, n(1)
+    if (WF1(i)%e /= -1_intkind2) then
+      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert5:'
+      write(*,*) '[OpenLoops] i, h1, n(1), WF1(i)%e =', i, h1, n(1), WF1(i)%e
+      stop
+    end if
+  end do
+  n(1) = h1
+
+  ! sets n(2) = # of non-zero WF2 components and check that all zeros are at the end
+  h2 = n(2)
+  do i = 1, n(2)
+    if (WF2(i)%e == -1_intkind2) then
+      h2 = i - 1
+      exit
+    end if
+  end do
+  do i = h2 + 1, n(2)
+    if (WF2(i)%e /= -1_intkind2) then
+      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert5:'
+      write(*,*) '[OpenLoops] i, h2, n(2), WF2(i)%e =', i, h2, n(2), WF2(i)%e
+      stop
+    end if
+  end do
+  n2_in = n(2)
+  n(2) = h2
+
+  ! sets n(3) = # of non-zero WF3 components and check that all zeros are at the end
+  h3 = n(3)
+  do i = 1, n(3)
+    if (WF3(i)%e == -1_intkind2) then
+      h3 = i - 1
+      exit
+    end if
+  end do
+  do i = h3 + 1, n(3)
+    if (WF3(i)%e /= -1_intkind2) then
+      write(*,*) '[OpenLoops] subroutine helbookkeeping_vert5:'
+      write(*,*) '[OpenLoops] i, h3, n(3), WF3(i)%e =', i, h3, n(3), WF3(i)%e
+      stop
+    end if
+  end do
+  n3_in = n(3)
+  n(3) = h3
+
+
+  ! sets n(4) = # of non-zero WF4 components and check that all zeros are at the end
+  h4 = n(4)
+  do i = 1, n(4)
+    if (WF4(i)%e == -1_intkind2) then
+      h4 = i - 1
+      exit
+    end if
+  end do
+  do i = h4 + 1, n(4)
+    if (WF4(i)%e /= -1_intkind2) then
+      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert5:'
+      write(*,*) '[OpenLoops] i, h4, n(4), WF4(i)%e =', i, h4, n(4), WF4(i)%e
+      stop
+    end if
+  end do
+  n4_in = n(4)
+  n(4) = h4
+
+  ! restrict I/O table to non-vanishing helicity configurations
+  i  = 0 ! index of WF5 states
+  h5 = 0 ! index of non-zero WF5 states
+  do h1 = 1, n(1)
+    do h2 = 1, n(2)
+      do h3 = 1, n(3)
+        do h4 = 1, n(4)
+          i  = h4 + n4_in * ((h3-1) + n3_in * (h2-1 + n2_in * (h1-1))) ! assumes input table in standard inititalisation form
+          if (all(WF5(i)%j == 0)) cycle ! skips vanishing WF5 components
+          h5 = h5 + 1
+          t(1,h5) = h1
+          t(2,h5) = h2
+          t(3,h5) = h3
+          t(4,h5) = h4
+          WF5(h5)%e = WF1(h1)%e + WF2(h2)%e + WF3(h3)%e + WF4(h4)%e ! additive helicity label for outgoing states
+          if (h5 == i) cycle
+          WF5(h5)%j = WF5(i)%j ! shifts non-zero components to first part of WF5 array
+          WF5(h5)%h = WF5(i)%h ! shifts non-zero components to first part of WF5 array
+        end do
+      end do
+    end do
+  end do
+
+  ! put vanishing components at the end of WF4 array
+  do i = h5 + 1, n(5)
+    WF5(i)%j = 0
+    WF5(i)%h = B"00"
+    WF5(i)%e = -1_intkind2 ! marker for vanising helicity states
+  end do
+
+  ! sets n(5) = # of non-vanishing I/O helicity configurations
+  n(5) = h5
+
+  ! sort non-vanishing WF5(1:h5) components and adapt table accordingly
+  do i = 1, n(5) - 1
+    emin = WF5(i)%e
+    imin = i
+    do iq = i + 1, n(5)              ! look for component with helicity < emin
+      if (WF5(iq)%e >= emin) cycle
+      emin = WF5(iq)%e
+      imin = iq
+    end do
+    if (imin > i) then
+       WFaux     = WF5(i) ! flip WF5(i) <-> WF5(imin) components
+       WF5(i)    = WF5(imin)
+       WF5(imin) = WFaux
+       taux        = t(1:4,i) ! same for table
+       t(1:4,i)    = t(1:4,imin)
+       t(1:4,imin) = taux
+    end if
+  end do
+
+end subroutine helbookkeeping_vert5
+
+
+
+
+! **********************************************************************
 subroutine helbookkeeping_cont(nsync, WF1, WF2, cont, n, t, nhel)
 ! ----------------------------------------------------------------------
 ! WF1(1:n(1)), WF(1:n(2))  = input wfun arrays
@@ -383,8 +541,8 @@ subroutine helbookkeeping_cont(nsync, WF1, WF2, cont, n, t, nhel)
   type(polcont)     :: contaux
 
   if (n(3) > nhel) then
-    write(*,*) 'subroutine helbookkeeping_cont: stop'
-    write(*,*) 'n(3) =', n(3), '> nhel =', nhel, 'not allowed'
+    write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_cont:'
+    write(*,*) '[OpenLoops] n(3) =', n(3), '> nhel =', nhel, 'not allowed'
     stop
   end if
 
@@ -401,8 +559,8 @@ subroutine helbookkeeping_cont(nsync, WF1, WF2, cont, n, t, nhel)
     end do
     do i = h1+1, n(1)
       if (WF1(i)%e /= -1_intkind2) then
-        write(*,*)'subroutine helbookkeeping_cont: stop'
-        write(*,*)'i, h1, n(1), WF1(i)%e =', i, h1, n(1), WF1(i)%e
+        write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_cont:'
+        write(*,*) '[OpenLoops] i, h1, n(1), WF1(i)%e =', i, h1, n(1), WF1(i)%e
         stop
       end if
     end do
@@ -418,8 +576,8 @@ subroutine helbookkeeping_cont(nsync, WF1, WF2, cont, n, t, nhel)
     end do
     do i = h2+1, n(2)
       if (WF2(i)%e /= -1_intkind2) then
-        write(*,*) 'subroutine helbookkeeping_cont: stop'
-        write(*,*) 'i, h2, n(2), WF2(i)%e =', i, h2, n(2), WF2(i)%e
+        write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_cont:'
+        write(*,*) '[OpenLoops] i, h2, n(2), WF2(i)%e =', i, h2, n(2), WF2(i)%e
         stop
       end if
     end do
@@ -483,8 +641,8 @@ subroutine helbookkeeping_cont(nsync, WF1, WF2, cont, n, t, nhel)
     end do
 
   case default
-    write(*,*) 'subroutine helbookkeeping_cont: stop'
-    write(*,*) 'nsync =', nsync, 'not allowed'
+    write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_cont:'
+    write(*,*) '[OpenLoops] nsync =', nsync, 'not allowed'
     stop
 
   end select
@@ -510,8 +668,8 @@ subroutine helsync(nsync, cont, Nhel, Hel)
   integer :: Nhelmax, h, h0, i, ishift, Ndiag, n
 
   if (nsync /= 1) then
-    write(*,*) 'subroutine helsync: stop'
-    write(*,*) 'nsync =', nsync, 'not allowed'
+    write(*,*) '[OpenLoops] ERROR in subroutine helsync:'
+    write(*,*) '[OpenLoops] nsync =', nsync, 'not allowed'
     stop
   end if
 

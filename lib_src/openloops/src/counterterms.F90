@@ -870,4 +870,276 @@ end subroutine counter_SVV_S
 
 
 
+! ======================================================================
+! Vertex counter terms for HEFT.
+! ======================================================================
+
+! **********************************************************************
+subroutine counter_HG_G(f, S, V2, P2, V_out, P3)
+! Higgs-gluon-gluon vertex: general tensor structure
+! Jout_G = J_S*(P3*(-f(1)*P2.V2+f(3)*P3.V2)+P2*(-f(2)*P3.V2+f(3)*P2.V2)
+!           +V2*(f(4)*P2.P2+f(4)*P3.P3-f(5)*P2.P3))
+! note that P3 is outgoing
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV, cont_V
+  implicit none
+  real(REALKIND), intent(in)     :: f(5)
+  complex(REALKIND), intent(in)  :: S(4), V2(4), P2(4), P3(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  complex(REALKIND) :: P3V2, P2V2  ,  P2P3, P2P2, P3P3
+  P3V2 = cont_VV(P3,V2)
+  P2V2 = cont_VV(P2,V2)
+!   V_out = (P3*(-f(1)*P2V2+f(3)*P3V2) + P2*(-f(2)*P3V2+f(3)*P2V2) &
+!       & +  V2*(f(4)*cont_V(P2)+f(4)*cont_V(P3)-f(5)*cont_VV(P2,P3))) * S(1)
+
+  P2P3 = cont_VV(P2,P3)
+  P2P2 = cont_V(P2)
+  P3P3 = cont_V(P3)
+  V_out = P3*(-f(1)*P2V2+f(3)*P3V2)+P2*(-f(2)*P3V2+f(3)*P2V2)+V2*(f(4)*P2P2+f(4)*P3P3-f(5)*P2P3)
+  V_out = S(1)*V_out
+end subroutine counter_HG_G
+
+
+! **********************************************************************
+subroutine counter_GG_H(f, V1, P1, V2, P2, S_out)
+! Higgs-gluon-gluon vertex with general form factor contributions
+! S_out = (f(1)*P1(1)*P2(2)+f(2)*P1(2)*P2(1)+f(3)*(P1(1)*P1(2)+P2(1)*P2(2))
+!          +g(1,2)*(f(4)*(P1.P1+P2.P2)+f(5)*P1.P2))*V1(1)*V2(2)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV, cont_V
+  implicit none
+  real(REALKIND), intent(in)     :: f(5)
+  complex(REALKIND), intent(in)  :: V1(4), P1(4), V2(4), P2(4)
+  complex(REALKIND), intent(out) :: S_out(4)
+  complex(REALKIND) :: P1V1, P2V2, P1V2, P2V1  ,  V1V2, P1P2, P1P1, P2P2
+  P1V1 = cont_VV(P1,V1)
+  P2V2 = cont_VV(P2,V2)
+  P1V2 = cont_VV(P1,V2)
+  P2V1 = cont_VV(P2,V1)
+!   S_out(1) = f(1)*P1V1*P2V2 + f(2)*P1V2*P2V1 + f(3)*(P1V1*P1V2 + P2V1*P2V2) &
+!          & + (f(4)*(cont_V(P1)+cont_V(P2)) + f(5)*cont_VV(P1,P2)) * cont_VV(V1,V2)
+
+  V1V2 = cont_VV(V1,V2)
+  P1P2 = cont_VV(P1,P2)
+  P1P1 = cont_V(P1)
+  P2P2 = cont_V(P2)
+  S_out(1) = f(1)*P1V1*P2V2+f(2)*P1V2*P2V1+f(3)*P1V1*P1V2+f(3)*P2V1*P2V2
+  S_out(1) = S_out(1) + V1V2*(f(4)*P1P1 + f(4)*P2P2 + f(5)*P1P2)
+
+end subroutine counter_GG_H
+
+
+! **********************************************************************
+subroutine counter_GGG_H(V1, P1, V2, P2, V3, P3, S_out)
+! gluon gluon gluon -> Higgs vertex for HEFT
+! S_out = (g(1,2)*(P1-P2)(3) + g(2,3)*(P2-P3)(1) + g(3,1)*(P3-P1)(2)) * V1(1)*V2(2)*V3(3)
+!       = V1.V2*(P1-P2).V3 + V2.V3*(P2-P3).V1 + V3.V1*(P3-P1).V2
+! note: copy from tree vertices
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: V1(4), P1(4), V2(4), P2(4), V3(4), P3(4)
+  complex(REALKIND), intent(out) :: S_out(4)
+  S_out(1) = cont_VV(V1,V2)*cont_VV(P1-P2,V3) + cont_VV(V2,V3)*cont_VV(P2-P3,V1) + cont_VV(V3,V1)*cont_VV(P3-P1,V2)
+end subroutine counter_GGG_H
+
+
+! **********************************************************************
+subroutine counter_HGG_G(S, V2, P2, V3, P3, V_out, P4)
+! Higgs gluon gluon -> gluon vertex for HEFT
+! V_out(4) = (g(2,3)*(P2-P3)(4) + g(3,4)*(P3+P4)(2) + g(4,2)*(-P4-P2)(3)) * S*V2(2)*V3(3)
+!          = S*V2.V3*(P2-P3)(4) + S*(P3+P4).V2*V3(4) - S*(P4+P2).V3*V2(4)
+! note: copy from tree vertices
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S(4), V2(4), P2(4), V3(4), P3(4), P4(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  V_out = (S(1) * cont_VV(V2,V3)) * (P2-P3) + (S(1) * cont_VV(P3+P4,V2)) * V3 - (S(1) * cont_VV(P4+P2,V3)) * V2
+end subroutine counter_HGG_G
+
+
+! **********************************************************************
+subroutine counter_HGGG_G(S, V2, V3, V4, V_out)
+! Effective Higgs gluon gluon gluon -> gluon vertex
+! for factorised Lorentz monomials (g(2,3)*g(4,5))*S*V(2)*V(3)*V(4)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S(4), V2(4), V3(4), V4(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  V_out = (S(1)*cont_VV(V2,V3)) * V4
+end subroutine counter_HGGG_G
+
+
+! **********************************************************************
+subroutine counter_GGGG_H(V1, V2, V3, V4, S_out)
+! gluon gluon gluon gluon -> Higgs vertex for HEFT
+! for factorised Lorentz monomials (g(1,2)*g(3,4))*V(1)*V(2)*V(3)*V(4)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: V1(4), V2(4), V3(4), V4(4)
+  complex(REALKIND), intent(out) :: S_out(4)
+  S_out(1) = cont_VV(V1,V2)*cont_VV(V3,V4)
+end subroutine counter_GGGG_H
+
+
+! **********************************************************************
+subroutine counter_AQ_H(JA, PA, JQ, PQ, S_out)
+! Fermion-scalar-vertex for R2 in HEFT
+! Incoming anti-fermion current: JA(4)
+! Incoming fermion current:      JQ(4)
+! Outgoing scalar current:       S_out = A.slash(PQ-PA).Q
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: JA(4), PA(4), JQ(4), PQ(4)
+  complex(REALKIND), intent(out) :: S_out(4)
+  complex(REALKIND) :: P(4)
+  P = PQ-PA
+  S_out(1) = (-JA(3)*P(1)-JA(4)*P(3))*JQ(1) + (-JA(4)*P(2)-JA(3)*P(4))*JQ(2) &
+         & + (-JA(1)*P(2)+JA(2)*P(3))*JQ(3) + (-JA(2)*P(1)+JA(1)*P(4))*JQ(4)
+end subroutine counter_AQ_H
+
+
+! **********************************************************************
+subroutine counter_QH_A(JQ, PQ, S, JA_out, PA)
+! Fermion-scalar-vertex for R2 in HEFT
+! Incoming fermion current:      JQ(4)
+! Incoming scalar current:       S
+! Outgoing anti-fermion current: JA_out_i = slash(PQ+PA)_ij * JQ_j * S
+! note that PA is outgoing
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: JQ(4), PQ(4), S(4), PA(4)
+  complex(REALKIND), intent(out) :: JA_out(4)
+  complex(REALKIND) :: P(4)
+  P = PQ+PA
+  JA_out(1) = - P(2)*JQ(3) + P(4)*JQ(4)
+  JA_out(2) = - P(1)*JQ(4) + P(3)*JQ(3)
+  JA_out(3) = - P(1)*JQ(1) - P(4)*JQ(2)
+  JA_out(4) = - P(2)*JQ(2) - P(3)*JQ(1)
+  JA_out = JA_out*S(1)
+end subroutine counter_QH_A
+
+
+! **********************************************************************
+subroutine counter_HA_Q(S, JA, PA, JQ_out, PQ)
+! Fermion-scalar-vertex for R2 in HEFT
+! Incoming scalar current:       S
+! Incoming anti-fermion current: JA(4)
+! Outgoing fermion current:      JQ_out_i = S * JA_j * slash(-PQ-PA)_ji
+! note that PQ is outgoing
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: S(4), JA(4), PA(4), PQ(4)
+  complex(REALKIND), intent(out) :: JQ_out(4)
+  complex(REALKIND) :: P(4)
+  P = -PQ-PA
+  JQ_out(1) = -JA(3)*P(1)-JA(4)*P(3)
+  JQ_out(2) = -JA(4)*P(2)-JA(3)*P(4)
+  JQ_out(3) = -JA(1)*P(2)+JA(2)*P(3)
+  JQ_out(4) = -JA(2)*P(1)+JA(1)*P(4)
+  JQ_out = JQ_out*S(1)
+end subroutine counter_HA_Q
+
+
+! **********************************************************************
+subroutine counter_HQA_V(S, J_Q, J_A, Jout_V)
+! Fermion-scalar-gluon-vertex for R2 in HEFT
+! extension of tree-vertex vert_QA_V
+! ----------------------------------------------------------------------
+! S(4)      = Incoming scalar current
+! J_Q(4)    = quark current
+! J_A(4)    = anti-quark current
+! Jout_V(4) = outgoing gluon current (light-cone rep.)
+! Outgoing gluon current:        V_out(4)
+! V_out(A) = JA(i) * gamma^A(i,j) * JQ(j) * S
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: S(4), J_Q(4), J_A(4)
+  complex(REALKIND), intent(out) :: Jout_V(4)
+  Jout_V(1) = - J_A(1)*J_Q(3) - J_A(4)*J_Q(2)
+  Jout_V(2) = - J_A(2)*J_Q(4) - J_A(3)*J_Q(1)
+  Jout_V(3) = - J_A(1)*J_Q(4) + J_A(3)*J_Q(2)
+  Jout_V(4) = - J_A(2)*J_Q(3) + J_A(4)*J_Q(1)
+  Jout_V = (Jout_V + Jout_V)*S(1)
+end subroutine counter_HQA_V
+
+
+! **********************************************************************
+subroutine counter_VHQ_A(J_V, S, J_Q, Jout_Q)
+! Fermion-scalar-gluon-vertex for R2 in HEFT
+! extension of tree-vertex vert_VQ_A
+! ----------------------------------------------------------------------
+! J_V(4)    = incoming gluon current (light-cone rep.)
+! S(4)      = Incoming scalar current
+! J_Q(4)    = incoming quark current
+! Jout_Q(4) = outgoing quark current
+! Jout_Q(4) = J_V(1) * gamma_1(4,3) * J_Q(3) * S
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: J_V(4), S(4), J_Q(4)
+  complex(REALKIND), intent(out) :: Jout_Q(4)
+  Jout_Q(1) = - J_V(2)*J_Q(3)+J_V(4)*J_Q(4)
+  Jout_Q(2) = - J_V(1)*J_Q(4)+J_V(3)*J_Q(3)
+  Jout_Q(3) = - J_V(1)*J_Q(1)-J_V(4)*J_Q(2)
+  Jout_Q(4) = - J_V(2)*J_Q(2)-J_V(3)*J_Q(1)
+  Jout_Q = Jout_Q*S(1)
+end subroutine counter_VHQ_A
+
+
+! **********************************************************************
+subroutine counter_AVH_Q(J_A, J_V, S, Jout_A)
+! Fermion-scalar-gluon-vertex for R2 in HEFT
+! extension of tree-vertex vert_AV_Q
+! ----------------------------------------------------------------------
+! J_A(4)    = incoming anti-quark current
+! J_V(4)    = incoming gluon current (light-cone rep.)
+! S(4)      = Incoming scalar current
+! Jout_A(4) = outgoing anti-quark current
+! Jout_A(i) = J_A(j) * gamma_A(j,i) * J_V(A) * S
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: J_A(4), J_V(4), S(4)
+  complex(REALKIND), intent(out) :: Jout_A(4)
+  Jout_A(1) = - J_V(1)*J_A(3) - J_V(3)*J_A(4)
+  Jout_A(2) = - J_V(2)*J_A(4) - J_V(4)*J_A(3)
+  Jout_A(3) = - J_V(2)*J_A(1) + J_V(3)*J_A(2)
+  Jout_A(4) = - J_V(1)*J_A(2) + J_V(4)*J_A(1)
+  Jout_A = Jout_A*S(1)
+end subroutine counter_AVH_Q
+
+
+! **********************************************************************
+subroutine counter_QAV_H(J_Q, J_A, J_V, S_out)
+! Fermion-scalar-gluon-vertex for R2 in HEFT
+! extension of tree-vertex vert_AV_Q
+! ----------------------------------------------------------------------
+! J_A(4)    = incoming anti-quark current
+! J_V(4)    = incoming gluon current (light-cone rep.)
+! S(4)      = Incoming scalar current
+! Jout_A(4) = outgoing anti-quark current
+! Jout_A(i) = J_A(j) * gamma_A(j,i) * J_V(A) * S
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: J_Q(4), J_A(4), J_V(4)
+  complex(REALKIND), intent(out) :: S_out(4)
+  S_out(1) = (-J_A(3)*J_V(1)-J_A(4)*J_V(3))*J_Q(1) + (-J_A(4)*J_V(2)-J_A(3)*J_V(4))*J_Q(2) &
+         & + (-J_A(1)*J_V(2)+J_A(2)*J_V(3))*J_Q(3) + (-J_A(2)*J_V(1)+J_A(1)*J_V(4))*J_Q(4)
+end subroutine counter_QAV_H
+
 end module ol_counterterms_/**/REALKIND
