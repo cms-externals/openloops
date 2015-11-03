@@ -3,7 +3,7 @@
 
 module ol_versiondata_pphtt
   implicit none
-  character(4) :: generator_revision = "1248"
+  character(4) :: generator_revision = "1372"
   interface
     subroutine version_pphtt(outstring)
       implicit none

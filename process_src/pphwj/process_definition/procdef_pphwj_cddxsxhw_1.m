@@ -39,6 +39,7 @@ ReplaceOSw = False;
 
 SetParameters = {
   YukB -> 1,
+  YukT -> 1,
   nc -> 3,
   nf -> 6,
   MU -> 0,
@@ -54,7 +55,7 @@ SetParameters = {
 
 ChannelMap = {
   {"uccxdxhw"},
-  {"udxbbxhw<1,4,2,3,5,6>", "MB=0"}
+  {"udxbbxhw<1,4,2,3,5,6>", "MB=0", "YB=0"}
 };
 
 Approximation = "";

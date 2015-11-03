@@ -23,6 +23,7 @@ module ol_external_pphttj_ttxhgggg_1
   logical, save :: hel_not_initialised = .true.
   integer, save :: H(7,64) ! H(i,la) = helicity of particle i in configuration la
   integer, save :: H_HC(64,7)
+  integer, save :: POLSEL(7) = 0
 
   contains
 
@@ -233,6 +234,14 @@ module ol_external_pphttj_ttxhgggg_1
   H_HC(:,6) = [ ((((2*(binco-1)+flip)*2+binpos, flip = 0, 1), binpos = 1, 2), binco = 1, 64/2/2) ]
   H_HC(:,7) = [ ((((2*(binco-1)+flip)*1+binpos, flip = 0, 1), binpos = 1, 1), binco = 1, 64/1/2) ]
   end subroutine hel_init
+
+
+  subroutine pol_init(pol) &
+      & bind(c,name="ol_f_pol_init_pphttj_ttxhgggg_1")
+    implicit none
+    integer, intent(in) :: pol(7)
+    POLSEL = pol
+  end subroutine pol_init
 
 end module ol_external_pphttj_ttxhgggg_1
 

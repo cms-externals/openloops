@@ -41,6 +41,7 @@ SetParameters = {
   ME -> 0,
   YE -> 0,
   YukB -> 1,
+  YukT -> 1,
   nc -> 3,
   nf -> 6,
   MU -> 0,
@@ -56,7 +57,7 @@ SetParameters = {
 
 ChannelMap = {
   {"nexeuccxdxhg"},
-  {"nexeudxbbxhg<1,2,3,6,4,5,7>", "MB=0"}
+  {"nexeudxbbxhg<1,2,3,6,4,5,7>", "MB=0", "YB=0"}
 };
 
 Approximation = "";

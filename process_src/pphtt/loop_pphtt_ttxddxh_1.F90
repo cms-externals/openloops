@@ -149,7 +149,7 @@ end subroutine fac_init_loop
 
 
 ! **********************************************************************
-subroutine tree_wavefunctions(P, H, M1, M2)
+subroutine tree_wavefunctions(P, H, M1, M2, POLSEL)
 ! P(0:3,npart) = 2 -> n-2 external momenta (standard representation)
 ! H(npart)     = external-particle helicities
 ! Writes the tree wave functions to 'wf', denominators to 'den'.
@@ -165,14 +165,25 @@ subroutine tree_wavefunctions(P, H, M1, M2)
   implicit none
   real(REALKIND),    intent(in)  :: P(0:3,5)
   integer,           intent(in)  :: H(5)
+  integer,           intent(in), optional  :: POLSEL(5)
   complex(REALKIND), intent(out) :: M1(2), M2(2)
   complex(REALKIND) :: A(14)
   ! external WFs
-  call wf_Q(P(:,1), rMT, H(1), wf(:,0))
-  call wf_A(P(:,2), rMT, H(2), wf(:,-1))
-  call wf_Q(P(:,3), rZERO, H(3), wf(:,-2))
-  call wf_A(P(:,4), rZERO, H(4), wf(:,-3))
-  call wf_S(P(:,5), rMH, H(5), wf(:,-4))
+  if (present(POLSEL)) then
+    call pol_wf_Q(P(:,1), rMT, H(1), wf(:,0), POLSEL(1))
+    call pol_wf_A(P(:,2), rMT, H(2), wf(:,-1), POLSEL(2))
+    call pol_wf_Q(P(:,3), rZERO, H(3), wf(:,-2), POLSEL(3))
+    call pol_wf_A(P(:,4), rZERO, H(4), wf(:,-3), POLSEL(4))
+    call pol_wf_S(P(:,5), rMH, H(5), wf(:,-4), POLSEL(5))
+
+  else
+    call pol_wf_Q(P(:,1), rMT, H(1), wf(:,0), 0)
+    call pol_wf_A(P(:,2), rMT, H(2), wf(:,-1), 0)
+    call pol_wf_Q(P(:,3), rZERO, H(3), wf(:,-2), 0)
+    call pol_wf_A(P(:,4), rZERO, H(4), wf(:,-3), 0)
+    call pol_wf_S(P(:,5), rMH, H(5), wf(:,-4), 0)
+
+  end if
 
   ! internal WFs
   call vert_QS_A(gH,wf(:,0),wf(:,-4),wf(:,1))

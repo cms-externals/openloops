@@ -41,6 +41,7 @@ SetParameters = {
   ME -> 0,
   YE -> 0,
   YukB -> 1,
+  YukT -> 1,
   nc -> 3,
   nf -> 6,
   MU -> 0,
@@ -55,7 +56,7 @@ SetParameters = {
 };
 
 ChannelMap = {
-  {"nenexbbxhg", "MB=0"}
+  {"nenexbbxhg", "MB=0", "YB=0"}
 };
 
 Approximation = "";

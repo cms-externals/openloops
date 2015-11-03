@@ -133,7 +133,7 @@ subroutine amp2(P_scatt, M2, I, MOM, nextcombs, extcombs, M2munu)
   use ol_external_pphttj_ttxbbxhg_1, only: external_perm_pphttj_ttxbbxhg_1, &
     & external_perm_inv_pphttj_ttxbbxhg_1, extcomb_perm_pphttj_ttxbbxhg_1, &
     & average_factor_pphttj_ttxbbxhg_1
-  use ol_external_pphttj_ttxbbxhg_1, only: H, hel_not_initialised, hel_init
+  use ol_external_pphttj_ttxbbxhg_1, only: H, hel_not_initialised, hel_init, POLSEL
   use ol_colourmatrix_pphttj_ttxbbxhg_1_/**/REALKIND, only: colmat_not_initialised, colourmatrix_init
   use ol_forced_parameters_pphttj_ttxbbxhg_1_/**/REALKIND, only: check_forced_parameters
   use ol_heltables_pphttj_ttxbbxhg_1
@@ -210,19 +210,32 @@ subroutine amp2(P_scatt, M2, I, MOM, nextcombs, extcombs, M2munu)
 
   if (heltables_not_init) call init_heltables()
 
+  42 continue
   ! external WFs
-  call wf_Q(P(:,1), rMT, H1, ex1)
-  call wf_A(P(:,2), rMT, H2, ex2)
-  call wf_Q(P(:,3), rMB, H3, ex3)
-  call wf_A(P(:,4), rMB, H4, ex4)
-  call wf_S(P(:,5), rMH, H5, ex5)
-  call wf_V(P(:,6), rZERO, H6, ex6)
+  call pol_wf_Q(P(:,1), rMT, H1, ex1, POLSEL(1))
+  call pol_wf_A(P(:,2), rMT, H2, ex2, POLSEL(2))
+  call pol_wf_Q(P(:,3), rMB, H3, ex3, POLSEL(3))
+  call pol_wf_A(P(:,4), rMB, H4, ex4, POLSEL(4))
+  call pol_wf_S(P(:,5), rMH, H5, ex5, POLSEL(5))
+  call pol_wf_V(P(:,6), rZERO, H6, ex6, POLSEL(6))
 
 
   if (ntry == 1) then
     shift = 1
     ! call helbookkeeping_flip(H1, 1, shift, eflip, exthel, firstpol)
     ! call helbookkeeping_wf(H1, ex1, shift) ...
+
+    if (any(POLSEL /= 0)) then
+
+      call pol_wf_Q(P(:,1), rMT, H1, ex1, 0)
+      call pol_wf_A(P(:,2), rMT, H2, ex2, 0)
+      call pol_wf_Q(P(:,3), rMB, H3, ex3, 0)
+      call pol_wf_A(P(:,4), rMB, H4, ex4, 0)
+      call pol_wf_S(P(:,5), rMH, H5, ex5, 0)
+      call pol_wf_V(P(:,6), rZERO, H6, ex6, 0)
+
+    end if
+
     call helbookkeeping_flip(H1, 1, shift, eflip, exthel, firstpol)
     call helbookkeeping_wf(H1, ex1, shift)
     call helbookkeeping_flip(H2, 2, shift, eflip, exthel, firstpol)
@@ -296,6 +309,10 @@ subroutine amp2(P_scatt, M2, I, MOM, nextcombs, extcombs, M2munu)
     if (nsync == 1) then
       call helsync(nsync, A, nhel, Hel)
       call helsync_flip(nsync, nhel, Hel, eflip, exthel)
+      if (any(POLSEL /= 0)) then
+        ntry = 2
+        goto 42
+      end if
     end if
   end do
 

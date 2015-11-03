@@ -39,6 +39,7 @@ ReplaceOSw = False;
 
 SetParameters = {
   YukB -> 1,
+  YukT -> 1,
   nc -> 3,
   nf -> 6,
   MU -> 0,

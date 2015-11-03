@@ -39,6 +39,7 @@ ReplaceOSw = False;
 
 SetParameters = {
   YukB -> 1,
+  YukT -> 1,
   nc -> 3,
   nf -> 6,
   MU -> 0,
@@ -49,11 +50,12 @@ SetParameters = {
   YD -> 0,
   YS -> 0,
   YC -> 0,
-  LeadingColour -> 0
+  LeadingColour -> 0,
+  POLSEL -> 1
 };
 
 ChannelMap = {
-  {"ttxbbbxbxh", "MB=0"},
+  {"ttxbbbxbxh", "MB=0", "YB=0"},
   {"uuuxuxttxh<3,4,5,6,1,2,7>"}
 };
 

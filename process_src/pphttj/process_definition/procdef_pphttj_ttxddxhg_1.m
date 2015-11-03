@@ -39,6 +39,7 @@ ReplaceOSw = False;
 
 SetParameters = {
   YukB -> 1,
+  YukT -> 1,
   nc -> 3,
   nf -> 6,
   MU -> 0,
@@ -49,12 +50,13 @@ SetParameters = {
   YD -> 0,
   YS -> 0,
   YC -> 0,
-  LeadingColour -> 0
+  LeadingColour -> 0,
+  POLSEL -> 1
 };
 
 ChannelMap = {
   {"uuxttxhg<3,4,1,2,5,6>"},
-  {"ttxbbxhg", "MB=0"}
+  {"ttxbbxhg", "MB=0", "YB=0"}
 };
 
 Approximation = "";

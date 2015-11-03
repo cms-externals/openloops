@@ -38,9 +38,11 @@ subroutine vamp2base(P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2, mode)
 !        note that scalings cannot be reset
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND, DREALKIND
+  use ol_debug, only: ol_fatal
+  use ol_generic, only: to_string
   use ol_external_pphtt_ttxbbxh_1, only: &
     & external_perm_inv_pphtt_ttxbbxh_1, average_factor_pphtt_ttxbbxh_1
-  use ol_external_pphtt_ttxbbxh_1, only: hel_not_initialised, hel_init, H
+  use ol_external_pphtt_ttxbbxh_1, only: hel_not_initialised, hel_init, H, POLSEL
   use ol_colourmatrix_pphtt_ttxbbxh_1_/**/REALKIND ! colmat_not_initialised, colourmatrix_init, K1, K2, KL, KL2, KL2ct, KL2ct2
   use ol_kinematics_/**/REALKIND, only: conv_mom_scatt2in, internal_momenta
   use ol_parameters_decl_/**/REALKIND ! parameters_status, scalefactor, <masses>
@@ -112,10 +114,20 @@ subroutine vamp2base(P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2, mode)
   if (recycle_mode == 1) call reset_tensor_sum()
 #endif
 
-  do la = 1, 16
+  la = 0
+  do
+    la = la + 1
+    if (la > 16) then
+      exit
+    end if
 
-    if (ntry > 2 .and. zerohel(la)) cycle
-    call tree_wavefunctions(P, H(:,la), M0(:,la), Mct)
+    if (ntry > 1 .and. zerohel(la)) then
+      cycle
+    else if (ntry == 1) then
+      call tree_wavefunctions(P, H(:,la), M0(:,la), Mct)
+    else
+      call tree_wavefunctions(P, H(:,la), M0(:,la), Mct, POLSEL)
+    end if
 #if 2 > 0
     do j = 1, 2
       M2L0 = M2L0 + real(sum(conjg(M0(:,la))*K1(1:2,j))*M0(j,la))
@@ -163,15 +175,27 @@ subroutine vamp2base(P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2, mode)
     end if
 ! #ifdef LOOPSQUARED
 #endif
-    if (ntry <= 2) then
+    if (ntry == 1) then
 #ifdef LOOPSQUARED
       if (M2hel /= 0) zerohel(la) = .false.
 #else
       if (count(M0(:,la) /= 0) > 0) zerohel(la) = .false.
 #endif
-      if (la == 16) ntry = ntry + 1
+      if (la == 16) then
+        ntry = ntry + 1
+        if (any(POLSEL /= 0)) then
+          M2L0     = 0
+          M2L1     = 0
+          M2ct     = 0
+          M2colint = 0
+          M2L2     = 0
+          M2L2ct   = 0
+          M2L2ct2  = 0
+          la = 0
+          cycle
+        end if
+      end if
     end if
-
   end do
 
 #ifdef LOOPSQUARED
@@ -180,8 +204,7 @@ subroutine vamp2base(P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2, mode)
   if (recycle_mode == 2) then
     call scale_tensor_sum()
   else if (recycle_mode /= 1) then
-    print *, "[OpenLoops] ERROR in vamp2base: unrecognised recycle_mode:", recycle_mode
-    stop
+    call ol_fatal("in vamp2base: unrecognised recycle_mode:" // to_string(recycle_mode))
   end if
   call integrate_tensor_sum(M2L1)
 #endif

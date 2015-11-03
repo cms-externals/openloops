@@ -3,7 +3,7 @@
 
 module ol_versiondata_pphwj
   implicit none
-  character(4) :: generator_revision = "1248"
+  character(4) :: generator_revision = "1268"
   interface
     subroutine version_pphwj(outstring)
       implicit none
