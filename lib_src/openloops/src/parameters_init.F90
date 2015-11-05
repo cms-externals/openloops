@@ -30,12 +30,13 @@ subroutine masspowers(rM, Ga, M, M2, rM2)
   complex(REALKIND), intent(out) :: M,  M2
   real(REALKIND),    intent(out) :: rM2
   M2  = rM*rM - CI*rM*Ga
-  if ( cms_on == 0 ) then
+  if (cms_on == 0) then
     M   = rM
     rM2 = rM*rM
   else
-    M  = sqrt(M2)
+    M = sqrt(M2)
     rM2 = real(M2)
+    if (rM < 0) M = -M
   end if
 end subroutine masspowers
 
@@ -59,9 +60,6 @@ subroutine parameters_init(Mass_E, Mass_M, Mass_L, Mass_U, Mass_D, Mass_S, Mass_
 #if defined(COLLIER_LEGACY) && defined(USE_COLLIER)
   use bt_TI_lib_switch, only: TI_library ! from COLI: module to switch between COLI and DD libraries
 #endif
-#ifdef USE_IFORT
-  use ifport, only: getpid, system
-#endif
   use ol_version, only: splash_todo, print_welcome
   implicit none
   real(REALKIND), intent(in), optional :: Mass_E, Mass_M,  Mass_L ! physical (real) lepton masses
@@ -74,7 +72,6 @@ subroutine parameters_init(Mass_E, Mass_M, Mass_L, Mass_U, Mass_D, Mass_S, Mass_
   integer,  intent(in), optional :: check_Ward_tree, check_Ward_loop
   integer,  intent(in), optional :: out_symmetry
   integer,  intent(in), optional :: leading_colour
-  integer :: dummy
 
   if (parameters_status == 0) then
     pid_string = trim(to_string(getpid())) // "-" // random_string(4)
@@ -82,11 +79,6 @@ subroutine parameters_init(Mass_E, Mass_M, Mass_L, Mass_U, Mass_D, Mass_S, Mass_
 
   if (splash_todo) then
     call print_welcome()
-  end if
-
-  if (stability_logdir_not_created .and. stability_log > 0) then
-    stability_logdir_not_created = .false.
-    dummy = system("mkdir -p " // trim(stability_logdir))
   end if
 
   ! Mode switches
@@ -198,7 +190,17 @@ subroutine parameters_init(Mass_E, Mass_M, Mass_L, Mass_U, Mass_D, Mass_S, Mass_
   wMY = scalefactor * wMY_unscaled
   rMH = scalefactor * rMH_unscaled
   wMH = scalefactor * wMH_unscaled
-  MREG= scalefactor * MREG_unscaled
+
+  rMA0 = scalefactor * rMA0_unscaled
+  wMA0 = scalefactor * wMA0_unscaled
+  rMHH = scalefactor * rMHH_unscaled
+  wMHH = scalefactor * wMHH_unscaled
+  rMHp = scalefactor * rMHp_unscaled
+  wMHp = scalefactor * wMHp_unscaled
+
+  MREG = scalefactor * MREG_unscaled
+
+  Gmu  = Gmu_unscaled / scalefactor**2
 
 ! ifdef PRECISION_dp
 #else
@@ -208,21 +210,26 @@ subroutine parameters_init()
   use KIND_TYPES, only: REALKIND
   use ol_parameters_decl_/**/REALKIND
   use ol_parameters_decl_/**/DREALKIND, only: &
-    & parameters_verbose, scalefactor_dp => scalefactor, cms_on => cms_on, &
-    & parameters_status_dp => parameters_status, alpha_QED_dp => alpha_QED, alpha_QCD_dp => alpha_QCD, &
+    & model, parameters_verbose, scalefactor_dp => scalefactor, cms_on => cms_on, ew_scheme => ew_scheme, &
+    & parameters_status_dp => parameters_status,  alpha_QCD_dp => alpha_QCD, &
+    & alpha_QED_0_dp => alpha_QED_0, alpha_QED_MZ_dp => alpha_QED_MZ, Gmu_dp => Gmu, &
     & rME_dp => rME, wME_dp => wME, rMM_dp => rMM, wMM_dp => wMM, rML_dp => rML, wML_dp => wML, &
     & rMU_dp => rMU, wMU_dp => wMU, rMD_dp => rMD, wMD_dp => wMD, rMS_dp => rMS, wMS_dp => wMS, &
     & rMC_dp => rMC, wMC_dp => wMC, rMB_dp => rMB, wMB_dp => wMB, rMT_dp => rMT, wMT_dp => wMT, &
     & rMW_dp => rMW, wMW_dp => wMW, rMZ_dp => rMZ, wMZ_dp => wMZ, rMH_dp => rMH, wMH_dp => wMH, &
     & rMX_dp => rMX, wMX_dp => wMX, rMY_dp => rMY, wMY_dp => wMY, &
     & rYE_dp => rYE, rYM_dp => rYM, rYL_dp => rYL, rYU_dp => rYU, rYD_dp => rYD, rYS_dp => rYS, &
-    & rYC_dp => rYC, rYB_dp => rYB, wYB_dp => wYB, rYT_dp => rYT, wYT_dp => wYT
+    & rYC_dp => rYC, rYB_dp => rYB, wYB_dp => wYB, rYT_dp => rYT, wYT_dp => wYT, &
+    & rMA0_dp => rMA0, wMA0_dp => wMA0, rMHH_dp => rMHH, wMHH_dp => wMHH, rMHp_dp => rMHp, wMHp_dp => wMHp, &
+    & thdmTB_dp => thdmTB, thdmSBA_dp => thdmSBA, thdmL5_dp => thdmL5
   implicit none
 
   scalefactor = scalefactor_dp
 
-  alpha_QED = alpha_QED_dp
-  alpha_QCD = alpha_QCD_dp
+  alpha_QED_0  = alpha_QED_0_dp
+  alpha_QED_MZ = alpha_QED_MZ_dp
+  Gmu          = Gmu_dp
+  alpha_QCD    = alpha_QCD_dp
 
   rME = rME_dp
   wME = wME_dp
@@ -265,6 +272,16 @@ subroutine parameters_init()
   rYT = rYT_dp
   wYT = wYT_dp
 
+  thdmTB = thdmTB_dp
+  thdmSBA = thdmSBA_dp
+  thdmL5 = thdmL5_dp
+
+  rMA0 = rMA0_dp
+  wMA0 = wMA0_dp
+  rMHH = rMHH_dp
+  wMHH = wMHH_dp
+  rMHp = rMHp_dp
+  wMHp = wMHp_dp
 
 ! ifdef PRECISION_dp
 #endif
@@ -295,6 +312,10 @@ subroutine parameters_init()
   call masspowers(rYB, wYB, YB, YB2, rYB2)
   call masspowers(rYT, wYT, YT, YT2, rYT2)
 
+  call masspowers(rMA0, wMA0, MA0, MA02, rMA02)
+  call masspowers(rMHH, wMHH, MHH, MHH2, rMHH2)
+  call masspowers(rMHp, wMHp, MHp, MHp2, rMHp2)
+
   ! Dependent couplings
 
   !QCD
@@ -302,8 +323,6 @@ subroutine parameters_init()
   gQCD   = sqrt(G2_QCD)
 
   !EW
-  E2_QED = 4*pi*alpha_QED
-  eQED   = sqrt(E2_QED)
   if ( cms_on == 0 ) then
     cw   = rMW/rMZ
   else
@@ -317,6 +336,17 @@ subroutine parameters_init()
   sw3    = sw**3
   sw4    = sw2**2
   sw6    = sw2**3
+
+  if (ew_scheme == 0) then ! alpha(0) OS scheme
+    alpha_QED = alpha_QED_0
+  else if (ew_scheme == 1) then ! Gmu scheme
+    alpha_QED = sqrt2/pi*Gmu*abs(MW2*sw2)
+  else if (ew_scheme == 2) then ! alpha(MZ) scheme
+    alpha_QED = alpha_QED_MZ
+  end if
+
+  E2_QED = 4*pi*alpha_QED
+  eQED   = sqrt(E2_QED)
 
   ! (1) Right-handed Z-fermion couplings = gf^+ = gZRH*Qf in Denner's FRs
   ! (2) Left-handed  Z-fermion couplings = gf^- = gZLH*(I3f-sw2*Qf) in Denner's FRs
@@ -335,6 +365,8 @@ subroutine parameters_init()
   gPsc = [   -YC,   YS ]
   gPbt = [   -YT,   YB ]
 
+  if (trim(model) == "2hdm") call thdm_parameters_init()
+
   ! Number of time this function has been called:
 #ifdef PRECISION_dp
   parameters_status = parameters_status + 1
@@ -348,6 +380,54 @@ subroutine parameters_init()
   end if
 
 end subroutine parameters_init
+
+
+
+subroutine thdm_parameters_init()
+  use ol_debug, only: ol_fatal
+  use ol_parameters_decl_/**/REALKIND
+  implicit none
+  ! mixing angles
+  thdm_b = atan(thdmTB)
+  thdm_a = thdm_b - asin(thdmSBA)
+  thdmCA  = cos(thdm_a)
+  thdmSA  = sin(thdm_a)
+  thdmCB  = cos(thdm_b)
+  thdmSB  = sin(thdm_b)
+  thdmC2A = cos(2*thdm_a)
+  thdmS2A = sin(2*thdm_a)
+  thdmC2B = cos(2*thdm_b)
+  thdmS2B = sin(2*thdm_b)
+  thdmCAB = cos(thdm_a+thdm_b)
+  thdmSAB = sin(thdm_a+thdm_b)
+  thdmCBA = cos(thdm_b-thdm_a)
+  if (thdmTB == 0) then
+    call ol_fatal("2HDM model parameter ill defined: tan(beta) = 0")
+  end if
+  ! 2HDM Type I or Type II
+  if (thdm_type == 1) then
+    if (thdmSB == 0) then
+      call ol_fatal("2HDM-Type-I model parameter ill defined: sin(beta) = 0")
+    end if
+    thdmYuk1 = thdmCA/thdmSB
+    thdmYuk2 = thdmSA/thdmSB
+    thdmYuk3 = -1/thdmTB
+  else if (thdm_type == 2) then
+    if (thdmCB == 0) then
+      call ol_fatal("2HDM-Type-II model parameter ill defined: cos(beta) = 0")
+    end if
+    thdmYuk1 = -thdmSA/thdmCB
+    thdmYuk2 = thdmCA/thdmCB
+    thdmYuk3 = thdmTB
+  end if
+  ! 2HDM charged higgs quark couplings
+  thdmHpud = [-YD*(-thdmYuk3), YU/thdmTB]
+  thdmHpcs = [-YS*(-thdmYuk3), YC/thdmTB]
+  thdmHptb = [-YB*(-thdmYuk3), YT/thdmTB]
+  thdmHpdu = [-YU/thdmTB, YD*(-thdmYuk3)]
+  thdmHpsc = [-YC/thdmTB, YS*(-thdmYuk3)]
+  thdmHpbt = [-YT/thdmTB, YB*(-thdmYuk3)]
+end subroutine thdm_parameters_init
 
 
 
@@ -374,6 +454,8 @@ subroutine channel_on(ch)
 ! **********************************************************************
   use ol_parameters_decl_/**/DREALKIND, only: &
     next_channel_number, coli_cache_use, a_switch
+  use ol_generic, only: to_string
+  use ol_debug, only: ol_error, ol_fatal
 #ifdef USE_COLLIER
 #ifndef COLLIER_LEGACY
   use collier, only: initevent_cll
@@ -392,11 +474,11 @@ subroutine channel_on(ch)
       next_channel_number = next_channel_number + 1
       if (ch > maxcache) then
         ! maximum number of channels exceeded
-        write(*,*) 'subroutine channel_on: stop'
-        write(*,*) 'next channel =', next_channel_number,'/',maxcache
-        write(*,*) 'to handle more channels increase maxcache'
-        write(*,*) 'in collier/src/coli_params_cache.h'
-        stop
+        call ol_error(2, 'subroutine channel_on:')
+        call ol_error(2, 'next channel = ' // to_string(next_channel_number) // '/' // to_string(maxcache))
+        call ol_error(2, 'to handle more channels increase maxcache')
+        call ol_error(2,  'in collier/src/coli_params_cache.h')
+        call ol_fatal()
       else
         call cacheon(ch)
       end if
@@ -514,6 +596,8 @@ subroutine loop_parameters_init(renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, 
 !          = F_j(0) - F(2)*[de2_i_shift-de2_j_shift]
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND
+  use ol_generic, only: to_string
+  use ol_debug, only: ol_error, ol_fatal
   use ol_tensor_storage_/**/REALKIND, only: tensor_storage_maxrank
   use ol_parameters_decl_/**/REALKIND
   use ol_loop_parameters_decl_/**/REALKIND
@@ -557,6 +641,7 @@ subroutine loop_parameters_init(renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, 
   if (present(renscale)) then
     if (mureg_unscaled /= renscale) reset_mureg = .true.
     mureg_unscaled = renscale
+    muren_unscaled = renscale
   end if
   if (present(fact_UV))         x_UV          = fact_UV
   if (present(fact_IR))         x_IR          = fact_IR
@@ -621,6 +706,7 @@ subroutine loop_parameters_init(renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, 
 
   opprootsvalue = scalefactor * opprootsvalue_unscaled
   mureg = scalefactor * mureg_unscaled
+  muren = scalefactor * muren_unscaled
   muyc = scalefactor * muyc_unscaled
   muyb = scalefactor * muyb_unscaled
   muyt = scalefactor * muyt_unscaled
@@ -633,9 +719,9 @@ subroutine loop_parameters_init(renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, 
     de2_i_shift = pi2_6
     norm_name   = 'COLI      '
   else
-    write(*,*) 'routine loop_parameters_init: stop'
-    write(*,*) 'norm_swi =', norm_swi, 'not allowed.'
-    stop
+    call ol_error(2,'routine loop_parameters_init: ')
+    call ol_error(2,'norm_swi = ' // to_string(norm_swi) // ' not allowed.')
+    call ol_fatal()
   end if
 
 ! ifdef PRECISION_dp
@@ -648,7 +734,7 @@ subroutine loop_parameters_init
   use ol_loop_parameters_decl_/**/REALKIND
   use ol_loop_parameters_decl_/**/DREALKIND, only: &
     & loop_parameters_status_dp => loop_parameters_status, norm_swi, a_switch, a_switch_rescue, redlib_qp, &
-    & dd_qp_not_init, tensorlib_qp_not_init, renscale_dp => mureg, fact_UV_dp => x_UV, fact_IR_dp => x_IR, &
+    & dd_qp_not_init, tensorlib_qp_not_init, mureg_dp => mureg, muren_dp => muren, fact_UV_dp => x_UV, fact_IR_dp => x_IR, &
     & pole1_UV_dp => de1_UV, pole1_IR_dp => de1_IR, pole2_IR_dp => de2_i_IR, do_ew_renorm, maxrank
 #if defined(USE_COLLIER) && defined(COLLIER_LEGACY)
   use dd_init_/**/REALKIND, only: dd_setmode, dd_setparam
@@ -663,7 +749,9 @@ subroutine loop_parameters_init
     de2_i_shift = pi2_6
   end if
 
-  mureg    = renscale_dp
+  mureg    = mureg_dp
+  muren    = muren_dp
+
   x_UV     = fact_UV_dp
   x_IR     = fact_IR_dp
   de1_UV   = pole1_UV_dp
@@ -677,8 +765,9 @@ subroutine loop_parameters_init
 
   de2_0_IR = de2_i_IR - de2_i_shift         ! LH-norm double pole
   de2_1_IR = de2_i_IR - de2_i_shift + pi2_6 ! COLI-norm double pole
-  ! renormalisation scale
+  ! renormalisation & regularization scale
   mureg2 = mureg**2
+  muren2 = muren**2
 
   if (muyc /= 0) then
     muyc2 = muyc**2
@@ -743,8 +832,12 @@ subroutine loop_parameters_init
 #else
   if (a_switch == 1 .or. a_switch_rescue == 1 .or. a_switch == 2 .or. a_switch == 3 .or. &
     & a_switch == 7 .or. a_switch_rescue == 7) then
-    call init_cll(maxpoint) ! TODO: max number of legs on the loop
-    call initcachesystem_cll(cll_channels,maxpoint) ! TODO
+    if (maxpoint > maxpoint_active .or. cll_channels > cll_channels_active) then
+      if (maxpoint > maxpoint_active) call init_cll(maxpoint)
+      call initcachesystem_cll(cll_channels,maxpoint)
+      maxpoint_active = maxpoint
+      cll_channels_active = cll_channels
+    end if
     if (a_switch == 1) call setmode_cll(1)
     if (a_switch == 7) call setmode_cll(2)
     call setmuuv2_cll(mu2_UV)
@@ -827,7 +920,7 @@ subroutine loop_parameters_init
 #endif
 
   call qcd_renormalisation
-!   if (ew_renorm_switch /= 0) then
+!   if (do_ew_renorm /= 0) then
 !     call ew_renormalisation
 !   end if
 
@@ -863,65 +956,127 @@ end subroutine ensure_mp_loop_init
 
 
 
-#ifdef PRECISION_dp
-subroutine parameters_write() bind(c,name="ol_parameters_write")
-#else
-subroutine parameters_write()
-#endif
+!#ifdef PRECISION_dp
+!subroutine parameters_write(filename) bind(c,name="ol_parameters_write")
+!#else
+subroutine parameters_write(filename)
+!#endif
   use KIND_TYPES, only: REALKIND
+  use ol_generic, only: to_string
+  use ol_debug, only: ol_error, ol_msg
   use ol_parameters_decl_/**/REALKIND
+  use ol_parameters_decl_/**/DREALKIND, only: model, ew_scheme, ew_renorm_scheme
   use ol_loop_parameters_decl_/**/REALKIND
   implicit none
-  write(*,*) 'coupling constants'
-  write(*,*) 'alpha_s   =', alpha_QCD
-  write(*,*) 'alpha_qed =', alpha_QED
-  write(*,*) 'sw2       =', sw2
-  write(*,*)
-  write(*,*) 'particle masses and widths'
-  write(*,*) 'ME = ', ME, 'rME =', rME, 'wME =', wMU, 'YE =', YE
-  write(*,*) 'MM = ', MM, 'rMM =', rMM, 'wMM =', wMU, 'YM =', YM
-  write(*,*) 'ML = ', ML, 'rML =', rML, 'wML =', wMU, 'YL =', YL
-  write(*,*) 'MU = ', MU, 'rMU =', rMU, 'wMU =', wMU, 'YU =', YU
-  write(*,*) 'MD = ', MD, 'rMD =', rMD, 'wMD =', wMD, 'YD =', YD
-  write(*,*) 'MS = ', MS, 'rMS =', rMS, 'wMS =', wMS, 'YS =', YS
-  write(*,*) 'MC = ', MC, 'rMC =', rMC, 'wMC =', wMC, 'YC =', YC
-  write(*,*) 'MB = ', MB, 'rMB =', rMB, 'wMB =', wMB, 'YB =', YB
-  write(*,*) 'MT = ', MT, 'rMT =', rMT, 'wMT =', wMT, 'YT =', YT
-  write(*,*) 'MW = ', MW, 'rMW =', rMW, 'wMW =', wMW
-  write(*,*) 'MZ = ', MZ, 'rMZ =', rMZ, 'wMZ =', wMZ
-  write(*,*) 'MH = ', MH, 'rMH =', rMH, 'wMH =', wMH
-  write(*,*) 'MX = ', MX, 'rMX =', rMX, 'wMX =', wMX
-  write(*,*) 'MY = ', MY, 'rMY =', rMY, 'wMY =', wMY
-  write(*,*)
-  write(*,*) 'renscale          =', mureg
-  write(*,*) 'pole1_UV          =', de1_UV
-  write(*,*) 'pole1_IR          =', de1_IR
-  write(*,*) 'pole2_IR          =', de2_i_IR
-  write(*,*) 'fact_UV           =', x_UV
-  write(*,*) 'fact_IR           =', x_IR
+  character(len=*), optional :: filename
+  integer :: outid, ios
+  outid = 0
+  if (present(filename)) then
+    if (len_trim(filename) > 0) then
+      outid = 10
+      open(outid, file=filename, status="replace", iostat=ios)
+      if (ios /= 0) then
+        call ol_error("ol_printparameter: error opening file " // trim(filename))
+        call ol_msg("iostat =" // to_string(ios))
+        return
+      end if
+    end if
+  end if
+
+  write(outid,*) '===================================================='
+  write(outid,*) '================OpenLoops Parameters================'
+  write(outid,*) '===================================================='
+  write(outid,*) 'model =', trim(model)
+  write(outid,*)
+  write(outid,*) 'coupling constants'
+  write(outid,*) 'alpha_s      =', alpha_QCD
+  write(outid,*) 'alpha_qed    =', alpha_QED,    '  1/alpha_qed    =', 1/alpha_QED
+  write(outid,*) 'sw           =', sw
+  write(outid,*) 'sw2          =', sw2
+  write(outid,*)
+  write(outid,*) 'ew_scheme    =', ew_scheme
+  write(outid,*) 'alpha_qed_0  =', alpha_QED_0,  '  1/alpha_qed_0  =', 1/alpha_QED_0
+  write(outid,*) 'alpha_qed_MZ =', alpha_QED_MZ, '  1/alpha_qed_MZ =', 1/alpha_QED_MZ
+  write(outid,*) 'Gmu          =', Gmu
+  if (trim(model) == "2hdm") then
+    write(outid,*)
+    write(outid,*) '2HDM tan(beta) =', thdmTB
+    write(outid,*) '2HDM sin(beta-alpha) =', thdmSBA
+  end if
+  write(outid,*)
+  write(outid,*) 'particle masses and widths'
+  write(outid,*) 'ME = ', ME, 'rME =', rME, 'wME =', wMU, 'YE =', YE
+  write(outid,*) 'MM = ', MM, 'rMM =', rMM, 'wMM =', wMU, 'YM =', YM
+  write(outid,*) 'ML = ', ML, 'rML =', rML, 'wML =', wMU, 'YL =', YL
+  write(outid,*) 'MU = ', MU, 'rMU =', rMU, 'wMU =', wMU, 'YU =', YU
+  write(outid,*) 'MD = ', MD, 'rMD =', rMD, 'wMD =', wMD, 'YD =', YD
+  write(outid,*) 'MS = ', MS, 'rMS =', rMS, 'wMS =', wMS, 'YS =', YS
+  write(outid,*) 'MC = ', MC, 'rMC =', rMC, 'wMC =', wMC, 'YC =', YC
+  write(outid,*) 'MB = ', MB, 'rMB =', rMB, 'wMB =', wMB, 'YB =', YB
+  write(outid,*) 'MT = ', MT, 'rMT =', rMT, 'wMT =', wMT, 'YT =', YT
+  write(outid,*) 'MW = ', MW, 'rMW =', rMW, 'wMW =', wMW
+  write(outid,*) 'MZ = ', MZ, 'rMZ =', rMZ, 'wMZ =', wMZ
+  write(outid,*) 'MH = ', MH, 'rMH =', rMH, 'wMH =', wMH
+  write(outid,*) 'MX = ', MX, 'rMX =', rMX, 'wMX =', wMX
+  write(outid,*) 'MY = ', MY, 'rMY =', rMY, 'wMY =', wMY
+  if (trim(model) == "2hdm") then
+    write(outid,*) 'MA0 = ', MA0, 'rMA0 =', rMA0, 'wMA0 =', wMA0
+    write(outid,*) 'MHH = ', MHH, 'rMHH =', rMHH, 'wMHH =', wMHH
+    write(outid,*) 'MHp = ', MHp, 'rMHp =', rMHp, 'wMHp =', wMHp
+  end if
+  write(outid,*)
+  write(outid,*) 'muren             =', muren
+  write(outid,*) 'mureg             =', mureg
+  write(outid,*) 'pole1_UV          =', de1_UV
+  write(outid,*) 'pole1_IR          =', de1_IR
+  write(outid,*) 'pole2_IR          =', de2_i_IR
+  write(outid,*) 'fact_UV           =', x_UV
+  write(outid,*) 'fact_IR           =', x_IR
+  write(outid,*) 'ew_renorm_scheme  =', ew_renorm_scheme
 #ifdef PRECISION_dp
-  write(*,*) 'N_quarks          =', nf
-  write(*,*) 'light quarks      =', N_lf
-  write(*,*) 'fermion_loops     =', SwF
-  write(*,*) 'nonfermion_loops  =', SwB
-  write(*,*) 'CT_on             =', CT_is_on
-  write(*,*) 'R2_on             =', R2_is_on
-  write(*,*) 'IR_on             =', IR_is_on
-  write(*,*) 'polecheck         =', polecheck_is
-  write(*,*) 'polenorm_swi      =', norm_swi
-  write(*,*) 'i-operator mode   =', ioperator_mode
-  write(*,*) 'last_switch       =', l_switch
-  write(*,*) 'amp_switch        =', a_switch
-  write(*,*) 'amp_switch_rescue =', a_switch_rescue
-  write(*,*) 'ew_renorm_switch  =', ew_renorm_switch
-  write(*,*) 'use_coli_cache    =', coli_cache_use
-  write(*,*) 'check_Ward_tree   =', Ward_tree
-  write(*,*) 'check_Ward_loop   =', Ward_loop
-  write(*,*) 'out_symmetry      =', out_symmetry_on
+  write(outid,*) 'N_quarks          =', nf
+  write(outid,*) 'light quarks      =', N_lf
+  write(outid,*) 'nq_nondecoupled   =', nq_nondecoupl
+  write(outid,*) 'fermion_loops     =', SwF
+  write(outid,*) 'nonfermion_loops  =', SwB
+  write(outid,*) 'CT_on             =', CT_is_on
+  write(outid,*) 'R2_on             =', R2_is_on
+  write(outid,*) 'IR_on             =', IR_is_on
+  write(outid,*) 'polecheck         =', polecheck_is
+  write(outid,*) 'polenorm_swi      =', norm_swi
+  write(outid,*) 'i-operator mode   =', ioperator_mode
+  write(outid,*) 'last_switch       =', l_switch
+  write(outid,*) 'ew_renorm_switch  =', ew_renorm_switch
+  write(outid,*) 'use_coli_cache    =', coli_cache_use
+  write(outid,*) 'use_me_cache      =', use_me_cache
+  write(outid,*) 'check_Ward_tree   =', Ward_tree
+  write(outid,*) 'check_Ward_loop   =', Ward_loop
+  write(outid,*) 'out_symmetry      =', out_symmetry_on
+  write(outid,*) 'stability_mode         =', stability_mode
+  write(outid,*) 'deviation_mode         =', deviation_mode
+  write(outid,*) 'stability_triggerratio =', trigeff_targ
+  write(outid,*) 'stability_unstable     =', abscorr_unst
+  write(outid,*) 'stability_kill         =', ratcorr_bad
+  write(outid,*) 'stability_kill2        =', ratcorr_bad_L2
+  write(outid,*) 'redlib1                =', a_switch
+  write(outid,*) 'redlib2                =', a_switch_rescue
+  write(outid,*) 'redlib_qp              =', redlib_qp
+  write(outid,*)
+  write(outid,*) '===================================================='
 #endif
 ! opp_rootsvalue, opp_limitvalue, opp_thrs, opp_idig, opp_scaloop
 ! sam_isca, sam_verbosity, sam_itest
 ! set_C_PV_threshold, set_D_PV_threshold, set_dd_red_mode
+
+  if (outid == 10) then
+    call ol_msg("Parameters written to file " // trim(filename))
+    close(outid, iostat=ios)
+    if (ios /= 0) then
+      call ol_error("Error writing parameters to file " // trim(filename))
+      call ol_msg("iostat =" // to_string(ios))
+      return
+    end if
+  end if
 end subroutine parameters_write
 
 end module ol_parameters_init_/**/REALKIND

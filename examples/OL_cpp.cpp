@@ -50,7 +50,7 @@ int main() {
     // Set parameter: strong coupling
     ol_setparameter_double("alpha_s", alphas);
     // Set parameter: renormalization scale
-    ol_setparameter_double("mu", 100.);
+    ol_setparameter_double("mu", mu);
 
     // Obtain a random phase-space point in the format pp[5*N] from Rambo
     double pp[5*ol_n_external(id)];

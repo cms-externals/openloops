@@ -25,11 +25,15 @@
 #   USE_p if precision p is active globally
 #   PRECISION_p if the currect file is for precision p
 
+# TODO: better use a pseudo builder to modify target directories
 
 import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join('pyol', 'tools')))
+import OLBaseConfig
+config = OLBaseConfig.get_config()
 
 cpp_flags = ['--traditional-cpp', '-P']
-# TODO: better use a pseudo builder to modify target directories
 
 def split_and_clean(ls):
     """Create a list from a comma separated string and remove empty elements."""
@@ -40,7 +44,7 @@ dp_src      = split_and_clean(ARGUMENTS.get('dp_src',      ''))
 version_src = split_and_clean(ARGUMENTS.get('version_src', ''))
 cpp_defs    = split_and_clean(ARGUMENTS.get('def',         ''))
 mp          = split_and_clean(ARGUMENTS.get('mp',        'dp'))
-cpp_cmd        = ARGUMENTS.get('cpp_cmd',        'cpp'     )
+cpp_cmd        = ARGUMENTS.get('cpp_cmd',     config['cpp'])
 kind_parameter = ARGUMENTS.get('kind_parameter', 'REALKIND')
 version_macro  = ARGUMENTS.get('version_macro',  'VERSION' )
 revision_macro = ARGUMENTS.get('revision_macro', 'REVISION')
@@ -68,10 +72,20 @@ def target_rename(target, source, env):
 cpp_builder = Builder(action = '$CPP $CPPFLAGS $_CPPDEFFLAGS $SOURCE $TARGET',
                       emitter = target_rename,
                       single_source = 1)
+copy_builder = Builder(action = Copy('$TARGET', '$SOURCE'),
+                     emitter = target_rename,
+                     single_source = 1)
 
+if '@all' in config['import_env']:
+    imported_env = os.environ
+else:
+    imported_env = {}
+    for envvar in config['import_env']:
+        imported_env[envvar] = os.environ.get(envvar, '')
 
 env = Environment(CPP = cpp_cmd,
-                  BUILDERS = {'CPP': cpp_builder},
+                  ENV = imported_env,
+                  BUILDERS = {'CPP': cpp_builder, 'COPY': copy_builder},
                   CPPFLAGS = cpp_flags,
                   CPPDEFINES = cpp_defs,
                   PRECISION = mp[0])
@@ -85,8 +99,12 @@ if mp_src:
                                CPPDEFINES = cpp_defs + ['PRECISION_' + precision]))
 
 if dp_src:
-    cpp_out.extend(env.CPP(source = dp_src,
-                           PRECISION = ''))
+    dp_fsrc = [fs for fs in dp_src if not fs.endswith('.c')]
+    dp_csrc = [cs for cs in dp_src if cs.endswith('.c')]
+    if dp_fsrc:
+        cpp_out.extend(env.CPP(source = dp_fsrc, PRECISION = ''))
+    if dp_csrc:
+        cpp_out.extend(env.COPY(source = dp_csrc, PRECISION = ''))
 
 if version_src:
     cpp_out.extend(env.CPP(source = version_src,

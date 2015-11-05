@@ -1,9 +1,9 @@
 
 #dd_version = ''
 dd_version = '_dp19032014'
-#dd_version = '_06082014'
-if dd_version != '_06082014':
-    dd_cppdef = ['COLLIER_LEGACY']
+#dd_version = '_03092015'
+if dd_version != '_03092015':
+    dd_cppdef = ['COLLIER_LEGACY', 'collierdd']
 else:
     dd_cppdef = []
 
@@ -157,7 +157,7 @@ cpp_defines = map(lambda lib: 'USE_' + lib.upper(), config['link_libraries'])
 cpp_defines += [('KIND_TYPES', 'kind_types'),
                 ('DREALKIND', 'dp'),
                 ('QREALKIND', 'qp'),
-                'USE_' + config['fortran_compiler'].upper(),
+                'USE_' + config['fortran_tool'].upper(),
                 ('OL_INSTALL_PATH', '\\"' + install_path + '\\"'),
                 'SING'] + dd_cppdef
 
@@ -175,7 +175,7 @@ for libname in ['olcommon', 'rambo', 'qcdloop', 'oneloop', 'cuttools', 'samurai'
     lib_mod_dirs[libname] = os.path.join(config['lib_src_dir'], libname, 'mod')
 
 # OLCommon
-olcommon_dp_src = ['kind_types.F90']
+olcommon_dp_src = ['kind_types.F90', 'debug.F90', 'cwrappers.c']
 olcommon_mp_src = ['common.F90']
 
 # Rambo
@@ -276,11 +276,24 @@ if dd_version == '_dp19032014':
         'bt_GramCayley.F90', 'bt_LightCone.F90', 'bt_MatrixManipulations.F90',
         'bt_TensorManipulations.F90', 'bt_TensorReduction.F90', 'bt_TI_interface.F90']
 
-if dd_version == '_06082014':
+if dd_version == '_03092015':
     collier_inc_dp = []
     collier_src_mp = []
     collier_src_dp = [
-        "BuildTensors.F90", "cache.F90", "coli_aux2.F90", "coli_aux.F", "coli_b0.F", "coli_c0.F", "coli_d0.F", "coli_d0reg.F", "coli_stat.F90", "collier_aux.F90", "collier_coefs.F90", "COLLIER.F90", "collier_global.F90", "collier_init.F90", "collier_tensors.F90", "Combinatorics.F90", "dcuhre.f", "DD_2pt.F", "DD_3pt_coll.F", "DD_3pt.F", "DD_4pt.F", "DD_5pt.F", "DD_6pt.F", "DD_aux.F", "DD_to_COLLIER.F", "InitTensors.F90", "master.F90", "reductionAB.F90", "reductionC.F90", "reductionD.F90", "reductionEFG.F90", "reductionTN.F90", "TensorReduction.F90"]
+        # Aux/
+        'Combinatorics.F90', 'cache.F90', 'master.F90',
+        # COLI/
+        'coli_aux.F', 'coli_aux2.F90', 'coli_b0.F', 'coli_c0.F', 'coli_d0.F',
+        'coli_d0reg.F', 'coli_stat.F90', 'reductionAB.F90', 'reductionC.F90',
+        'reductionD.F90', 'reductionEFG.F90', 'reductionTN.F90',
+        # DDlib/
+        'DD_2pt.F', 'DD_3pt.F', 'DD_3pt_coll.F', 'DD_4pt.F', 'DD_5pt.F',
+        'DD_6pt.F', 'DD_aux.F', 'DD_to_COLLIER.F', 'dcuhre.f',
+        # tensors/
+        'BuildTensors.F90', 'InitTensors.F90', 'TensorReduction.F90',
+        # ./
+        'COLLIER.F90', 'collier_aux.F90', 'collier_coefs.F90',
+        'collier_global.F90', 'collier_init.F90', 'collier_tensors.F90']
 
 if compile_libraries:
     cpp_container = CPPContainer(scons_cmd = scons_cmd,
@@ -292,13 +305,14 @@ if compile_libraries:
                                  target_prefix = os.path.join('..', 'obj', ''))
 
 if 'olcommon' in compile_libraries:
-    olcommon_lib = OLLibrary(name = 'olcommon',
-                             linklibs = ['dl'],
-                             target_dir = config['generic_lib_dir'],
-                             src_dir = lib_src_dirs['olcommon'],
-                             dp_src = olcommon_dp_src,
-                             mp_src = olcommon_mp_src,
-                             to_cpp = cpp_container)
+    olcommon_lib = OLLibrary(
+        name = 'olcommon',
+        linklibs = ([] if sys.platform.startswith('freebsd') else ['dl']),
+        target_dir = config['generic_lib_dir'],
+        src_dir = lib_src_dirs['olcommon'],
+        dp_src = olcommon_dp_src,
+        mp_src = olcommon_mp_src,
+        to_cpp = cpp_container)
 
 if 'rambo' in compile_libraries:
     VariantDir(lib_obj_dirs['rambo'],
@@ -375,36 +389,50 @@ if 'openloops' in compile_libraries:
         version_src = [openloops_version_src],
         to_cpp = cpp_container)
 
+if '@all' in config['import_env']:
+    imported_env = os.environ
+else:
+    imported_env = {}
+    for envvar in config['import_env']:
+        imported_env[envvar] = os.environ.get(envvar, '')
+
+env = Environment(tools = ['default', 'textfile'] + [config['fortran_tool']],
+                  ENV = imported_env,
+                  CCFLAGS = config['ccflags'] + config['generic_optimisation'],
+                  FORTRANFLAGS = config['f77_flags'] + config['generic_optimisation'],
+                  F90FLAGS = config['f90_flags'] + config['generic_optimisation'],
+                  LINKFLAGS = config['link_flags'],
+                  LIBPATH = [config['generic_lib_dir']],
+                  RPATH = [Literal('\$$ORIGIN')],
+                  F90 = config['fortran_compiler'],
+                  FORTRAN = config['fortran_compiler'],
+                  CC = config['cc'])
+
+if config['fortran_tool'] == 'gfortran':
+    # SCons bug: FORTRANMODDIRPREFIX is missing in gfortran tool
+    env.Replace(FORTRANMODDIRPREFIX = '-J')
+    # determine gfortran version;
+    # do not use CCVERSION, because mit might not be from gcc
+    gfort_exitcode = 1
+    try:
+        gfort_proc = subprocess.Popen(
+            [config['fortran_compiler'], '-dumpversion'],
+            stdout=subprocess.PIPE)
+        gfort_out, gfort_err = gfort_proc.communicate()
+        gfort_exitcode = gfort_proc.returncode
+    except OSError:
+        pass
+    if not gfort_exitcode: # else ignore and continue without version check
+        if tuple(map(int, gfort_out.strip().split('.')[:2])) < (4,6):
+            print ('ERROR: This OpenLoops version requires gfortran 4.6 ' +
+                   'or later (found %s)' % env.subst('$CCVERSION'))
+            Exit(1)
 
 if compile_libraries:
     if not GetOption('clean'):
         if not cpp_container.run():
             print '*** cpp failed ***'
             Exit(1)
-
-
-if config['import_path']:
-    env_path = os.environ.get('PATH', '')
-    env_ld_library_path = os.environ.get('LD_LIBRARY_PATH', '')
-else:
-    env_path = []
-    env_ld_library_path = []
-
-env = Environment(tools = ['default', 'textfile'] + [config['fortran_compiler']],
-                  ENV = {"PATH": env_path, "LD_LIBRARY_PATH": env_ld_library_path},
-                  FORTRANFLAGS = config['f77_flags'] + config['generic_optimisation'],
-                  F90FLAGS = config['f90_flags'] + config['generic_optimisation'],
-                  LINKFLAGS = config['link_flags'],
-                  LIBPATH = [config['generic_lib_dir']],
-                  RPATH = [Literal('\$$ORIGIN')])
-
-
-if env.subst('$F90') == 'gfortran':
-    # SCons bug: FORTRANMODDIRPREFIX is missing in gfortran tool
-    env.Replace(FORTRANMODDIRPREFIX = '-J')
-    if tuple(map(int, env.subst('$CCVERSION').split('.')[:2])) < (4,6):
-        print 'ERROR: This OpenLoops version requires gfortran 4.6 or later (found %s)' % env.subst('$CCVERSION')
-        Exit(1)
 
 env_noautomatic = env.Clone()
 env_noautomatic.AppendUnique(F90FLAGS = config['noautomatic'],
@@ -491,11 +519,19 @@ def split_processlist(loops, procs):
     proclist = [(loops, proc) for proc in proclist
                 if not (proc.endswith('/') or coll.endswith('.coll'))]
     for coll in collections:
+        coll_repo = False
+        for repo in config['process_repositories']:
+            if coll == OLToolbox.repo_name(repo) + '.coll':
+                coll_repo = repo
+                break
         process_coll = []
         if coll == 'all.coll':
             for repo in config['process_repositories']:
                 process_db = OLToolbox.ProcessDB(db=(version_db_url % repo))
                 process_coll += process_db.content.keys()
+        elif coll_repo:
+            process_db = OLToolbox.ProcessDB(db=(version_db_url % coll_repo))
+            process_coll += process_db.content.keys()
         else:
             found_collection = False
             first_repo = True
@@ -589,14 +625,29 @@ def revoke_processes():
 
 def download_processes(processes):
     """Download processes"""
-    if subprocess.call(['python', config['process_download_script']] + force_download_flag + processes) != 0:
+    try:
+        err = subprocess.call(
+            ['python2', config['process_download_script']] +
+            force_download_flag + processes +
+            ['='.join(arg) for arg in commandline_options])
+    except OSError:
+        # try again with 'python' instead of 'python2'
+        err = subprocess.call(
+            ['python', config['process_download_script']] +
+            force_download_flag + processes +
+            ['='.join(arg) for arg in commandline_options])
+    if err:
         print 'ERROR: process downloader failed.'
         Exit(1)
 
 
 def generate_process(loops, processlib):
     """Generate a process library"""
-    if subprocess.call([scons_cmd, '-Q'] + generator_options + ['-f', config['code_generator_script'], 'PROC=' + processlib, 'LOOPS=' + loops]) != 0:
+    if subprocess.call(
+          [scons_cmd, '-Q'] + generator_options +
+          ['-f', config['code_generator_script'],
+           'PROC=' + processlib, 'LOOPS=' + loops] +
+          ['='.join(arg) for arg in commandline_options]) != 0:
         print 'ERROR: code generator failed.'
         Exit(1)
 
@@ -609,8 +660,9 @@ if config['process_update']:
 
 if download_process_true:
     proc_ls = list(set([proc for loops, proc in process_list]))
-    revoke_processes()
-    download_processes(proc_ls)
+    if proc_ls or config['process_update']:
+        revoke_processes()
+        download_processes(proc_ls)
 
 process_list = map(get_auto_loops, process_list)
 
@@ -657,7 +709,8 @@ for (loops, processlib) in process_list:
         # set up process library
         process_lib = OLLibrary(name = processlib_name,
                                 target_dir = config['process_lib_dir'],
-                                mod_dependencies = ['olcommon', 'openloops'],
+                                # need to include oneloop mod dir for ifort
+                                mod_dependencies = ['olcommon', 'openloops', 'oneloop'],
                                 mod_dir = os.path.join(processlib_obj_dir, 'mod'),
                                 mp_src = process_mp_src,
                                 dp_src = process_dp_src,

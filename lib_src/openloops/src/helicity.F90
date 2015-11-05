@@ -73,6 +73,8 @@ subroutine helbookkeeping_prop(ntry, WF1, WF2, n)
 ! WF2(1:n) = output wfun array
 ! **********************************************************************
   use KIND_TYPES, only: intkind1, intkind2
+  use ol_generic, only: to_string
+  use ol_debug, only: ol_error, ol_fatal
   use ol_data_types_/**/REALKIND, only: wfun
   implicit none
   integer(intkind1), intent(in)    :: ntry
@@ -82,9 +84,8 @@ subroutine helbookkeeping_prop(ntry, WF1, WF2, n)
   integer(intkind2) :: h1, i
 
   if (ntry > 1) then ! the following operations input table t in initialisation form
-    write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_prop:'
-    write(*,*) '[OpenLoops] ntry =', ntry,'not allowed'
-    stop
+    call ol_error(2,'in subroutine helbookkeeping_prop:')
+    call ol_fatal('ntry =' // to_string(ntry) // 'not allowed')
   end if
 
   ! sets n = # of non-zero WF1 components and check that all zeros are at the end
@@ -99,9 +100,10 @@ subroutine helbookkeeping_prop(ntry, WF1, WF2, n)
 
   do i = h1 + 1, n
     if (WF1(i)%e /= -1_intkind2) then
-      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_prop:'
-      write(*,*) '[OpenLoops] i, h1, n, WF1(i)%e =', i, h1, n, WF1(i)%e
-      stop
+      call ol_error(2,'in subroutine helbookkeeping_prop:')
+      call ol_error(2,'i, h1, n, WF1(i)%e =' // to_string(i) // " " // to_string(h1) // " " // &
+                &   to_string(n) // " " //  to_string(WF1(i)%e))
+      call ol_fatal()
     end if
     WF2(i)%e = -1_intkind2  ! mark vanishing helicity configurations
   end do
@@ -122,6 +124,8 @@ subroutine helbookkeeping_vert3(ntry, WF1, WF2, WF3, n, t)
 ! array sizes n(1),n(2),n(3) restricted to non-vanishing components
 ! **********************************************************************
   use KIND_TYPES, only: intkind1, intkind2
+  use ol_generic, only: to_string
+  use ol_debug, only: ol_error, ol_fatal
   use ol_data_types_/**/REALKIND, only: wfun
   implicit none
   integer(intkind1), intent(in)    :: ntry
@@ -134,9 +138,9 @@ subroutine helbookkeeping_vert3(ntry, WF1, WF2, WF3, n, t)
   type(wfun)        :: WFaux
 
   if (ntry /= 1) then ! the following operations input table t in initialisation form
-    write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert3:'
-    write(*,*) '[OpenLoops] ntry =', ntry, 'not allowed'
-    stop
+    call ol_error(2,'in subroutine helbookkeeping_vert3:')
+    call ol_error(2,' ntry =' // to_string(ntry) // ' not allowed')
+    call ol_fatal()
   end if
 
   ! sets n(1) = # of non-zero WF1 components and check that all zeros are at the end
@@ -149,9 +153,10 @@ subroutine helbookkeeping_vert3(ntry, WF1, WF2, WF3, n, t)
   end do
   do i = h1+1, n(1)
     if (WF1(i)%e /= -1_intkind2) then
-      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert3:'
-      write(*,*) '[OpenLoops] i, h1, n(1), WF1(i)%e =', i, h1, n(1), WF1(i)%e
-      stop
+      call ol_error(2,'in subroutine helbookkeeping_vert3:')
+      call ol_error(2,'i, h1, n(1), WF1(i)%e =' // to_string(i) // " " // to_string(h1) // " " //  &
+                  &  to_string(n(1)) // " " //  to_string(WF1(i)%e))
+      call ol_fatal()
     end if
   end do
   n(1) = h1
@@ -166,9 +171,10 @@ subroutine helbookkeeping_vert3(ntry, WF1, WF2, WF3, n, t)
   end do
   do i = h2+1, n(2)
     if (WF2(i)%e /= -1_intkind2) then
-      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert3:'
-      write(*,*) '[OpenLoops] i, h2, n(2), WF2(i)%e =', i, h2, n(2), WF2(i)%e
-      stop
+      call ol_error(2, 'in subroutine helbookkeeping_vert3:')
+      call ol_error(2,'i, h1, n(2), WF2(i)%e =' // to_string(i) // " " // to_string(h2) // " " //  &
+                  &  to_string(n(2)) // " " //  to_string(WF2(i)%e))
+      call ol_fatal()
     end if
   end do
   n2_in = n(2)
@@ -235,6 +241,8 @@ subroutine helbookkeeping_vert4(ntry, WF1, WF2, WF3, WF4, n, t)
 ! array sizes n(1), n(2), n(3), n(4) restricted to non-vanishing components
 ! **********************************************************************
   use KIND_TYPES, only: intkind1, intkind2
+  use ol_generic, only: to_string
+  use ol_debug, only: ol_error, ol_fatal
   use ol_data_types_/**/REALKIND, only: wfun
   implicit none
   integer(intkind1), intent(in)    :: ntry
@@ -247,9 +255,9 @@ subroutine helbookkeeping_vert4(ntry, WF1, WF2, WF3, WF4, n, t)
   type(wfun)        :: WFaux
 
   if(ntry /= 1) then ! the following operations input table t in initialisation form
-    write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert4:'
-    write(*,*) '[OpenLoops] ntry =', ntry, 'not allowed'
-    stop
+    call ol_error(2,'in subroutine helbookkeeping_vert4:')
+    call ol_error(2,'ntry =' // to_string(ntry) // ' not allowed')
+    call ol_fatal()
   end if
 
   ! sets n(1) = # of non-zero WF1 components and check that all zeros are at the end
@@ -262,9 +270,10 @@ subroutine helbookkeeping_vert4(ntry, WF1, WF2, WF3, WF4, n, t)
   end do
   do i = h1 + 1, n(1)
     if (WF1(i)%e /= -1_intkind2) then
-      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert4:'
-      write(*,*) '[OpenLoops] i, h1, n(1), WF1(i)%e =', i, h1, n(1), WF1(i)%e
-      stop
+      call ol_error(2,'in subroutine helbookkeeping_vert4:')
+      call ol_error(2,'i, h1, n(1), WF1(i)%e =' // to_string(i) // " " // to_string(h1) // " " //  &
+                  &  to_string(n(1)) // " " //  to_string(WF1(i)%e))
+      call ol_fatal()
     end if
   end do
   n(1) = h1
@@ -279,9 +288,10 @@ subroutine helbookkeeping_vert4(ntry, WF1, WF2, WF3, WF4, n, t)
   end do
   do i = h2 + 1, n(2)
     if (WF2(i)%e /= -1_intkind2) then
-      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert4:'
-      write(*,*) '[OpenLoops] i, h2, n(2), WF2(i)%e =', i, h2, n(2), WF2(i)%e
-      stop
+      call ol_error(2,'in subroutine helbookkeeping_vert4:')
+      call ol_error(2,'i, h1, n(2), WF2(i)%e =' // to_string(i) // " " // to_string(h2) // " " //  &
+                  &  to_string(n(2)) // " " //  to_string(WF2(i)%e))
+      call ol_fatal()
     end if
   end do
   n2_in = n(2)
@@ -297,9 +307,10 @@ subroutine helbookkeeping_vert4(ntry, WF1, WF2, WF3, WF4, n, t)
   end do
   do i = h3 + 1, n(3)
     if (WF3(i)%e /= -1_intkind2) then
-      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert4:'
-      write(*,*) '[OpenLoops] i, h3, n(3), WF3(i)%e =', i, h3, n(3), WF3(i)%e
-      stop
+      call ol_error(2,'in subroutine helbookkeeping_vert4:')
+      call ol_error(2,'i, h3, n(3), WF3(i)%e =' // to_string(i) // " " // to_string(h3) // " " //  &
+                  &  to_string(n(3)) // " " //  to_string(WF3(i)%e))
+      call ol_fatal()
     end if
   end do
   n3_in = n(3)
@@ -371,6 +382,8 @@ subroutine helbookkeeping_vert5(ntry, WF1, WF2, WF3, WF4, WF5, n, t)
 ! array sizes n(1), n(2), n(3), n(4), n(5) restricted to non-vanishing components
 ! **********************************************************************
   use KIND_TYPES, only: intkind1, intkind2
+  use ol_generic, only: to_string
+  use ol_debug, only: ol_error, ol_fatal
   use ol_data_types_/**/REALKIND, only: wfun
   implicit none
   integer(intkind1), intent(in)    :: ntry
@@ -383,9 +396,9 @@ subroutine helbookkeeping_vert5(ntry, WF1, WF2, WF3, WF4, WF5, n, t)
   type(wfun)        :: WFaux
 
   if(ntry /= 1) then ! the following operations input table t in initialisation form
-    write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert5:'
-    write(*,*) '[OpenLoops] ntry =', ntry, 'not allowed'
-    stop
+    call ol_error(2,'in subroutine helbookkeeping_vert5:')
+    call ol_error(2,'ntry =' // to_string(ntry) // ' not allowed')
+    call ol_fatal()
   end if
 
   ! sets n(1) = # of non-zero WF1 components and check that all zeros are at the end
@@ -398,9 +411,10 @@ subroutine helbookkeeping_vert5(ntry, WF1, WF2, WF3, WF4, WF5, n, t)
   end do
   do i = h1 + 1, n(1)
     if (WF1(i)%e /= -1_intkind2) then
-      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert5:'
-      write(*,*) '[OpenLoops] i, h1, n(1), WF1(i)%e =', i, h1, n(1), WF1(i)%e
-      stop
+      call ol_error(2,'in subroutine helbookkeeping_vert5:')
+      call ol_error(2,'i, h1, n(1), WF1(i)%e =' // to_string(i) // " " // to_string(h1) // " " //  &
+                  &  to_string(n(1)) // " " //  to_string(WF1(i)%e))
+      call ol_fatal()
     end if
   end do
   n(1) = h1
@@ -415,9 +429,10 @@ subroutine helbookkeeping_vert5(ntry, WF1, WF2, WF3, WF4, WF5, n, t)
   end do
   do i = h2 + 1, n(2)
     if (WF2(i)%e /= -1_intkind2) then
-      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert5:'
-      write(*,*) '[OpenLoops] i, h2, n(2), WF2(i)%e =', i, h2, n(2), WF2(i)%e
-      stop
+      call ol_error(2,'in subroutine helbookkeeping_vert5:')
+      call ol_error(2,'i, h2, n(2), WF2(i)%e =' // to_string(i) // " " // to_string(h2) // " " //  &
+                  &  to_string(n(2)) // " " //  to_string(WF2(i)%e))
+      call ol_fatal()
     end if
   end do
   n2_in = n(2)
@@ -433,9 +448,10 @@ subroutine helbookkeeping_vert5(ntry, WF1, WF2, WF3, WF4, WF5, n, t)
   end do
   do i = h3 + 1, n(3)
     if (WF3(i)%e /= -1_intkind2) then
-      write(*,*) '[OpenLoops] subroutine helbookkeeping_vert5:'
-      write(*,*) '[OpenLoops] i, h3, n(3), WF3(i)%e =', i, h3, n(3), WF3(i)%e
-      stop
+      call ol_error(2,'in subroutine helbookkeeping_vert5:')
+      call ol_error(2,'i, h3, n(3), WF3(i)%e =' // to_string(i) // " " // to_string(h3) // " " //  &
+                  &  to_string(n(3)) // " " //  to_string(WF3(i)%e))
+      call ol_fatal()
     end if
   end do
   n3_in = n(3)
@@ -452,9 +468,10 @@ subroutine helbookkeeping_vert5(ntry, WF1, WF2, WF3, WF4, WF5, n, t)
   end do
   do i = h4 + 1, n(4)
     if (WF4(i)%e /= -1_intkind2) then
-      write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_vert5:'
-      write(*,*) '[OpenLoops] i, h4, n(4), WF4(i)%e =', i, h4, n(4), WF4(i)%e
-      stop
+      call ol_error(2,'in subroutine helbookkeeping_vert5:')
+      call ol_error(2,'i, h4, n(4), WF4(i)%e =' // to_string(i) // " " // to_string(h4) // " " //  &
+                  &  to_string(n(4)) // " " //  to_string(WF4(i)%e))
+      call ol_fatal()
     end if
   end do
   n4_in = n(4)
@@ -529,6 +546,8 @@ subroutine helbookkeeping_cont(nsync, WF1, WF2, cont, n, t, nhel)
 !     (n3 = # nonvanishing hels for actual diag => n3 = global # nonvanishing hels)
 ! **********************************************************************
   use KIND_TYPES, only: intkind1, intkind2
+  use ol_generic, only: to_string
+  use ol_debug, only: ol_error, ol_fatal
   use ol_data_types_/**/REALKIND, only: wfun, polcont
   implicit none
   integer(intkind1), intent(in)    :: nsync
@@ -541,9 +560,9 @@ subroutine helbookkeeping_cont(nsync, WF1, WF2, cont, n, t, nhel)
   type(polcont)     :: contaux
 
   if (n(3) > nhel) then
-    write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_cont:'
-    write(*,*) '[OpenLoops] n(3) =', n(3), '> nhel =', nhel, 'not allowed'
-    stop
+    call ol_error(2,'in subroutine helbookkeeping_cont:')
+    call ol_error(2,'n(3) = ' // to_string(n(3)) // ' > nhel = ' // to_string(nhel) // ' not allowed')
+    call ol_fatal()
   end if
 
   select case (nsync)
@@ -559,9 +578,10 @@ subroutine helbookkeeping_cont(nsync, WF1, WF2, cont, n, t, nhel)
     end do
     do i = h1+1, n(1)
       if (WF1(i)%e /= -1_intkind2) then
-        write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_cont:'
-        write(*,*) '[OpenLoops] i, h1, n(1), WF1(i)%e =', i, h1, n(1), WF1(i)%e
-        stop
+        call ol_error(2,'in subroutine helbookkeeping_cont:')
+        call ol_error(2,'i, h1, n(1), WF1(i)%e =' // to_string(i) // " " // to_string(h1) // " " //  &
+                    &  to_string(n(1)) // " " //  to_string(WF1(i)%e))
+        call ol_fatal()
       end if
     end do
     n(1) = h1
@@ -576,9 +596,10 @@ subroutine helbookkeeping_cont(nsync, WF1, WF2, cont, n, t, nhel)
     end do
     do i = h2+1, n(2)
       if (WF2(i)%e /= -1_intkind2) then
-        write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_cont:'
-        write(*,*) '[OpenLoops] i, h2, n(2), WF2(i)%e =', i, h2, n(2), WF2(i)%e
-        stop
+        call ol_error(2,'in subroutine helbookkeeping_cont:')
+        call ol_error(2,'i, h2, n(2), WF2(i)%e =' // to_string(i) // " " // to_string(h2) // " " //  &
+                  &  to_string(n(2)) // " " //  to_string(WF2(i)%e))
+        call ol_fatal()
       end if
     end do
     n2_in = n(2)
@@ -641,10 +662,9 @@ subroutine helbookkeeping_cont(nsync, WF1, WF2, cont, n, t, nhel)
     end do
 
   case default
-    write(*,*) '[OpenLoops] ERROR in subroutine helbookkeeping_cont:'
-    write(*,*) '[OpenLoops] nsync =', nsync, 'not allowed'
-    stop
-
+    call ol_error(2, 'in subroutine helbookkeeping_cont:')
+    call ol_error(2, 'nsync = ' // to_string(nsync) // ' not allowed')
+    call ol_fatal()
   end select
 
 end subroutine helbookkeeping_cont
@@ -658,6 +678,8 @@ subroutine helsync(nsync, cont, Nhel, Hel)
 ! Nhelmax                 = maximal number of helicity configurations
 ! **********************************************************************
   use KIND_TYPES, only: intkind1, intkind2
+  use ol_generic, only: to_string
+  use ol_debug, only: ol_error, ol_fatal
   use ol_data_types_/**/REALKIND, only: polcont
   implicit none
   integer(intkind1), intent(in)    :: nsync
@@ -668,9 +690,9 @@ subroutine helsync(nsync, cont, Nhel, Hel)
   integer :: Nhelmax, h, h0, i, ishift, Ndiag, n
 
   if (nsync /= 1) then
-    write(*,*) '[OpenLoops] ERROR in subroutine helsync:'
-    write(*,*) '[OpenLoops] nsync =', nsync, 'not allowed'
-    stop
+    call ol_error(2,'in subroutine helsync:')
+    call ol_error(2,'nsync = ' // to_string(nsync) // ' not allowed')
+    call ol_fatal()
   end if
 
   Ndiag = size(cont,2)   ! number of diagrams

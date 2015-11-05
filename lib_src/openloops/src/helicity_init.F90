@@ -25,6 +25,8 @@ contains
 subroutine heltable(n_in, n, tab)
 ! **********************************************************************
   use KIND_TYPES, only: intkind2
+  use ol_generic, only: to_string
+  use ol_debug, only: ol_fatal
   implicit none
   integer,           intent(in)  :: n_in(:)
   integer(intkind2), intent(out) :: n(:), tab(:,:)
@@ -69,8 +71,7 @@ subroutine heltable(n_in, n, tab)
       end do
     end do
   else
-    print *, "heltable:", size(n), "point vertices are not supported."
-    stop
+    call ol_fatal("heltable: " // to_string(size(n)) // " point vertices are not supported.")
   end if
 
 end subroutine heltable
@@ -140,6 +141,8 @@ subroutine helsync_flip(nsync, nhel, hel, eflip, exthel)
 ! nhelmax             = maximal number of helicity configurations
 ! **********************************************************************
   use KIND_TYPES, only: intkind1, intkind2
+  use ol_generic, only: to_string
+  use ol_debug, only: ol_error, ol_fatal
   implicit none
   integer(intkind1), intent(in)    :: nsync
   integer(intkind2), intent(in)    :: nhel, hel(:)
@@ -149,9 +152,9 @@ subroutine helsync_flip(nsync, nhel, hel, eflip, exthel)
   integer :: nhelmax, e, h, k
 
   if (nsync /= 1) then
-    write(*,*) '[OpenLoops] ERROR in subroutine helsync_flip:'
-    write(*,*) '[OpenLoops] nsync =', nsync, 'not allowed'
-    stop
+    call ol_error(2, 'in subroutine helsync_flip:')
+    call ol_error(2, 'nsync = ' // to_string(nsync) // ' not allowed')
+    call ol_fatal()
   end if
 
   nhelmax = size(hel) ! maximal number of helicity configurations

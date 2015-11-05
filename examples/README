@@ -25,7 +25,7 @@ To remove object code and executables
 Before running the examples, the process library "ppzjj" must be installed.
 
     # from the OpenLoops installation folder run
-    ./scons auto=ppzjj
+    ./openloops libinstall ppzjj
 
 
 How to use OpenLoops in your own programs
@@ -39,6 +39,7 @@ How to use OpenLoops in your own programs
     (linker option -L<ol_install_dir>/lib)
   * Set LD_LIBRARY_PATH=<ol_install_dir>/lib so that the linker finds libopenloops.so at runtime
     (alternatively you can set the RPATH, gcc linker option -Wl,-rpath=<ol_install_dir>/lib)
+  * On MacOSX you have to set DYLD_LIBRARY_PATH=<ol_install_dir>/lib
 
 Examples
 

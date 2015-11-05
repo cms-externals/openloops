@@ -128,6 +128,8 @@ subroutine rambo(sqrt_s, m_ex, p_rambo)
 ! *********************************************************************
   use KIND_TYPES, only: REALKIND
   use ol_external_decl_/**/DREALKIND, only: n_scatt
+  use ol_generic, only: to_string
+  use ol_debug, only: ol_fatal
   implicit none
   real(REALKIND), intent(in)  :: sqrt_s, m_ex(:)
   real(REALKIND), intent(out) :: p_rambo(0:3,size(m_ex))
@@ -137,11 +139,91 @@ subroutine rambo(sqrt_s, m_ex, p_rambo)
   else if (n_scatt == 1) then
     call rambo_decay(sqrt_s, m_ex, p_rambo)
   else
-    print*, "[OpenLoops] ERROR: Phase-space not available for scattering of: ",  n_scatt , " -> ", size(m_ex)-n_scatt
-    stop
+    call ol_fatal("phase-space not available for scattering of: " // to_string(n_scatt) // &
+            &     " -> " // to_string(size(m_ex)-n_scatt))
   end if
 
 end subroutine rambo
+
+
+subroutine rand_sphere(r, v)
+  ! Random point, uniformly distributed on the surface of a sphere with radius r:
+  ! z/r in [-1,1], phi in [0,2*pi),
+  ! x=sqrt(r^2-z^2)*cos(phi), y=sqrt(r^2-z^2)*sin(phi)
+  use ol_parameters_decl_/**/REALKIND, only: pi
+  use ol_ramboX, only: rans
+  implicit none
+  real(REALKIND), intent(in) :: r
+  real(REALKIND), intent(out) :: v(3)
+  real(REALKIND) :: u, phi, rho
+  call rans(u)
+  v(3) = r*(2*u-1)
+  rho = sqrt(r**2-v(3)**2)
+  call rans(phi)
+  phi = 2*pi*phi
+  v(1) = rho*cos(phi)
+  v(2) = rho*sin(phi)
+end subroutine rand_sphere
+
+
+subroutine decay3(E_in, m, psp)
+  ! Random phase space point for a 1->2 decay with energy E_in.
+  ! Set up the decay in the centre of mass system, then apply a Lorentz boost.
+  ! Note that the points won't be uniformly distributed if E_in /= m(1).
+  use ol_parameters_decl_/**/REALKIND, only: psp_tolerance
+  use ol_debug, only: ol_error, ol_msg, ol_fatal
+  implicit none
+  real(REALKIND), intent(in) :: E_in, m(3)
+  real(REALKIND), intent(out) :: psp(0:3,3)
+  real(REALKIND) :: E1, m12, m22, m32, E2a, E3a, p1_abs, p2a_abs, p2a(3), gamma, beta(3), beta_p2a
+  if (m(1) <= m(2) + m(3)) then
+    call ol_error(2,"3-particle interaction:")
+    call ol_msg("mass condition m1+m2>m3 (production) or m1>m2+m3 (decay) not satisfied.")
+    call ol_fatal()
+  end if
+  if (abs(E_in/m(1)-1) < psp_tolerance) then
+    E1 = m(1)
+  else if (E_in < m(1)) then
+    call ol_fatal("3-particle interaction energy too low.")
+  else
+    E1 = E_in
+  end if
+  m12 = m(1)**2
+  m22 = m(2)**2
+  m32 = m(3)**2
+  ! centre of mass system: (m1,0) = (E2,p2a) + (E3,-p2a)
+  E2a = (m12 + m22 - m32)/(2*m(1))
+  E3a = (m12 - m22 + m32)/(2*m(1))
+!   p2a_abs = sqrt((m12**2 + m22**2 + m32**2 - 2*m12*m22 - 2*m12*m32 - 2*m22*m32)/(4*m12))
+  p2a_abs = sqrt(E2a**2-m22)
+  call rand_sphere(p2a_abs, p2a)
+  ! Lorentz boost (E',p') = L.(E,p) such that L.(m1,0) = (sqrt,p1)
+  ! L_00 = gamma, L_0i = L_i0 = -gamma*beta_i, L_ij = delta_ij + (gamma-1)*beta_i*beta_j/beta^2
+  ! E' = gamma*(E-beta.p)
+  ! p' = p + ((gamma-1)*beta.p/beta^2 - E*gamma)*beta
+  ! p1 and boost parameters
+  if (E1 == m(1)) then
+    psp(0,1) = m(1)
+    psp(1:3,1) = 0
+    psp(0,2) = E2a
+    psp(0,3) = E3a
+    psp(1:3,2) =  p2a
+    psp(1:3,3) = -p2a
+  else
+    p1_abs = sqrt(E1**2-m12)
+    psp(0,1) = E1
+    call rand_sphere(p1_abs, psp(1:3,1))
+    gamma = E1/m(1)
+    beta = -psp(1:3,1)/E1
+    ! p2 and p3
+    beta_p2a = sum(beta*p2a)
+    psp(0,2) = gamma*(E2a-beta_p2a)
+    psp(0,3) = gamma*(E3a+beta_p2a)
+    p2a = p2a + ((gamma-1)*beta_p2a/sum(beta**2)) * beta
+    psp(1:3,2) =  p2a - (gamma*E2a)*beta
+    psp(1:3,3) = -p2a - (gamma*E3a)*beta
+  end if
+end subroutine decay3
 
 
 ! *********************************************************************
@@ -160,6 +242,7 @@ subroutine rambo_2scatt(sqrt_s, m_ex, p_rambo)
 !   kA + kB        = 0
 ! *********************************************************************
   use KIND_TYPES, only: REALKIND
+  use ol_debug, only: ol_fatal
   use ol_ramboX, only: rambo0 => rambo
   implicit none
   real(REALKIND), intent(in)  :: sqrt_s, m_ex(:)
@@ -168,33 +251,45 @@ subroutine rambo_2scatt(sqrt_s, m_ex, p_rambo)
   real(REALKIND) :: p_scatt(4,size(m_ex)-2), wgt
   integer :: n
   n = size(m_ex)
-  E = sqrt_s*0.5_/**/REALKIND
-  ! beam momenta
-  if((m_ex(1) == 0) .and. (m_ex(2) == 0)) then
-    p_rambo(0,1) =  E
-    p_rambo(1,1) =  0
-    p_rambo(2,1) =  0
-    p_rambo(3,1) =  E
-    p_rambo(0,2) =  E
-    p_rambo(1,2) =  0
-    p_rambo(2,2) =  0
-    p_rambo(3,2) = -E
+  if (n >= 4) then
+    E = sqrt_s*0.5_/**/REALKIND
+    ! beam momenta
+    if((m_ex(1) == 0) .and. (m_ex(2) == 0)) then
+      p_rambo(0,1) =  E
+      p_rambo(1,1) =  0
+      p_rambo(2,1) =  0
+      p_rambo(3,1) =  E
+      p_rambo(0,2) =  E
+      p_rambo(1,2) =  0
+      p_rambo(2,2) =  0
+      p_rambo(3,2) = -E
+    else
+      MA2  = m_ex(1)*m_ex(1)
+      MB2  = m_ex(2)*m_ex(2)
+      dEAB = (MA2 - MB2) / (2*sqrt_s)
+      p_rambo(0,1) =  E + dEAB
+      p_rambo(1,1) =  0
+      p_rambo(2,1) =  0
+      p_rambo(3,1) =  sqrt(p_rambo(0,1)**2-MA2)
+      p_rambo(0,2) =  E - dEAB
+      p_rambo(1,2) =  0
+      p_rambo(2,2) =  0
+      p_rambo(3,2) = -p_rambo(3,1)
+    end if
+    call rambo0(n-2, sqrt_s, m_ex(3:n), p_scatt, wgt)
+    p_rambo(  0,3:n) = p_scatt(  4,1:n-2)
+    p_rambo(1:3,3:n) = p_scatt(1:3,1:n-2)
+  else if (n == 3) then
+    ! reverse 1->2 decay
+    call decay3(sqrt_s, [m_ex(3),m_ex(1),m_ex(2)], p_rambo)
+    p_scatt(:,1) = p_rambo(:,1)
+    p_rambo(:,1) = p_rambo(:,2)
+    p_rambo(:,2) = p_rambo(:,3)
+    p_rambo(:,3) = p_scatt(:,1)
   else
-    MA2  = m_ex(1)*m_ex(1)
-    MB2  = m_ex(2)*m_ex(2)
-    dEAB = (MA2 - MB2) / (2*sqrt_s)
-    p_rambo(0,1) =  E + dEAB
-    p_rambo(1,1) =  0
-    p_rambo(2,1) =  0
-    p_rambo(3,1) =  sqrt(p_rambo(0,1)**2-MA2)
-    p_rambo(0,2) =  E - dEAB
-    p_rambo(1,2) =  0
-    p_rambo(2,2) =  0
-    p_rambo(3,2) = -p_rambo(3,1)
+    call ol_fatal("2->0 scattering not possible -- use decay instead.")
   end if
-  call rambo0(n-2, sqrt_s, m_ex(3:n), p_scatt, wgt)
-  p_rambo(  0,3:n) = p_scatt(  4,1:n-2)
-  p_rambo(1:3,3:n) = p_scatt(1:3,1:n-2)
+
 end subroutine rambo_2scatt
 
 
@@ -209,24 +304,40 @@ subroutine rambo_decay(sqrt_s, m_ex, p_rambo)
 ! p_rambo(0:3,n) = momenta, n = 2,..,n outgoing
 ! *********************************************************************
   use KIND_TYPES, only: REALKIND
+  use ol_debug, only: ol_fatal, ol_msg
+  use ol_parameters_decl_/**/REALKIND, only: psp_tolerance
   use ol_ramboX, only: rambo0 => rambo
   implicit none
   real(REALKIND), intent(in)  :: sqrt_s, m_ex(:)
   real(REALKIND), intent(out) :: p_rambo(0:3,size(m_ex))
-  real(REALKIND) :: p_scatt(4,size(m_ex)-1), wgt
+  real(REALKIND) :: p_scatt(4,size(m_ex)-1), wgt, p1
   integer :: n, k
   n = size(m_ex)
-  if( m_ex(1) == 0 ) then
-    print*, "[OpenLoops] Warning: decay of massless particle!"
-  else
-    p_rambo(0,1) =  sqrt_s
-    p_rambo(1,1) =  0
-    p_rambo(2,1) =  0
-    p_rambo(3,1) =  0
+  if (sqrt_s < m_ex(1)) then
+    call ol_fatal("energy in decay lower than mass.")
   end if
-  call rambo0(n-1, sqrt_s, m_ex(2:n), p_scatt, wgt)
-  p_rambo(  0,2:n) = p_scatt(  4,1:n-1)
-  p_rambo(1:3,2:n) = p_scatt(1:3,1:n-1)
+  if (n >= 3) then
+    if( m_ex(1) == 0 ) then
+      call ol_msg("Warning: decay of massless particle!")
+    else
+      p_rambo(0,1) =  sqrt_s
+      p_rambo(1,1) =  0
+      p_rambo(2,1) =  0
+      p_rambo(3,1) =  0
+    end if
+    call rambo0(n-1, sqrt_s, m_ex(2:n), p_scatt, wgt)
+    p_rambo(  0,2:n) = p_scatt(  4,1:n-1)
+    p_rambo(1:3,2:n) = p_scatt(1:3,1:n-1)
+  else
+    ! particle with energy sqrt_s coming from a random direction
+    if (abs(m_ex(1)-m_ex(2))/sqrt_s > psp_tolerance) then
+      call ol_fatal("two particle processes require external particles with equal mass.")
+    end if
+    p1 = sqrt(sqrt_s**2-m_ex(1)**2)
+    p_rambo(0,1) = sqrt_s
+    call rand_sphere(p1, p_rambo(1:3,1))
+    p_rambo(:,2) = p_rambo(:,1)
+  end if
 end subroutine rambo_decay
 
 
@@ -250,24 +361,24 @@ end subroutine rambo_c
 
 subroutine rambo(sqrt_s, m_ex, p_rambo)
   use KIND_TYPES, only: REALKIND
+  use ol_debug, only: ol_fatal
   implicit none
   real(REALKIND), intent(in)  :: sqrt_s, m_ex(:)
   real(REALKIND), intent(out) :: p_rambo(0:3,size(m_ex))
   p_rambo = 0 ! prevent compiler warning
-  write(*,*) '[OpenLoops] ERROR: Rambo is not available.'
-  stop
+  call ol_fatal('Rambo is not available.')
 end subroutine rambo
 
 subroutine rambo_c(sqrt_s, m_ex, n, p_rambo) bind(c,name="ol_rambo")
   use KIND_TYPES, only: REALKIND
+  use ol_debug, ol_fatal
   use, intrinsic :: iso_c_binding, only: c_double, c_int
   implicit none
   integer(c_int), intent(in)  :: n
   real(c_double), intent(out) :: p_rambo(0:3,n)
   real(c_double), intent(in)  :: sqrt_s, m_ex(n)
   p_rambo = 0 ! prevent compiler warning
-  write(*,*) '[OpenLoops] ERROR: Rambo is not available.'
-  stop
+  call ol_fatal('Rambo is not available.')
 end subroutine rambo_c
 
 ! #ifdef USE_RAMBO
@@ -288,6 +399,8 @@ subroutine clean_mom_in(P_in, m_ext2, P, n)
 ! so that energy conservation is fulfilled up to terms of O(eps^3)
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND, DREALKIND
+  use ol_debug, only: ol_msg
+  use ol_generic, only: to_string
   use ol_parameters_decl_/**/REALKIND, only: psp_tolerance
   implicit none
   real(DREALKIND), intent(in)  :: P_in(0:3,n)
@@ -317,10 +430,10 @@ subroutine clean_mom_in(P_in, m_ext2, P, n)
   do i = 0, 3
     prec = abs(sum(P(i,:)))/E_ref
     if (prec > psp_tolerance) then
-      write(*,*) "[OpenLoops] === WARNING ==="
-      write(*,*) "[OpenLoops] OpenLoops subroutine clean_mom: inconsistent phase space point."
-      write(*,*) "[OpenLoops] Momentum conservation is only satisfied to", -log10(prec), "digits."
-      write(*,*) "[OpenLoops] ==============="
+      call ol_msg("=== WARNING ===")
+      call ol_msg("OpenLoops subroutine clean_mom: inconsistent phase space point.")
+      call ol_msg("Momentum conservation is only satisfied to " // to_string(-log10(prec)) // "digits.")
+      call ol_msg("===============")
     end if
   end do
 
@@ -330,10 +443,10 @@ subroutine clean_mom_in(P_in, m_ext2, P, n)
     P0(nex) = sign(sqrt(P2(nex) + m_ext2(nex)), P(0,nex))
     prec = abs(P(0,nex)-P0(nex))/E_ref
     if(prec > psp_tolerance) then
-      write(*,*) "[OpenLoops] === WARNING ==="
-      write(*,*) "[OpenLoops] OpenLoops subroutine clean_mom: inconsistent phase space point."
-      write(*,*) "[OpenLoops] On-shell condition is only satisfied to", -log10(prec), "digits."
-      write(*,*) "[OpenLoops] ==============="
+      call ol_msg("=== WARNING ===")
+      call ol_msg("OpenLoops subroutine clean_mom: inconsistent phase space point.")
+      call ol_msg("On-shell condition is only satisfied to " // to_string(-log10(prec)) // "digits.")
+      call ol_msg("===============")
     end if
   end do
 
@@ -458,12 +571,12 @@ end subroutine dirty_mom
 #else
 subroutine dirty_mom(P_in,P, n, DIG)
   use KIND_TYPES, only: REALKIND
+  use ol_debug, only: ol_fatal
   implicit none
   integer,        intent(in)  :: n, DIG
   real(REALKIND), intent(in)  :: P_in(0:3,n)
   real(REALKIND), intent(out) :: P(0:3,n)
-  write(*,*) '[OpenLoops] ERROR: dirty_mom() requires Rambo.'
-  stop
+  call ol_fatal('dirty_mom() requires Rambo.')
 end subroutine dirty_mom
 ! #ifdef USE_RAMBO
 #endif
@@ -756,13 +869,15 @@ function momenta_invariants(moms) result(invs)
 ! as used by Collier. Apply 'squeeze_onshell' to each invariant with the masses in the theory.
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND
+  use ol_parameters_decl_/**/DREALKIND, only: model
   use ol_parameters_decl_/**/REALKIND, only: &
-    & wMW, rMW, wMZ, rMZ, wMH, rMH, wMC, rMC, wMB, rMB, wMT, rMT
+    & wMW, rMW, wMZ, rMZ, wMH, rMH, wMC, rMC, wMB, rMB, wMT, rMT, &
+    & wMA0, rMA0, wMHH, rMHH, wMHp, rMHp
   implicit none
   complex(REALKIND), intent(in) :: moms(:,:)
   complex(REALKIND) :: invs(binom2(size(moms,2)+1))
   complex(REALKIND) :: moms0(0:3,0:size(moms,2))
-  real(REALKIND) :: masses(0:6)
+  real(REALKIND) :: masses(0:9)
   integer :: n, k, a, b
   n = size(moms,2) + 1
   moms0(:,0) = 0
@@ -785,14 +900,21 @@ function momenta_invariants(moms) result(invs)
   end do
 #endif
   masses = 0
+  n = 6
   if (wMW == 0) masses(1) = rMW
   if (wMZ == 0) masses(2) = rMZ
   if (wMH == 0) masses(3) = rMH
   if (wMC == 0 .and. rMC /= 0) masses(4) = rMC
   if (wMB == 0 .and. rMB /= 0) masses(5) = rMB
   if (wMT == 0) masses(6) = rMT
+  if (trim(model) == "2hdm") then
+    n = 9
+    if (wMA0 == 0) masses(7) = rMA0
+    if (wMHH == 0) masses(8) = rMHH
+    if (wMHp == 0) masses(9) = rMHp
+  end if
   do k = 1, size(invs)
-    invs(k) = squeeze_onshell(invs(k), masses)
+    invs(k) = squeeze_onshell(invs(k), masses(0:n))
   end do
 end function momenta_invariants
 

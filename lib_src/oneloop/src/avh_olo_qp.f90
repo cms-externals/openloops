@@ -1,20 +1,20 @@
 !
-! Copyright (C) 2014 Andreas van Hameren. 
+! Copyright (C) 2015 Andreas van Hameren. 
 !
-! This file is part of OneLOop-3.5.
+! This file is part of OneLOop-3.6.
 !
-! OneLOop-3.5 is free software: you can redistribute it and/or modify
+! OneLOop-3.6 is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
 !
-! OneLOop-3.5 is distributed in the hope that it will be useful,
+! OneLOop-3.6 is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
 !
 ! You should have received a copy of the GNU General Public License
-! along with OneLOop-3.5.  If not, see <http://www.gnu.org/licenses/>.
+! along with OneLOop-3.6.  If not, see <http://www.gnu.org/licenses/>.
 !
 
 
@@ -28,12 +28,12 @@ contains
   if (done) return ;done=.true.
   write(*,'(a72)') '########################################################################'
   write(*,'(a72)') '#                                                                      #'
-  write(*,'(a72)') '#                      You are using OneLOop-3.5                       #'
+  write(*,'(a72)') '#                      You are using OneLOop-3.6                       #'
   write(*,'(a72)') '#                                                                      #'
   write(*,'(a72)') '# for the evaluation of 1-loop scalar 1-, 2-, 3- and 4-point functions #'
   write(*,'(a72)') '#                                                                      #'
   write(*,'(a72)') '# author: Andreas van Hameren <hamerenREMOVETHIS@ifj.edu.pl>           #'
-  write(*,'(a72)') '#   date: 14-05-2014                                                   #'
+  write(*,'(a72)') '#   date: 10-05-2015                                                   #'
   write(*,'(a72)') '#                                                                      #'
   write(*,'(a72)') '# Please cite                                                          #'
   write(*,'(a72)') '#    A. van Hameren,                                                   #'
@@ -405,7 +405,7 @@ contains
   ndec = -log10(EPSN)                            
   ndecim(prcpar) = ndec                          
   epsilo(prcpar) = EPSN                        
-  neglig(prcpar) = EPSN*10**(ndec/7)       
+  neglig(prcpar) = EPSN*(8**(ndec/7))       
   end subroutine
 !
   end subroutine
@@ -780,22 +780,28 @@ contains
       gg=xd1*pq1 ;hh=yd1*uv1
       rx2 = gg+hh
       if (abs(rx2).lt.neglig(prcpar)*max(abs(gg),abs(hh))) rx2 = 0
-    else
+    elseif (abs(pq2).gt.abs(pq1)) then
       rx2 = pq2
       gg=xd2*pq2 ;hh=yd2*uv2
       rx1 = gg+hh
       if (abs(rx1).lt.neglig(prcpar)*max(abs(gg),abs(hh))) rx1 = 0
+    else
+      rx1 = pq1
+      rx2 = pq2
     endif
     if (abs(uv1).gt.abs(uv2)) then
       ix1 = uv1
       gg=yd1*pq1 ;hh=xd1*uv1
       ix2 = gg-hh
       if (abs(ix2).lt.neglig(prcpar)*max(abs(gg),abs(hh))) ix2 = 0
-    else
+    elseif (abs(uv2).gt.abs(uv1)) then
       ix2 = uv2
       gg=yd2*pq2 ;hh=xd2*uv2
       ix1 = gg-hh
       if (abs(ix1).lt.neglig(prcpar)*max(abs(gg),abs(hh))) ix1 = 0
+    else
+      ix1 = uv1
+      ix2 = uv2
     endif
     x1 = acmplx(rx1,ix1)
     x2 = acmplx(rx2,ix2)
@@ -1443,8 +1449,8 @@ contains
   imx = aimag(xx)
 !
   if (rex.eq.RZRO.and.imx.eq.RZRO) then
-!    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop log2_c: ' &
-!       ,'xx = 0, returning 0'
+!     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop log2_c: ' &
+!        ,'xx = 0, returning 0'
     rslt = 0
     return
   endif
@@ -1512,8 +1518,8 @@ contains
   imx = aimag(xx)
 !
   if (rex.eq.RZRO.and.imx.eq.RZRO) then
-!    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop log2_c: ' &
-!       ,'xx = 0, returning 0'
+!     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop log3_c: ' &
+!        ,'xx = 0, returning 0'
     rslt = 0
     return
   endif
@@ -1917,7 +1923,7 @@ contains
   oo=mod(j1,2) ;nn=j1-oo ;y1=r1 ;if (oo.ne.0) y1=-y1
   oo=mod(j2,2) ;nn=j2-oo ;y2=r2 ;if (oo.ne.0) y2=-y2
 !
-  eps = 10*EPSN
+  eps = 8*EPSN
 !
   if (j1.ne.j2) then
     if (r1.eq.r2) then
@@ -2051,7 +2057,7 @@ contains
   oo=mod(j1,2) ;nn=j1-oo ;y1=r1 ;if (oo.ne.0) y1=-y1
   oo=mod(j2,2) ;nn=j2-oo ;y2=r2 ;if (oo.ne.0) y2=-y2
 !
-  eps = 10*EPSN
+  eps = 8*EPSN
 !
   if (j1.ne.j2) then
     if (r1.eq.r2) then
@@ -2416,7 +2422,7 @@ contains
     return
   endif
 !
-  if (abs(xx-1).le.EPSN*10) then
+  if (abs(xx-1).le.EPSN*8) then
     aa = 1
     rslt = -1
     do ii=2,irank+1
@@ -2489,7 +2495,7 @@ contains
       ,'argument xx=',trim(myprint(xx,8)),', returning 0'
     rslt = 0
     return
-  elseif (abs(xx-1).le.EPSN*10) then
+  elseif (abs(xx-1).le.EPSN*8) then
     aa = 1
     rslt = -1
     do ii=2,irank+1
@@ -3485,11 +3491,15 @@ contains
   endif
 !
   if (app.eq.RZRO) then
-    if (abs(m0-m1).le.am1*EPSN*10) then
+    if (abs(m0-m1).le.am1*EPSN*8) then
       rslt = 1/(6*m1)
     else
       ch = m0/m1
-      rslt = ( CONE/2 - ch*olog3(ch,0) )/m1 
+      if (abs(ch).le.EPSN) then
+        rslt = 1/(2*m1)
+      else
+        rslt = ( CONE/2 - ch*olog3(ch,0) )/m1 
+      endif
     endif
   elseif (am1.eq.RZRO) then
     rslt =-1/pp
@@ -3504,7 +3514,7 @@ contains
     ax2 = abs(x2)
     ax1x2 = abs(x1-x2)
     maxa = max(ax1,ax2)
-    if (ax1x2.lt.maxa*EPSN*10) then
+    if (ax1x2.lt.maxa*EPSN*8) then
       rslt = ( (x1+x2-1)*logc(q2/q2o) - 2 )/pp
     elseif (ax1x2*2.lt.maxa) then
       if     (x1.eq.CZRO.or.x1.eq.CONE) then
@@ -3846,7 +3856,7 @@ contains
      :: p2,p3,p4,p12,p23,m4,sm2,sm3,sm4 &
                      ,aa,bb,cc,dd,x1,x2,r23,r24,r34
   real(kindr2) &  
-     :: mhh
+     :: mhh,small
    logical :: r24Not0,r34Not0
 !
 !   p1 = nul
@@ -3869,8 +3879,9 @@ contains
    r24 = ( m4-p23-p23*IEPS )/(sm2*sm4)
    r34 = ( m4-p3 -p3 *IEPS )/(sm3*sm4)
 !
-   r24Not0 = (abs(areal(r24))+abs(aimag(r24)).ge.neglig(prcpar))
-   r34Not0 = (abs(areal(r34))+abs(aimag(r34)).ge.neglig(prcpar))
+   small = 16*neglig(prcpar)
+   r24Not0 = (abs(areal(r24))+abs(aimag(r24)).ge.small)
+   r34Not0 = (abs(areal(r34))+abs(aimag(r34)).ge.small)
 !
    aa = r34*r24 - r23
 !
@@ -3933,6 +3944,8 @@ contains
      :: p2,p3,p23,m2,m4,sm2,sm3,sm4,aa,bb,cc,dd,x1,x2 &
                      ,r23,k24,r34,r24,d24
    logical :: r23Not0,r34Not0
+  real(kindr2) &  
+     :: small
 !
 !   p1 = nul
    p2 = p3i
@@ -3954,8 +3967,9 @@ contains
    k24 = ( m2+m4-p23-p23*IEPS )/(sm2*sm4) ! p2+p3
    r34 = (    m4-p3 -p3 *IEPS )/(sm3*sm4) ! p3
 !
-   r23Not0 = (abs(areal(r23))+abs(aimag(r23)).ge.neglig(prcpar))
-   r34Not0 = (abs(areal(r34))+abs(aimag(r34)).ge.neglig(prcpar))
+   small = 16*neglig(prcpar)
+   r23Not0 = (abs(areal(r23))+abs(aimag(r23)).ge.small)
+   r34Not0 = (abs(areal(r34))+abs(aimag(r34)).ge.small)
 !
    call rfun( r24,d24 ,k24 )
 !
@@ -4439,6 +4453,9 @@ contains
      :: cp2,cp3,cp12,cp23,cm2,cm4,sm1,sm2,sm3,sm4 &
                      ,r13,r23,r24,r34,d24,log24,cc
    type(qmplx_type) :: q13,q23,q24,q34,qss,qz1,qz2
+   logical :: r34ne0
+  real(kindr2) &  
+     :: small
 !
    if (abs(m2-p2).gt.abs(m4-p3)) then
      cm2=m2 ;cm4=m4 ;cp2=p2 ;cp3=p3
@@ -4463,6 +4480,9 @@ contains
    r34 = (    cm4-cp3 )/(sm3*sm4)
    call rfun( r24,d24 ,(cm2+cm4-cp23)/(sm2*sm4) )
 !
+   small = 16*neglig(prcpar)
+   r34ne0 = (abs(areal(r34))+abs(aimag(r34)).gt.small)
+!
    if (r24.eq.-CONE) then 
      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box15: ' &
        ,'threshold singularity, returning 0'
@@ -4483,7 +4503,7 @@ contains
    rslt(2) = 0
    rslt(1) = -log24
    rslt(0) = log24 * logc(qss) + li2c2(q24*q24,qonv(1))
-   if (r34.ne.CZRO) then
+   if (r34ne0) then
      qss = q34/q23
      qz1 = qss*q24
      qz2 = qss/q24
@@ -4777,7 +4797,8 @@ contains
      :: cp2,cp3,cp4,cp12,cp23,cm4,r13,r14,r23,r24,r34,z1,z0
    type(qmplx_type) :: q13,q14,q23,q24,q34,qm4,qxx,qx1,qx2
   real(kindr2) &  
-     :: h1,h2
+     :: h1,h2,small
+   logical :: r34zero
 !
    if (p12.eq.CZRO) then
      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box10: ' &
@@ -4812,13 +4833,16 @@ contains
    q24 = qonv(r24,-1)
    qm4 = qonv(cm4,-1)
 !
-   if (r34.ne.CZRO) then
+   small = 16*neglig(prcpar)
+   r34zero = (abs(r34).lt.(abs(cm4)+abs(cp3))*small)
+!
+   if (r34zero) then
+     z0 = 0
+   else
      qx1 = q34/qm4
      qx2 = qx1*q14/q13
      qx1 = qx1*q24/q23
      z0 = -li2c2(qx1,qx2)*r34/(2*cm4*r23)
-   else
-     z0 = 0
    endif
 !
    qx1 = q23/q13
@@ -5404,6 +5428,8 @@ contains
   complex(kindr2) &   
     :: smm,sm4,aa,bb,cc,dd,x1,x2,r12,r13,r14,r23,r24,r34
   logical :: r12zero,r13zero,r14zero
+  real(kindr2) &  
+     :: small
 !
   sm4 = mysqrt(m4)
   smm = abs(sm4) 
@@ -5415,9 +5441,10 @@ contains
   r24 = (   -p12-p12*IEPS )/(smm*smm)
   r34 = (   -p2 -p2 *IEPS )/(smm*smm)
 !
-  r12zero=(abs(areal(r12))+abs(aimag(r12)).lt.neglig(prcpar))
-  r13zero=(abs(areal(r13))+abs(aimag(r13)).lt.neglig(prcpar))
-  r14zero=(abs(areal(r14))+abs(aimag(r14)).lt.neglig(prcpar))
+  small = 16*neglig(prcpar)
+  r12zero=(abs(areal(r12))+abs(aimag(r12)).lt.small)
+  r13zero=(abs(areal(r13))+abs(aimag(r13)).lt.small)
+  r14zero=(abs(areal(r14))+abs(aimag(r14)).lt.small)
 !
   aa = r34*r24
 !
@@ -5508,6 +5535,8 @@ contains
     :: smm,sm3,sm4,aa,bb,cc,dd,x1,x2 &
                     ,r12,r13,r14,r23,r24,r34,d14,k14
   logical :: r12zero,r13zero,r24zero,r34zero
+  real(kindr2) &  
+    :: small
 !
   sm3 = mysqrt(m3)
   sm4 = mysqrt(m4)
@@ -5521,10 +5550,11 @@ contains
   r24 = (    m3-p12-p12*IEPS )/(smm*sm3)
   r34 = (    m3-p2 -p2 *IEPS )/(smm*sm3)
 !
-  r12zero = (abs(areal(r12))+abs(aimag(r12)).lt.neglig(prcpar))
-  r13zero = (abs(areal(r13))+abs(aimag(r13)).lt.neglig(prcpar))
-  r24zero = (abs(areal(r24))+abs(aimag(r24)).lt.neglig(prcpar))
-  r34zero = (abs(areal(r34))+abs(aimag(r34)).lt.neglig(prcpar))
+  small = 16*neglig(prcpar)
+  r12zero = (abs(areal(r12))+abs(aimag(r12)).lt.small)
+  r13zero = (abs(areal(r13))+abs(aimag(r13)).lt.small)
+  r24zero = (abs(areal(r24))+abs(aimag(r24)).lt.small)
+  r34zero = (abs(areal(r34))+abs(aimag(r34)).lt.small)
 !
   if (r12zero.and.r24zero) then
     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf2: ' &
@@ -5640,6 +5670,8 @@ contains
     :: sm1,sm2,sm3,sm4 ,aa,bb,cc,dd,x1,x2 &
                     ,r12,r13,r14,r23,r24,r34,d12,d14,d24,k12,k14,k24
   logical ::r13zero,r23zero,r34zero
+  real(kindr2) &  
+    :: small
 !
   sm1 = mysqrt(m1)
   sm2 = mysqrt(m2)
@@ -5653,9 +5685,10 @@ contains
   k24 = ( m2+m4-p23-p23*IEPS )/(sm2*sm4) ! p2+p3
   r34 = (    m4-p3 -p3 *IEPS )/(sm3*sm4) ! p3
 !
-  r13zero = (abs(areal(r13))+abs(aimag(r13)).lt.neglig(prcpar))
-  r23zero = (abs(areal(r23))+abs(aimag(r23)).lt.neglig(prcpar))
-  r34zero = (abs(areal(r34))+abs(aimag(r34)).lt.neglig(prcpar))
+  small = 16*neglig(prcpar)
+  r13zero = (abs(areal(r13))+abs(aimag(r13)).lt.small)
+  r23zero = (abs(areal(r23))+abs(aimag(r23)).lt.small)
+  r34zero = (abs(areal(r34))+abs(aimag(r34)).lt.small)
 !
   if (r13zero) then
     if     (r23zero) then
@@ -6182,7 +6215,7 @@ contains
    rea = abs(aa)
    reb = abs(bb)
    simc = abs(cc)
-   if (simc.lt.10*neglig(prcpar)*min(rea,reb)) cc = 0
+   if (simc.lt.8*neglig(prcpar)*min(rea,reb)) cc = 0
 !
    simc = aimag(cc)
    if (simc.eq.RZRO) then
@@ -6347,6 +6380,7 @@ contains
      ,intent(in) :: y1,y2
   complex(kindr2) &   
      :: rslt ,oy1,oy2
+!
    oy1 = 1-y1
    oy2 = 1-y2
    rslt = logc2( qonv(-y2)/qonv(-y1) )/y1 &
@@ -10318,7 +10352,8 @@ contains
                .or.(     areal(ss(1)).ge.-small  &
                     .and.areal(ss(2)).ge.-small  &
                     .and.areal(ss(3)).ge.-small  &
-                    .and.areal(ss(4)).ge.-small) )
+                    .and.areal(ss(4)).ge.-small) &
+               .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
     if (useboxc) then
       call boxc( rslt ,ss,rr ,as ,smax )
     else
@@ -10334,9 +10369,8 @@ contains
                  .or.(     areal(ss(1)).ge.-small  &
                       .and.areal(ss(2)).ge.-small  &
                       .and.areal(ss(3)).ge.-small  &
-!OLD                      .and.areal(ss(4)).ge.-small) )
-                      .and.areal(ss(4)).ge.-small) & !NEW
-                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small)) !NEW
+                      .and.areal(ss(4)).ge.-small) &
+                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
       if (useboxc) then
         call boxc( rslt ,ss,rr ,as ,smax )
       else
@@ -10593,7 +10627,8 @@ contains
                .or.(     areal(ss(1)).ge.-small  &
                     .and.areal(ss(2)).ge.-small  &
                     .and.areal(ss(3)).ge.-small  &
-                    .and.areal(ss(4)).ge.-small) )
+                    .and.areal(ss(4)).ge.-small) &
+               .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
     if (useboxc) then
       call boxc( rslt ,ss,rr ,as ,smax )
     else
@@ -10609,9 +10644,8 @@ contains
                  .or.(     areal(ss(1)).ge.-small  &
                       .and.areal(ss(2)).ge.-small  &
                       .and.areal(ss(3)).ge.-small  &
-!OLD                      .and.areal(ss(4)).ge.-small) )
-                      .and.areal(ss(4)).ge.-small) & !NEW
-                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small)) !NEW
+                      .and.areal(ss(4)).ge.-small) &
+                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
       if (useboxc) then
         call boxc( rslt ,ss,rr ,as ,smax )
       else
@@ -10860,7 +10894,8 @@ contains
                .or.(     areal(ss(1)).ge.-small  &
                     .and.areal(ss(2)).ge.-small  &
                     .and.areal(ss(3)).ge.-small  &
-                    .and.areal(ss(4)).ge.-small) )
+                    .and.areal(ss(4)).ge.-small) &
+               .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
     if (useboxc) then
       call boxc( rslt ,ss,rr ,as ,smax )
     else
@@ -10876,9 +10911,8 @@ contains
                  .or.(     areal(ss(1)).ge.-small  &
                       .and.areal(ss(2)).ge.-small  &
                       .and.areal(ss(3)).ge.-small  &
-!OLD                      .and.areal(ss(4)).ge.-small) )
-                      .and.areal(ss(4)).ge.-small) & !NEW
-                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small)) !NEW
+                      .and.areal(ss(4)).ge.-small) &
+                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
       if (useboxc) then
         call boxc( rslt ,ss,rr ,as ,smax )
       else
@@ -11129,7 +11163,8 @@ contains
                .or.(     areal(ss(1)).ge.-small  &
                     .and.areal(ss(2)).ge.-small  &
                     .and.areal(ss(3)).ge.-small  &
-                    .and.areal(ss(4)).ge.-small) )
+                    .and.areal(ss(4)).ge.-small) &
+               .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
     if (useboxc) then
       call boxc( rslt ,ss,rr ,as ,smax )
     else
@@ -11145,9 +11180,8 @@ contains
                  .or.(     areal(ss(1)).ge.-small  &
                       .and.areal(ss(2)).ge.-small  &
                       .and.areal(ss(3)).ge.-small  &
-!OLD                      .and.areal(ss(4)).ge.-small) )
-                      .and.areal(ss(4)).ge.-small) & !NEW
-                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small)) !NEW
+                      .and.areal(ss(4)).ge.-small) &
+                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
       if (useboxc) then
         call boxc( rslt ,ss,rr ,as ,smax )
       else
@@ -11389,7 +11423,8 @@ contains
                .or.(     areal(ss(1)).ge.-small  &
                     .and.areal(ss(2)).ge.-small  &
                     .and.areal(ss(3)).ge.-small  &
-                    .and.areal(ss(4)).ge.-small) )
+                    .and.areal(ss(4)).ge.-small) &
+               .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
     if (useboxc) then
       call boxc( rslt ,ss,rr ,as ,smax )
     else
@@ -11405,9 +11440,8 @@ contains
                  .or.(     areal(ss(1)).ge.-small  &
                       .and.areal(ss(2)).ge.-small  &
                       .and.areal(ss(3)).ge.-small  &
-!OLD                      .and.areal(ss(4)).ge.-small) )
-                      .and.areal(ss(4)).ge.-small) & !NEW
-                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small)) !NEW
+                      .and.areal(ss(4)).ge.-small) &
+                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
       if (useboxc) then
         call boxc( rslt ,ss,rr ,as ,smax )
       else
@@ -11651,7 +11685,8 @@ contains
                .or.(     areal(ss(1)).ge.-small  &
                     .and.areal(ss(2)).ge.-small  &
                     .and.areal(ss(3)).ge.-small  &
-                    .and.areal(ss(4)).ge.-small) )
+                    .and.areal(ss(4)).ge.-small) &
+               .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
     if (useboxc) then
       call boxc( rslt ,ss,rr ,as ,smax )
     else
@@ -11667,9 +11702,8 @@ contains
                  .or.(     areal(ss(1)).ge.-small  &
                       .and.areal(ss(2)).ge.-small  &
                       .and.areal(ss(3)).ge.-small  &
-!OLD                      .and.areal(ss(4)).ge.-small) )
-                      .and.areal(ss(4)).ge.-small) & !NEW
-                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small)) !NEW
+                      .and.areal(ss(4)).ge.-small) &
+                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
       if (useboxc) then
         call boxc( rslt ,ss,rr ,as ,smax )
       else
@@ -12095,7 +12129,7 @@ contains
   ndec = -log10(EPSN)                            
   ndecim(prcpar) = ndec                          
   epsilo(prcpar) = EPSN                        
-  neglig(prcpar) = EPSN*10**(ndec/7)       
+  neglig(prcpar) = EPSN*(8**(ndec/7))       
   end subroutine
 !
   end subroutine
@@ -12470,22 +12504,28 @@ contains
       gg=xd1*pq1 ;hh=yd1*uv1
       rx2 = gg+hh
       if (abs(rx2).lt.neglig(prcpar)*max(abs(gg),abs(hh))) rx2 = 0
-    else
+    elseif (abs(pq2).gt.abs(pq1)) then
       rx2 = pq2
       gg=xd2*pq2 ;hh=yd2*uv2
       rx1 = gg+hh
       if (abs(rx1).lt.neglig(prcpar)*max(abs(gg),abs(hh))) rx1 = 0
+    else
+      rx1 = pq1
+      rx2 = pq2
     endif
     if (abs(uv1).gt.abs(uv2)) then
       ix1 = uv1
       gg=yd1*pq1 ;hh=xd1*uv1
       ix2 = gg-hh
       if (abs(ix2).lt.neglig(prcpar)*max(abs(gg),abs(hh))) ix2 = 0
-    else
+    elseif (abs(uv2).gt.abs(uv1)) then
       ix2 = uv2
       gg=yd2*pq2 ;hh=xd2*uv2
       ix1 = gg-hh
       if (abs(ix1).lt.neglig(prcpar)*max(abs(gg),abs(hh))) ix1 = 0
+    else
+      ix1 = uv1
+      ix2 = uv2
     endif
     x1 = acmplx(rx1,ix1)
     x2 = acmplx(rx2,ix2)
@@ -13202,7 +13242,7 @@ contains
   imx = aimag(xx)
 !
   if (rex.eq.RZRO.and.imx.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop log2_c: ' &
+    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop log3_c: ' &
        ,'xx = 0, returning 0'
     rslt = 0
     return
@@ -13607,7 +13647,7 @@ contains
   oo=mod(j1,2) ;nn=j1-oo ;y1=r1 ;if (oo.ne.0) y1=-y1
   oo=mod(j2,2) ;nn=j2-oo ;y2=r2 ;if (oo.ne.0) y2=-y2
 !
-  eps = 10*EPSN
+  eps = 8*EPSN
 !
   if (j1.ne.j2) then
     if (r1.eq.r2) then
@@ -13741,7 +13781,7 @@ contains
   oo=mod(j1,2) ;nn=j1-oo ;y1=r1 ;if (oo.ne.0) y1=-y1
   oo=mod(j2,2) ;nn=j2-oo ;y2=r2 ;if (oo.ne.0) y2=-y2
 !
-  eps = 10*EPSN
+  eps = 8*EPSN
 !
   if (j1.ne.j2) then
     if (r1.eq.r2) then
@@ -14106,7 +14146,7 @@ contains
     return
   endif
 !
-  if (abs(xx-1).le.EPSN*10) then
+  if (abs(xx-1).le.EPSN*8) then
     aa = 1
     rslt = -1
     do ii=2,irank+1
@@ -14179,7 +14219,7 @@ contains
       ,'argument xx=',trim(myprint(xx,8)),', returning 0'
     rslt = 0
     return
-  elseif (abs(xx-1).le.EPSN*10) then
+  elseif (abs(xx-1).le.EPSN*8) then
     aa = 1
     rslt = -1
     do ii=2,irank+1
@@ -15175,11 +15215,15 @@ contains
   endif
 !
   if (app.eq.RZRO) then
-    if (abs(m0-m1).le.am1*EPSN*10) then
+    if (abs(m0-m1).le.am1*EPSN*8) then
       rslt = 1/(6*m1)
     else
       ch = m0/m1
-      rslt = ( CONE/2 - ch*olog3(ch,0) )/m1 
+      if (abs(ch).le.EPSN) then
+        rslt = 1/(2*m1)
+      else
+        rslt = ( CONE/2 - ch*olog3(ch,0) )/m1 
+      endif
     endif
   elseif (am1.eq.RZRO) then
     rslt =-1/pp
@@ -15194,7 +15238,7 @@ contains
     ax2 = abs(x2)
     ax1x2 = abs(x1-x2)
     maxa = max(ax1,ax2)
-    if (ax1x2.lt.maxa*EPSN*10) then
+    if (ax1x2.lt.maxa*EPSN*8) then
       rslt = ( (x1+x2-1)*logc(q2/q2o) - 2 )/pp
     elseif (ax1x2*2.lt.maxa) then
       if     (x1.eq.CZRO.or.x1.eq.CONE) then
@@ -15536,7 +15580,7 @@ contains
      :: p2,p3,p4,p12,p23,m4,sm2,sm3,sm4 &
                      ,aa,bb,cc,dd,x1,x2,r23,r24,r34
   real(kindr2) &  
-     :: mhh
+     :: mhh,small
    logical :: r24Not0,r34Not0
 !
 !   p1 = nul
@@ -15559,8 +15603,9 @@ contains
    r24 = ( m4-p23-p23*IEPS )/(sm2*sm4)
    r34 = ( m4-p3 -p3 *IEPS )/(sm3*sm4)
 !
-   r24Not0 = (abs(areal(r24))+abs(aimag(r24)).ge.neglig(prcpar))
-   r34Not0 = (abs(areal(r34))+abs(aimag(r34)).ge.neglig(prcpar))
+   small = 16*neglig(prcpar)
+   r24Not0 = (abs(areal(r24))+abs(aimag(r24)).ge.small)
+   r34Not0 = (abs(areal(r34))+abs(aimag(r34)).ge.small)
 !
    aa = r34*r24 - r23
 !
@@ -15623,6 +15668,8 @@ contains
      :: p2,p3,p23,m2,m4,sm2,sm3,sm4,aa,bb,cc,dd,x1,x2 &
                      ,r23,k24,r34,r24,d24
    logical :: r23Not0,r34Not0
+  real(kindr2) &  
+     :: small
 !
 !   p1 = nul
    p2 = p3i
@@ -15644,8 +15691,9 @@ contains
    k24 = ( m2+m4-p23-p23*IEPS )/(sm2*sm4) ! p2+p3
    r34 = (    m4-p3 -p3 *IEPS )/(sm3*sm4) ! p3
 !
-   r23Not0 = (abs(areal(r23))+abs(aimag(r23)).ge.neglig(prcpar))
-   r34Not0 = (abs(areal(r34))+abs(aimag(r34)).ge.neglig(prcpar))
+   small = 16*neglig(prcpar)
+   r23Not0 = (abs(areal(r23))+abs(aimag(r23)).ge.small)
+   r34Not0 = (abs(areal(r34))+abs(aimag(r34)).ge.small)
 !
    call rfun( r24,d24 ,k24 )
 !
@@ -16129,6 +16177,9 @@ contains
      :: cp2,cp3,cp12,cp23,cm2,cm4,sm1,sm2,sm3,sm4 &
                      ,r13,r23,r24,r34,d24,log24,cc
    type(qmplx_type) :: q13,q23,q24,q34,qss,qz1,qz2
+   logical :: r34ne0
+  real(kindr2) &  
+     :: small
 !
    if (abs(m2-p2).gt.abs(m4-p3)) then
      cm2=m2 ;cm4=m4 ;cp2=p2 ;cp3=p3
@@ -16153,6 +16204,9 @@ contains
    r34 = (    cm4-cp3 )/(sm3*sm4)
    call rfun( r24,d24 ,(cm2+cm4-cp23)/(sm2*sm4) )
 !
+   small = 16*neglig(prcpar)
+   r34ne0 = (abs(areal(r34))+abs(aimag(r34)).gt.small)
+!
    if (r24.eq.-CONE) then 
      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box15: ' &
        ,'threshold singularity, returning 0'
@@ -16173,7 +16227,7 @@ contains
    rslt(2) = 0
    rslt(1) = -log24
    rslt(0) = log24 * logc(qss) + li2c2(q24*q24,qonv(1))
-   if (r34.ne.CZRO) then
+   if (r34ne0) then
      qss = q34/q23
      qz1 = qss*q24
      qz2 = qss/q24
@@ -16467,7 +16521,8 @@ contains
      :: cp2,cp3,cp4,cp12,cp23,cm4,r13,r14,r23,r24,r34,z1,z0
    type(qmplx_type) :: q13,q14,q23,q24,q34,qm4,qxx,qx1,qx2
   real(kindr2) &  
-     :: h1,h2
+     :: h1,h2,small
+   logical :: r34zero
 !
    if (p12.eq.CZRO) then
      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box10: ' &
@@ -16502,13 +16557,16 @@ contains
    q24 = qonv(r24,-1)
    qm4 = qonv(cm4,-1)
 !
-   if (r34.ne.CZRO) then
+   small = 16*neglig(prcpar)
+   r34zero = (abs(r34).lt.(abs(cm4)+abs(cp3))*small)
+!
+   if (r34zero) then
+     z0 = 0
+   else
      qx1 = q34/qm4
      qx2 = qx1*q14/q13
      qx1 = qx1*q24/q23
      z0 = -li2c2(qx1,qx2)*r34/(2*cm4*r23)
-   else
-     z0 = 0
    endif
 !
    qx1 = q23/q13
@@ -17094,6 +17152,8 @@ contains
   complex(kindr2) &   
     :: smm,sm4,aa,bb,cc,dd,x1,x2,r12,r13,r14,r23,r24,r34
   logical :: r12zero,r13zero,r14zero
+  real(kindr2) &  
+     :: small
 !
   sm4 = mysqrt(m4)
   smm = abs(sm4) 
@@ -17105,9 +17165,10 @@ contains
   r24 = (   -p12-p12*IEPS )/(smm*smm)
   r34 = (   -p2 -p2 *IEPS )/(smm*smm)
 !
-  r12zero=(abs(areal(r12))+abs(aimag(r12)).lt.neglig(prcpar))
-  r13zero=(abs(areal(r13))+abs(aimag(r13)).lt.neglig(prcpar))
-  r14zero=(abs(areal(r14))+abs(aimag(r14)).lt.neglig(prcpar))
+  small = 16*neglig(prcpar)
+  r12zero=(abs(areal(r12))+abs(aimag(r12)).lt.small)
+  r13zero=(abs(areal(r13))+abs(aimag(r13)).lt.small)
+  r14zero=(abs(areal(r14))+abs(aimag(r14)).lt.small)
 !
   aa = r34*r24
 !
@@ -17198,6 +17259,8 @@ contains
     :: smm,sm3,sm4,aa,bb,cc,dd,x1,x2 &
                     ,r12,r13,r14,r23,r24,r34,d14,k14
   logical :: r12zero,r13zero,r24zero,r34zero
+  real(kindr2) &  
+    :: small
 !
   sm3 = mysqrt(m3)
   sm4 = mysqrt(m4)
@@ -17211,10 +17274,11 @@ contains
   r24 = (    m3-p12-p12*IEPS )/(smm*sm3)
   r34 = (    m3-p2 -p2 *IEPS )/(smm*sm3)
 !
-  r12zero = (abs(areal(r12))+abs(aimag(r12)).lt.neglig(prcpar))
-  r13zero = (abs(areal(r13))+abs(aimag(r13)).lt.neglig(prcpar))
-  r24zero = (abs(areal(r24))+abs(aimag(r24)).lt.neglig(prcpar))
-  r34zero = (abs(areal(r34))+abs(aimag(r34)).lt.neglig(prcpar))
+  small = 16*neglig(prcpar)
+  r12zero = (abs(areal(r12))+abs(aimag(r12)).lt.small)
+  r13zero = (abs(areal(r13))+abs(aimag(r13)).lt.small)
+  r24zero = (abs(areal(r24))+abs(aimag(r24)).lt.small)
+  r34zero = (abs(areal(r34))+abs(aimag(r34)).lt.small)
 !
   if (r12zero.and.r24zero) then
     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf2: ' &
@@ -17330,6 +17394,8 @@ contains
     :: sm1,sm2,sm3,sm4 ,aa,bb,cc,dd,x1,x2 &
                     ,r12,r13,r14,r23,r24,r34,d12,d14,d24,k12,k14,k24
   logical ::r13zero,r23zero,r34zero
+  real(kindr2) &  
+    :: small
 !
   sm1 = mysqrt(m1)
   sm2 = mysqrt(m2)
@@ -17343,9 +17409,10 @@ contains
   k24 = ( m2+m4-p23-p23*IEPS )/(sm2*sm4) ! p2+p3
   r34 = (    m4-p3 -p3 *IEPS )/(sm3*sm4) ! p3
 !
-  r13zero = (abs(areal(r13))+abs(aimag(r13)).lt.neglig(prcpar))
-  r23zero = (abs(areal(r23))+abs(aimag(r23)).lt.neglig(prcpar))
-  r34zero = (abs(areal(r34))+abs(aimag(r34)).lt.neglig(prcpar))
+  small = 16*neglig(prcpar)
+  r13zero = (abs(areal(r13))+abs(aimag(r13)).lt.small)
+  r23zero = (abs(areal(r23))+abs(aimag(r23)).lt.small)
+  r34zero = (abs(areal(r34))+abs(aimag(r34)).lt.small)
 !
   if (r13zero) then
     if     (r23zero) then
@@ -17872,7 +17939,7 @@ contains
    rea = abs(aa)
    reb = abs(bb)
    simc = abs(cc)
-   if (simc.lt.10*neglig(prcpar)*min(rea,reb)) cc = 0
+   if (simc.lt.8*neglig(prcpar)*min(rea,reb)) cc = 0
 !
    simc = aimag(cc)
    if (simc.eq.RZRO) then
@@ -18037,6 +18104,7 @@ contains
      ,intent(in) :: y1,y2
   complex(kindr2) &   
      :: rslt ,oy1,oy2
+!
    oy1 = 1-y1
    oy2 = 1-y2
    rslt = logc2( qonv(-y2)/qonv(-y1) )/y1 &
@@ -22008,7 +22076,8 @@ contains
                .or.(     areal(ss(1)).ge.-small  &
                     .and.areal(ss(2)).ge.-small  &
                     .and.areal(ss(3)).ge.-small  &
-                    .and.areal(ss(4)).ge.-small) )
+                    .and.areal(ss(4)).ge.-small) &
+               .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
     if (useboxc) then
       call boxc( rslt ,ss,rr ,as ,smax )
     else
@@ -22024,9 +22093,8 @@ contains
                  .or.(     areal(ss(1)).ge.-small  &
                       .and.areal(ss(2)).ge.-small  &
                       .and.areal(ss(3)).ge.-small  &
-!OLD                      .and.areal(ss(4)).ge.-small) )
-                      .and.areal(ss(4)).ge.-small) & !NEW
-                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small)) !NEW
+                      .and.areal(ss(4)).ge.-small) &
+                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
       if (useboxc) then
         call boxc( rslt ,ss,rr ,as ,smax )
       else
@@ -22283,7 +22351,8 @@ contains
                .or.(     areal(ss(1)).ge.-small  &
                     .and.areal(ss(2)).ge.-small  &
                     .and.areal(ss(3)).ge.-small  &
-                    .and.areal(ss(4)).ge.-small) )
+                    .and.areal(ss(4)).ge.-small) &
+               .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
     if (useboxc) then
       call boxc( rslt ,ss,rr ,as ,smax )
     else
@@ -22299,9 +22368,8 @@ contains
                  .or.(     areal(ss(1)).ge.-small  &
                       .and.areal(ss(2)).ge.-small  &
                       .and.areal(ss(3)).ge.-small  &
-!OLD                      .and.areal(ss(4)).ge.-small) )
-                      .and.areal(ss(4)).ge.-small) & !NEW
-                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small)) !NEW
+                      .and.areal(ss(4)).ge.-small) &
+                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
       if (useboxc) then
         call boxc( rslt ,ss,rr ,as ,smax )
       else
@@ -22550,7 +22618,8 @@ contains
                .or.(     areal(ss(1)).ge.-small  &
                     .and.areal(ss(2)).ge.-small  &
                     .and.areal(ss(3)).ge.-small  &
-                    .and.areal(ss(4)).ge.-small) )
+                    .and.areal(ss(4)).ge.-small) &
+               .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
     if (useboxc) then
       call boxc( rslt ,ss,rr ,as ,smax )
     else
@@ -22566,9 +22635,8 @@ contains
                  .or.(     areal(ss(1)).ge.-small  &
                       .and.areal(ss(2)).ge.-small  &
                       .and.areal(ss(3)).ge.-small  &
-!OLD                      .and.areal(ss(4)).ge.-small) )
-                      .and.areal(ss(4)).ge.-small) & !NEW
-                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small)) !NEW
+                      .and.areal(ss(4)).ge.-small) &
+                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
       if (useboxc) then
         call boxc( rslt ,ss,rr ,as ,smax )
       else
@@ -22819,7 +22887,8 @@ contains
                .or.(     areal(ss(1)).ge.-small  &
                     .and.areal(ss(2)).ge.-small  &
                     .and.areal(ss(3)).ge.-small  &
-                    .and.areal(ss(4)).ge.-small) )
+                    .and.areal(ss(4)).ge.-small) &
+               .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
     if (useboxc) then
       call boxc( rslt ,ss,rr ,as ,smax )
     else
@@ -22835,9 +22904,8 @@ contains
                  .or.(     areal(ss(1)).ge.-small  &
                       .and.areal(ss(2)).ge.-small  &
                       .and.areal(ss(3)).ge.-small  &
-!OLD                      .and.areal(ss(4)).ge.-small) )
-                      .and.areal(ss(4)).ge.-small) & !NEW
-                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small)) !NEW
+                      .and.areal(ss(4)).ge.-small) &
+                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
       if (useboxc) then
         call boxc( rslt ,ss,rr ,as ,smax )
       else
@@ -23079,7 +23147,8 @@ contains
                .or.(     areal(ss(1)).ge.-small  &
                     .and.areal(ss(2)).ge.-small  &
                     .and.areal(ss(3)).ge.-small  &
-                    .and.areal(ss(4)).ge.-small) )
+                    .and.areal(ss(4)).ge.-small) &
+               .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
     if (useboxc) then
       call boxc( rslt ,ss,rr ,as ,smax )
     else
@@ -23095,9 +23164,8 @@ contains
                  .or.(     areal(ss(1)).ge.-small  &
                       .and.areal(ss(2)).ge.-small  &
                       .and.areal(ss(3)).ge.-small  &
-!OLD                      .and.areal(ss(4)).ge.-small) )
-                      .and.areal(ss(4)).ge.-small) & !NEW
-                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small)) !NEW
+                      .and.areal(ss(4)).ge.-small) &
+                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
       if (useboxc) then
         call boxc( rslt ,ss,rr ,as ,smax )
       else
@@ -23341,7 +23409,8 @@ contains
                .or.(     areal(ss(1)).ge.-small  &
                     .and.areal(ss(2)).ge.-small  &
                     .and.areal(ss(3)).ge.-small  &
-                    .and.areal(ss(4)).ge.-small) )
+                    .and.areal(ss(4)).ge.-small) &
+               .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
     if (useboxc) then
       call boxc( rslt ,ss,rr ,as ,smax )
     else
@@ -23357,9 +23426,8 @@ contains
                  .or.(     areal(ss(1)).ge.-small  &
                       .and.areal(ss(2)).ge.-small  &
                       .and.areal(ss(3)).ge.-small  &
-!OLD                      .and.areal(ss(4)).ge.-small) )
-                      .and.areal(ss(4)).ge.-small) & !NEW
-                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small)) !NEW
+                      .and.areal(ss(4)).ge.-small) &
+                 .or.(areal(ss(5)).ge.-small.and.areal(ss(6)).ge.-small))
       if (useboxc) then
         call boxc( rslt ,ss,rr ,as ,smax )
       else

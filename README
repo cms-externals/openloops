@@ -16,6 +16,11 @@ Contact
 
     openloops@projects.hepforge.org
 
+If you would like to receive notifications about OpenLoops updates and news
+per e-mail, please sign up to our mailing list at
+
+    https://www.hepforge.org/lists/listinfo/openloops-announce
+
 OpenLoops is a Fortran 90 package for the calculation of tree and one-loop
 matrix elements for Standard Model processes based on
 
@@ -63,35 +68,66 @@ Compile
 
 Download and compile process libraries
 
-    ./scons auto=<processes>
+    ./openloops libinstall <processes>
 
-where <processes> is a comma separated list of the processes or
-process collections (ending with "/") which should be installed.
+where <processes> is a white space separated list of the processes or
+process collections (with suffix ".coll") which should be installed.
+Some process collections are defined in the process repository (in
+particular "all.coll" to install all processes from the repository).
+User-defined collections can be set up as plain text files with file
+extension ".coll" with line break separated names of process libraries.
+
 A list of the available process libraries can be found here
 
     http://openloops.hepforge.org/processes
+
+Process libraries usually include all real correction processes required
+for an NLO calculation. However these processes are not compiled by default.
+Note that Sherpa uses its own matrix elements for real corrections, thus
+compiling OpenLoops real corrections is not required for usage with Sherpa.
+In order to activate the compilation of real corrections, create a file named
+"openloops.cfg" in your installation directory which contains the following
+(besides other options which you might have set):
+
+    [OpenLoops]
+    compile_extra = 1
 
 The set of available processes will be extended continuously.
 If you need a process which is not (yet) available, please contact the
 OpenLoops authors.
 
 
-================================================================
-Update OpenLoops from SVN (when it's already installed from SVN)
-================================================================
+======================================
+Update OpenLoops and process libraries
+======================================
 
-To pull updates from SVN and compile
+Note that automatic updates of the process independent OpenLoops code
+are only supported when OpenLoops was installed from SVN.
 
-    svn update
-    ./scons
+To update from SVN and update all installed processes
 
-To update process libraries (will install new libraries if available and
-replace old libraries if newer versions are available)
+    ./openloops update
 
-    ./scons auto=lhc/
+To only update installed processes, but not OpenLoops itself
+(this also works when OpenLoops was not installed from SVN)
 
-After updating OpenLoops, updating the installed processes might be required
-for compatibility.
+    ./openloops update --processes
+
+Updating individual process libraries works the same way as installing
+new processes.
+
+    ./openloops libinstall <processes>
+
+If process collections are used, new processes in the collection
+will be installed and previously installed processes will be updated
+if newer versions are available. E.g.
+
+    ./openloops libinstall all.coll
+
+Updating/installing processes also creates/updates a local database
+of all processes which are available for download. This database is used
+at runtime to report if a requested process is available for download,
+if it is not yet installed.
 
 
 =====================

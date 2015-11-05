@@ -21,13 +21,15 @@ module ol_init
   use KIND_TYPES, only: DREALKIND
   use, intrinsic :: iso_c_binding, only: c_char, c_double, c_int
   use ol_iso_c_utilities, only: c_f_string
+  use ol_debug, only: ol_fatal, ol_msg, ol_error, set_verbose, get_verbose, do_not_stop
   implicit none
   private
-  public :: set_init_error_fatal, get_error
-  public :: set_parameter, get_parameter, parameters_flush
+  public :: set_init_error_fatal
+  public :: set_parameter, get_parameter, parameters_flush, tree_parameters_flush
   public :: register_cleanup, cleanup
 
-  logical, save :: setparameter_was_called = .true.
+  logical, save :: setparameter_tree_was_called = .true.
+  logical, save :: setparameter_loop_was_called = .true.
   logical, save :: forwarded_init = .false.
   integer, save :: error = 0
   integer, save :: init_error_fatal = 2
@@ -65,19 +67,6 @@ module ol_init
     integer(c_int), value :: flag
     init_error_fatal = flag
   end subroutine set_init_error_fatal_c
-
-  function get_error()
-    implicit none
-    integer :: get_error
-    get_error = error
-  end function get_error
-
-  function get_error_c() bind(c,name="ol_get_error")
-    implicit none
-    integer(c_int) :: get_error_c
-    get_error_c = error
-  end function get_error_c
-
 
   subroutine set_if_modified_int(current, new)
     use ol_parameters_decl_/**/DREALKIND, only: parameters_changed
@@ -121,19 +110,19 @@ module ol_init
     ! sets error flag: 0=ok, 1=ignored, 2=error(unused)
     use ol_parameters_decl_/**/DREALKIND
     use ol_loop_parameters_decl_/**/DREALKIND
+    use ol_generic, only: to_lowercase, to_string
     implicit none
     character(*), intent(in) :: param
     integer, intent(in)  :: val
     integer, intent(out), optional :: err
 
     error = 0
-    setparameter_was_called = .true.
+    setparameter_tree_was_called = .true.
+    setparameter_loop_was_called = .true.
 
-    if (verbose > 3) then
-      print*, "[OpenLoops] setparameter_int: ", trim(param), val
-    end if
+    call ol_msg(4, "setparameter_int: " // trim(param) // " " // to_string(val))
 
-    select case (param)
+    select case (to_lowercase(param))
 
       case ("redlib1")
         call set_if_modified(a_switch, val)
@@ -160,9 +149,8 @@ module ol_init
 #ifndef USE_qp
         if (val == 13 .or. val == 14 .or. val == 22 .or. val == 23 .or. &
           & val == 31 .or. val == 32) then
-          print *, "ERROR: stability_mode", val, "is not available"
-          print *, "       because quad precision is deactivated"
-          error = 1
+          call ol_error(1, "stability_mode" // to_string(val) // "is not available")
+          call ol_msg("       because quad precision is deactivated")
         else
           call set_if_modified(stability_mode, val)
         end if
@@ -172,14 +160,12 @@ module ol_init
       case ("deviation_mode")
         call set_if_modified(deviation_mode, val)
         if (val /= 1 .and. val /= 2) then
-          print *, "[OpenLoops] unrecognised deviation_mode:", val
-          error = 1
+          call ol_error(1,"unrecognised deviation_mode:" // to_string(val))
         end if
       case ("scaling_mode")
         call set_if_modified(scaling_mode, val)
         if (val /= 1 .and. val /= 3) then
-          print *, "[OpenLoops] unrecognised scaling_mode:", val
-          error = 1
+          call ol_error(1, "unrecognised scaling_mode:" // to_string(val))
         end if
       case ("write_psp", "write_points")
         write_psp = val
@@ -202,6 +188,8 @@ module ol_init
       case ("coupling_ew_1", "coupling_ew_l")
         coupling_ew(1) = val
         call set_if_modified(do_ew_renorm, 1)
+      case ("add_associated_ew")
+        add_associated_ew = val
       case ("order_ew")
         coupling_ew(0) = val
         coupling_ew(1) = 0
@@ -226,7 +214,13 @@ module ol_init
       case ("ioperator_mode")
         call set_if_modified(ioperator_mode, val)
       case ("polecheck")
-        call set_if_modified(polecheck_is, val)
+        if (val == 1) then
+          call set_if_modified(polecheck_is, val)
+        else if (val == 2) then
+          call set_if_modified(polecheck_is, 1)
+          call set_if_modified(do_ew_renorm, 1)
+          call set_if_modified(ir_is_on, 2)
+        end if
       case ("fermion_loops")
         call set_if_modified(swf, val)
       case ("nonfermion_loops")
@@ -257,8 +251,23 @@ module ol_init
         call set_if_modified(do_ew_renorm, val)
       case ("ew_renorm_switch")
         call set_if_modified(ew_renorm_switch, val)
+      case ("ew_scheme")
+        if (val /= 0 .and. val /= 1 .and. val /= 2) then
+          call ol_error(1,"unrecognised ew_scheme:" // to_string(val))
+        else
+          call set_if_modified(ew_scheme, val)
+          call set_if_modified(ew_renorm_scheme, val)
+        end if
+      case ("ew_renorm_scheme")
+        if (val /= 0 .and. val /= 1 .and. val /= 2) then
+          call ol_error(1,"unrecognised ew_renorm_scheme:" // to_string(val))
+        else
+          call set_if_modified(ew_renorm_scheme, val)
+        end if
       case ("complex_mass_scheme", "use_cms")
         call set_if_modified(cms_on, val)
+      case ("select_pol_v")
+          call ol_error(1,"select_pol_V is deprecated use direct polarization selection instead.")
       case ("cll_tenred")
         call set_if_modified(cll_tenred, val)
       case ("cll_channels")
@@ -286,9 +295,19 @@ module ol_init
       case ("ol_params_verbose", "parameters_verbose")
         parameters_verbose = val
       case ("verbose")
-        verbose = val
+        call set_verbose(val)
+      case ("do_not_stop")
+        if (do_not_stop) then
+          do_not_stop = .true.
+        else
+          do_not_stop = .false.
+        end if
       case ("no_splash", "nosplash")
-        if (val == 1) then
+        if (val == 0) then
+          splash_todo = .true.
+          olo_splash_done = .false.
+          cts_splash_todo = .true.
+        else
           splash_todo = .false.
           olo_splash_done = .true.
           cts_splash_todo = .false.
@@ -298,21 +317,34 @@ module ol_init
           splash_todo = .false.
           olo_splash_done = .true.
           cts_splash_todo = .false.
+        else
+          splash_todo = .true.
+          olo_splash_done = .false.
+          cts_splash_todo = .true.
         end if
       case ("preset")
         if (val == 1) then
           call set_if_modified(a_switch, 5)
+          call set_if_modified(redlib_qp, 5)
           call set_if_modified(stability_mode, 14)
           call set_if_modified(ew_renorm_switch, 3)
         else if (val == 2) then
           call set_if_modified(a_switch, 1)
           call set_if_modified(a_switch_rescue, 7)
+          call set_if_modified(redlib_qp, 5)
           call set_if_modified(stability_mode, 23)
           call set_if_modified(ew_renorm_switch, 1)
         else if (val == 3) then
           call set_if_modified(a_switch, 1)
           call set_if_modified(a_switch_rescue, 7)
+          call set_if_modified(redlib_qp, 5)
           call set_if_modified(stability_mode, 21)
+          call set_if_modified(ew_renorm_switch, 1)
+        else if (val == 4) then
+          call set_if_modified(a_switch, 1)
+          call set_if_modified(a_switch_rescue, 7)
+          call set_if_modified(redlib_qp, 5)
+          call set_if_modified(stability_mode, 22)
           call set_if_modified(ew_renorm_switch, 1)
         end if
       case default
@@ -322,7 +354,7 @@ module ol_init
           call setparameter_double(param, real(val, DREALKIND))
           forwarded_init = .false.
           if (error == 1 .and. init_error_fatal == 1) then
-            write(*,*) "[OpenLoops] ol_setparameter_int ignored unknown parameter '" // trim(param) // "'"
+            call ol_error(1, "ol_setparameter_int ignored unknown parameter '" // trim(param) // "'")
           end if
         end if
 
@@ -332,8 +364,8 @@ module ol_init
       err = error
     else
       if (init_error_fatal == 2 .and. error /= 0) then
-        write(*,*) "[OpenLoops] error: unknown parameter '" // trim(param) // "' in ol_setparameter_int"
-        stop
+        call ol_fatal("unknown parameter '" // trim(param) // "' in ol_setparameter_int")
+        return
       end if
     end if
   end subroutine setparameter_int
@@ -347,6 +379,7 @@ module ol_init
     ! sets error flag: 0=ok, 1=ignored, 2=error(unused)
     use ol_parameters_decl_/**/DREALKIND
     use ol_loop_parameters_decl_/**/DREALKIND
+    use ol_generic, only: to_lowercase
     implicit none
     character(*), intent(in) :: param
     integer, intent(out)  :: val
@@ -354,7 +387,7 @@ module ol_init
 
     error = 0
 
-    select case (param)
+    select case (to_lowercase(param))
 
       case ("redlib1")
         val = a_switch
@@ -430,6 +463,10 @@ module ol_init
         val = do_ew_renorm
       case ("ew_renorm_switch")
         val = ew_renorm_switch
+      case ("ew_scheme")
+        val = ew_scheme
+      case ("ew_renorm_scheme")
+        val = ew_renorm_scheme
       case ("complex_mass_scheme", "use_cms")
         val = cms_on
       case ("cll_tenred")
@@ -453,14 +490,20 @@ module ol_init
       case ("ol_params_verbose")
         val = parameters_verbose
       case ("verbose")
-        val = verbose
+        call get_verbose(val)
+      case("do_not_stop")
+        if (do_not_stop) then
+          val = 1
+        else
+          val = 0
+        end if
       case ("welcome_length")
         val = welcome_length
 
       case default
         error = 1
         if (init_error_fatal == 1) then
-          write(*,*) "[OpenLoops] getparameter_int ignored unknown parameter '" // trim(param) // "'"
+          call ol_error(1,"getparameter_int ignored unknown parameter '" // trim(param) // "'")
         end if
 
     end select
@@ -469,8 +512,8 @@ module ol_init
       err = error
     else
       if (init_error_fatal == 2 .and. error /= 0) then
-        write(*,*) "[OpenLoops] error: unknown parameter '" // trim(param) // "' in ol_getparameter_int"
-        stop
+        call ol_fatal("unknown parameter '" // trim(param) // "' in ol_getparameter_int")
+        return
       end if
     end if
   end subroutine getparameter_int
@@ -486,30 +529,45 @@ module ol_init
     ! sets error flag: 0=ok, 1=ignored, 2=error(unused)
     use ol_parameters_decl_/**/DREALKIND
     use ol_loop_parameters_decl_/**/DREALKIND
+    use ol_generic, only: to_lowercase, to_string
     implicit none
     character(*), intent(in) :: param
     real(DREALKIND), intent(in) :: val
     integer, intent(out), optional :: err
 
     error = 0
-    setparameter_was_called = .true.
+    setparameter_tree_was_called = .true.
+    setparameter_loop_was_called = .true.
 
-    if (verbose > 3) then
-      print*, "[OpenLoops] setparameter_double: ", trim(param), val
-    end if
+    call ol_msg(4, "setparameter_double: " // trim(param) // " " // to_string(val))
 
-    select case (param)
+    select case (to_lowercase(param))
 
       case ("mu", "renscale")
         if (mureg /= val) reset_mureg = .true.
         call set_if_modified(mureg_unscaled, val)
+        call set_if_modified(muren_unscaled, val)
+      case ("muren")
+        call set_if_modified(muren_unscaled, val)
+      case ("mureg")
+        if (mureg /= val) reset_mureg = .true.
+        call set_if_modified(mureg_unscaled, val)
       case ("alphas", "alpha_s", "alpha_qcd")
         call set_if_modified(alpha_QCD, val)
-      case ("alpha", "alpha_ew", "alpha_qed")
-        call set_if_modified(alpha_QED, val)
+      case ("alpha", "alpha_qed", "alpha_qed_mz")
+        call set_if_modified(alpha_QED_MZ, val)
+      case ("alpha_qed_0")
+        call set_if_modified(alpha_QED_0, val)
+      case ("gmu")
+        call set_if_modified(Gmu_unscaled, val)
       case ("scalefactor")
-        if (scalefactor /= val) reset_scalefactor = .true.
-        scalefactor = val
+        if (scalefactor == 0) then
+          call ol_error("scalefactor == 0 not supported!")
+          return
+        else
+          if (scalefactor /= val) reset_scalefactor = .true.
+          scalefactor = val
+        end if
       case ("rescalefactor")
         call set_if_modified(rescalefactor, val)
       case ("mass(1)", "d_mass", "rmd")
@@ -542,25 +600,25 @@ module ol_init
         call set_if_modified(rYC_unscaled, val)
       case ("muy(4)", "c_muy")
         call set_if_modified(muyc_unscaled, val)
-      case ("mass(5)", "b_mass", "rmb")
+      case ("mass(5)", "b_mass", "rmb", "mb")
         call set_if_modified(rMB_unscaled, val)
         call set_if_modified(rYB_unscaled, val)
       case ("width(5)", "b_width", "wmb")
         call set_if_modified(wMB_unscaled, val)
         call set_if_modified(wYB_unscaled, val)
-      case ("yuk(5)", "b_yuk")
+      case ("yuk(5)", "b_yuk", "yb")
         call set_if_modified(rYB_unscaled, val)
       case ("yukw(5)", "b_yukw")
         call set_if_modified(wYB_unscaled, val)
       case ("muy(5)", "b_muy")
         call set_if_modified(muyb_unscaled, val)
-      case ("mass(6)", "t_mass", "rmt")
+      case ("mass(6)", "t_mass", "rmt", "mt")
         call set_if_modified(rMT_unscaled, val)
         call set_if_modified(rYT_unscaled, val)
       case ("width(6)", "t_width", "wmt")
         call set_if_modified(wMT_unscaled, val)
         call set_if_modified(wYT_unscaled, val)
-      case ("yuk(6)", "t_yuk")
+      case ("yuk(6)", "t_yuk", "yt")
         call set_if_modified(rYT_unscaled, val)
       case ("yukw(6)", "t_yukw")
         call set_if_modified(wYT_unscaled, val)
@@ -578,37 +636,56 @@ module ol_init
         call set_if_modified(rYM_unscaled, val)
       case ("width(13)", "mu_width", "wmm")
         call set_if_modified(wMM_unscaled, val)
-      case ("yuk(13)", "m_yuk")
+      case ("yuk(13)", "m_yuk", "mu_yuk")
         call set_if_modified(rYM_unscaled, val)
       case ("mass(15)", "tau_mass", "rml")
         call set_if_modified(rML_unscaled, val)
         call set_if_modified(rYL_unscaled, val)
       case ("width(15)", "tau_width", "wml")
         call set_if_modified(wML_unscaled, val)
-      case ("yuk(15)", "l_yuk")
+      case ("yuk(15)", "l_yuk", "tau_yuk")
         call set_if_modified(rYL_unscaled, val)
-      case ("mass(23)", "z_mass", "rmz")
+      case ("mass(23)", "z_mass", "rmz", "mz")
         call set_if_modified(rMZ_unscaled, val)
       case ("width(23)", "z_width", "wmz")
         call set_if_modified(wMZ_unscaled, val)
-      case ("mass(24)", "w_mass", "rmw")
+      case ("mass(24)", "w_mass", "rmw", "mw")
         call set_if_modified(rMW_unscaled, val)
       case ("width(24)", "w_width", "wmw")
         call set_if_modified(wMW_unscaled, val)
-      case ("mass(25)", "h_mass", "rmh")
+      case ("mass(25)", "h_mass", "rmh", "mh")
         call set_if_modified(rMH_unscaled, val)
       case ("width(25)", "h_width", "wmh")
         call set_if_modified(wMH_unscaled, val)
       case("x_width", "wx")
         if (trim(model) /= "sm_vaux") then
-          print*, "[OpenLoops] Warning: x_width can only be used with model sm_vaux"
+          call ol_msg("Warning: x_width can only be used with model sm_vaux")
         end if
         call set_if_modified(wMX_unscaled, val)
       case("y_width", "wy")
         if (trim(model) /= "sm_vaux") then
-          print*, "[OpenLoops] Warning: y_width can only be used with model sm_vaux"
+          call ol_msg("Warning: y_width can only be used with model sm_vaux")
         end if
         call set_if_modified(wMY_unscaled, val)
+      case("mass(36)", "rma0", "ma0")
+        call set_if_modified(rMA0_unscaled, val)
+      case("width(36)", "wma0")
+        call set_if_modified(wMA0_unscaled, val)
+      case("mass(35)", "rmhh", "mhh")
+        call set_if_modified(rMHH_unscaled, val)
+      case("width(35)", "wmhh")
+        call set_if_modified(wMHH_unscaled, val)
+      case("mass(37)", "rmhp", "mhp")
+        call set_if_modified(rMHp_unscaled, val)
+      case("width(37)", "wmhp")
+        call set_if_modified(wMHp_unscaled, val)
+      case("tanb", "tan_b")
+        call set_if_modified(thdmTB, val)
+      case("sinba", "sin_ba")
+        call set_if_modified(thdmSBA, val)
+      case("lambda5")
+        call set_if_modified(thdmL5, val)
+
       case("hqq_right")
         call set_if_modified(gH(1), val)
       case("hqq_left")
@@ -679,7 +756,7 @@ module ol_init
             forwarded_init = .false.
           end if
           if (error == 1 .and. init_error_fatal == 1) then
-            write(*,*) "[OpenLoops] ol_setparameter_double ignored unknown parameter '" // trim(param) // "'"
+            call ol_error(1, "ol_setparameter_double ignored unknown parameter '" // trim(param) // "'")
           end if
         end if
 
@@ -689,8 +766,8 @@ module ol_init
       err = error
     else
       if (init_error_fatal == 2 .and. error /= 0) then
-        write(*,*) "[OpenLoops] error: unknown parameter '" // trim(param) // "' in ol_setparameter_double"
-        stop
+        call ol_fatal("unknown parameter '" // trim(param) // "' in ol_setparameter_double")
+        return
       end if
     end if
   end subroutine setparameter_double
@@ -716,11 +793,12 @@ module ol_init
     integer, intent(out), optional :: err
     call setparameter_double(param, real(val, DREALKIND), err)
     if (aimag(val) /= 0) then
-      print *, "[OpenLoops] non-vanishing imaginary part in real parameter"
       if (present(err)) then
+        call ol_error(1, "non-vanishing imaginary part in real parameter")
         err = 1
       else
-        stop
+        call ol_fatal("non-vanishing imaginary part in real parameter")
+        return
       end if
     end if
   end subroutine setparameter_dcomplex
@@ -734,6 +812,7 @@ module ol_init
     ! sets error flag: 0=ok, 1=ignored, 2=error(unused)
     use ol_parameters_decl_/**/DREALKIND
     use ol_loop_parameters_decl_/**/DREALKIND
+    use ol_generic, only: to_lowercase
     implicit none
     character(*), intent(in) :: param
     real(DREALKIND), intent(out) :: val
@@ -741,14 +820,18 @@ module ol_init
 
     error = 0
 
-    select case (param)
+    select case (to_lowercase(param))
 
       case ("mu", "renscale")
         val = mureg
       case ("alphas", "alpha_s", "alpha_qcd")
         val = alpha_QCD
-      case ("alpha", "alpha_ew", "alpha_qed")
+      case ("alpha", "alpha_qed", "alpha_qed_mz")
         val = alpha_QED
+      case ("alpha_qed_0")
+        val = alpha_qed_0
+      case ("gmu")
+        val = Gmu
       case ("scalefactor")
         val = scalefactor
       case ("rescalefactor")
@@ -757,47 +840,65 @@ module ol_init
         val = rMD
       case ("width(1)", "d_width", "wmd")
         val = wMD
+      case ("yuk(1)", "d_yuk")
+        val = rYD
       case ("mass(2)", "u_mass", "rmu")
         val = rMU
       case ("width(2)", "u_width", "wmu")
         val = wMU
+      case ("yuk(2)", "u_yuk")
+        val = rYU
       case ("mass(3)", "s_mass", "rms")
         val = rMS
       case ("width(3)", "s_width", "wms")
         val = wMS
+      case ("yuk(3)", "s_yuk")
+        val = rYS
       case ("mass(4)", "c_mass", "rmc")
         val = rMC
       case ("width(4)", "c_width", "wmc")
         val = wMC
-      case ("mass(5)", "b_mass", "rmb")
+      case ("yuk(4)", "c_yuk")
+        val = rYC
+      case ("mass(5)", "b_mass", "rmb", "mb")
         val = rMB
       case ("width(5)", "b_width", "wmb")
         val = wMB
-      case ("mass(6)", "t_mass", "rmt")
+      case ("yuk(5)", "b_yuk", "yb")
+        val = rYB
+      case ("mass(6)", "t_mass", "rmt", "mt")
         val = rMT
       case ("width(6)", "t_width", "wmt")
         val = wMT
+      case ("yuk(6)", "t_yuk", "yt")
+        val = rYT
       case ("mass(11)", "e_mass", "rme")
         val = rME
       case ("width(11)", "e_width", "wme")
         val = wME
+      case ("yuk(11)", "e_yuk")
+        val = rYE
       case ("mass(13)", "mu_mass", "rmm")
         val = rMM
       case ("width(13)", "mu_width", "wmm")
         val = wMM
+      case ("yuk(13)", "m_yuk")
+        val = rYM
       case ("mass(15)", "tau_mass", "rml")
         val = rML
       case ("width(15)", "tau_width", "wml")
         val = wML
-      case ("mass(23)", "z_mass", "rmz")
+      case ("yuk(15)", "l_yuk")
+        val = rYL
+      case ("mass(23)", "z_mass", "rmz", "mz")
         val = rMZ
       case ("width(23)", "z_width", "wmz")
         val = wMZ
-      case ("mass(24)", "w_mass", "rmw")
+      case ("mass(24)", "w_mass", "rmw", "mw")
         val = rMW
       case ("width(24)", "w_width", "wmw")
         val = wMW
-      case ("mass(25)", "h_mass", "rmh")
+      case ("mass(25)", "h_mass", "rmh", "mh")
         val = rMH
       case ("width(25)", "h_width", "wmh")
         val = wMH
@@ -854,7 +955,7 @@ module ol_init
       case default
         error = 1
         if (init_error_fatal == 1) then
-          write(*,*) "[OpenLoops] getparameter_double ignored unknown parameter '" // trim(param) // "'"
+          call ol_error(1,"getparameter_double ignored unknown parameter '" // trim(param) // "'")
         end if
 
     end select
@@ -863,8 +964,8 @@ module ol_init
       err = error
     else
       if (init_error_fatal == 2 .and. error /= 0) then
-        write(*,*) "[OpenLoops] error: unknown parameter '" // trim(param) // "' in ol_getparameter_double"
-        stop
+        call ol_fatal("error: unknown parameter '" // trim(param) // "' in ol_getparameter_double")
+        return
       end if
     end if
   end subroutine getparameter_double
@@ -889,19 +990,18 @@ module ol_init
     integer :: i
 
     error = 0
-    setparameter_was_called = .true.
+    setparameter_tree_was_called = .true.
+    setparameter_loop_was_called = .true.
 
-    if (verbose > 3) then
-      print *, "[OpenLoops] setparameter_string: " // trim(param)  // " " // trim(val)
-    end if
+    call ol_msg(4, "setparameter_string: " // trim(param)  // " " // trim(val))
 
     if (len(val) > max_parameter_length) then
-      print *, "[OpenLoops] ol_setparameter_string: " // trim(param) // " value must not exceed " // &
-             & trim(to_string(max_parameter_length)) // " characters"
-      stop
+      call ol_fatal("ol_setparameter_string: " // trim(param) // " value must not exceed " // &
+             & trim(to_string(max_parameter_length)) // " characters")
+      return
     end if
 
-    select case (trim(param))
+    select case (to_lowercase(param))
 
       case ("install_path")
         install_path = val
@@ -914,17 +1014,17 @@ module ol_init
         tmp_dir = val
       case ("samurai_imeth")
         if (len(val) > 4) then
-          print *, "[OpenLoops] ol_setparameter_string: " // trim(param) // " value must not exceed 4 characters"
-          stop
+          call ol_fatal("ol_setparameter_string: " // trim(param) // " value must not exceed 4 characters")
+          return
         end if
         if (set_imeth /= val) samurai_not_init = .true.
         set_imeth = val
       case ("allowed_libs", "allowed_libraries", "allowedlibs", "allowedlibraries")
         if (len(val) > max_parameter_length-2) then
           ! needs a leading and a trailing space
-          print *, "[OpenLoops] ol_setparameter_string: " // trim(param) // " value must not exceed " // &
-                 & trim(to_string(max_parameter_length-2)) // " characters"
-          stop
+          call ol_fatal("ol_setparameter_string: " // trim(param) // " value must not exceed " // &
+                 & trim(to_string(max_parameter_length-2)) // " characters")
+          return
         end if
         allowed_libs = val
         do i = 1, max_parameter_length
@@ -941,17 +1041,25 @@ module ol_init
         write_shopping_list = .true.
       case ("model")
         if (to_lowercase(trim(val)) == "sm" &
-          .or. to_lowercase(trim(val)) == "sm_vaux" &
+          .or. to_lowercase(trim(val)) == "smdiag" &
           .or. to_lowercase(trim(val)) == "sm_yuksel") then
-            model = to_lowercase(trim(val))
+            model = "sm"
             call set_if_modified(nf, 6)
+        else if (to_lowercase(trim(val)) == "sm_vaux" ) then
+          model = to_lowercase(trim(val))
+          call set_if_modified(nf, 6)
+          call set_if_modified(cms_on, 0)
         else if (to_lowercase(trim(val)) == "heft" .or. to_lowercase(trim(val)) == "sm+ehc") then
           model = "heft"
           call set_if_modified(nf, 5)
+        else if (to_lowercase(trim(val)) == "2hdm" .or. to_lowercase(trim(val)) == "thdm") then
+          model = "2hdm"
+          call set_if_modified(nf, 6)
         else
-          print *, "[OpenLoops] unknown model: " // trim(val) // ", model set to: " // trim(model)
-          error = 1
+          call ol_error(1, "unknown model: " // trim(val) // ", model set to: " // trim(model))
         end if
+
+
 
       case default
 
@@ -965,7 +1073,7 @@ module ol_init
           error = 1
         end if
         if (error == 1 .and. init_error_fatal == 1) then
-          write(*,*) "[OpenLoops] ol_setparameter_string ignored unknown parameter '" // trim(param) // "'"
+          call ol_error(1,"ol_setparameter_string ignored unknown parameter '" // trim(param) // "'")
         end if
 
     end select
@@ -974,8 +1082,8 @@ module ol_init
       err = error
     else
       if (init_error_fatal == 2 .and. error /= 0) then
-        write(*,*) "[OpenLoops] error: unknown parameter '" // trim(param) // "' in ol_setparameter_string"
-        stop
+        call ol_fatal("unknown parameter '" // trim(param) // "' in ol_setparameter_string")
+        return
       end if
     end if
   end subroutine setparameter_string
@@ -983,16 +1091,25 @@ module ol_init
 
 
   subroutine parameters_flush() bind(c,name="ol_parameters_flush")
-    use ol_parameters_decl_/**/DREALKIND, only: parameters_changed
     use ol_parameters_init_/**/DREALKIND, only: parameters_init, loop_parameters_init
     implicit none
-    if (setparameter_was_called) then
+    if (setparameter_loop_was_called) then
       call parameters_init()
       call loop_parameters_init()
-      setparameter_was_called = .false.
-      parameters_changed = 0
+      setparameter_tree_was_called = .false.
+      setparameter_loop_was_called = .false.
     end if
   end subroutine parameters_flush
+
+
+  subroutine tree_parameters_flush() bind(c,name="ol_tree_parameters_flush")
+    use ol_parameters_init_/**/DREALKIND, only: parameters_init
+    implicit none
+    if (setparameter_tree_was_called) then
+      call parameters_init()
+      setparameter_tree_was_called = .false.
+    end if
+  end subroutine tree_parameters_flush
 
 
   subroutine register_cleanup(sub)

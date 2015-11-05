@@ -26,7 +26,8 @@ module openloops_blha
   use, intrinsic :: iso_c_binding, only: c_char, c_int, c_double, c_null_char
   use ol_init, only: set_parameter, set_init_error_fatal
   use ol_parameters_decl_/**/DREALKIND, only: max_parameter_length
-  use ol_parameters_decl_/**/DREALKIND, only: max_parameter_length
+  use ol_debug, only: ol_error, ol_msg, ol_fatal
+  use openloops, only: ol_printparameter
   implicit none
   private
   ! BLHA interface
@@ -47,6 +48,10 @@ module openloops_blha
   end type flag
 
   type(flag) flags
+
+  interface olp_printparameter
+    module procedure ol_printparameter
+  end interface olp_printparameter
 
 
   contains
@@ -73,19 +78,19 @@ module openloops_blha
       case (2) ! ccTree
         call evaluate_cc(id, psp, m2l0, rval(1:rval_size(n_external(id),2)), m2l1(0))
       case (3) ! scTree
-        print *, "[OpenLoops] Error: spin correlations in BLHA notation are not implemented"
-        stop
+        call ol_fatal("[OpenLoops] Error: spin correlations in BLHA notation are not implemented")
+        return
       case (4) ! scTree_polvect
-        print *, "[OpenLoops] Error: spin correlations in BLHA notation are not implemented"
-        stop
+        call ol_fatal("[OpenLoops] Error: spin correlations in BLHA notation are not implemented")
+        return
       case (11) ! Loop
         call evaluate_loop(id, psp, m2l0, m2l1, acc)
         rval(1:4) = [m2l1(2), m2l1(1), m2l1(0), m2l0]
       case (12) ! LoopInduced
         call evaluate_loop2(id, psp, rval(1), acc)
       case default
-        print *, "[OpenLoops] Error: invalid amplitude type"
-        stop
+        call ol_fatal("invalid amplitude type")
+        return
     end select
   end subroutine olp_evalsubprocess2
 
@@ -163,73 +168,6 @@ module openloops_blha
     olp_name = "OpenLoops"
     message = "blabla"
   end subroutine olp_info
-
-
-
-  subroutine olp_printparameter(filename)
-    ! Fortran BLHA-like olp_printparameter routine.
-    ! Write parameters to a file.
-    ! [in] filename
-    use ol_parameters_decl_/**/DREALKIND
-    use ol_loop_parameters_decl_/**/DREALKIND
-    implicit none
-    character(len=*), intent(in) :: filename
-    integer :: ios
-    open(10, file=filename, status="replace", iostat=ios)
-    if (ios /= 0) then
-      write(*,*) "[OpenLoops] ol_printparameter: error opening file ", filename
-      write(*,*) "            iostat =", ios
-    else
-      write(10,*) 'OpenLoops Parameters'
-      write(10,*)
-      write(10,*) 'coupling constants'
-      write(10,*) 'alpha_s   =', alpha_QCD
-      write(10,*) 'alpha_qed =', alpha_QED, '  1/alpha_qed =', 1/alpha_QED
-      write(10,*) 'sw = ', sw, '  sw2 = ', sw2
-      write(10,*)
-      write(10,*) 'particle masses and widths'
-      write(10,*) 'rME =', rMU, 'wME =', wMU
-      write(10,*) 'rMM =', rMU, 'wMM =', wMU
-      write(10,*) 'rML =', rMU, 'wML =', wMU
-      write(10,*) 'rMU =', rMU, 'wMU =', wMU
-      write(10,*) 'rMD =', rMD, 'wMD =', wMD
-      write(10,*) 'rMS =', rMS, 'wMS =', wMS
-      write(10,*) 'rMC =', rMC, 'wMC =', wMC
-      write(10,*) 'rMB =', rMB, 'wMB =', wMB
-      write(10,*) 'rMT =', rMT, 'wMT =', wMT
-      write(10,*) 'rMW =', rMW, 'wMW =', wMW
-      write(10,*) 'rMZ =', rMZ, 'wMZ =', wMZ
-      write(10,*) 'rMH =', rMH, 'wMH =', wMH
-      write(10,*)
-      write(10,*) 'last_switch       =', l_switch
-      write(10,*) 'redlib1           =', a_switch
-      write(10,*) 'redlib2           =', a_switch_rescue
-      write(10,*) 'redlib_qp         =', redlib_qp
-      write(10,*) 'use_me_cache      =', use_me_cache
-      write(10,*) 'use_coli_cache    =', coli_cache_use
-      write(10,*) 'check_ward_tree   =', Ward_tree
-      write(10,*) 'check_ward_loop   =', Ward_loop
-      write(10,*) 'out_symmetry      =', out_symmetry_on
-      write(10,*)
-      write(10,*) 'renscale         =', mureg
-      write(10,*) 'n_quarks         =', nf
-      write(10,*) 'light quarks     =', N_lf
-      write(10,*) 'pole1_uv         =', de1_UV
-      write(10,*) 'pole1_ir         =', de1_IR
-      write(10,*) 'pole2_ir         =', de2_i_IR
-      write(10,*) 'fermion_loops    =', SwF
-      write(10,*) 'nonfermion_loops =', SwB
-      write(10,*) 'ct_on            =', CT_is_on
-      write(10,*) 'r2_on            =', R2_is_on
-      write(10,*) 'ir_on            =', IR_is_on
-      write(10,*) 'polecheck        =', polecheck_is
-      write(10,*) 'fact_uv          =', 1/x_UV
-      write(10,*) 'fact_ir          =', 1/x_IR
-      write(10,*) 'polenorm_swi     =', norm_swi
-      close(10)
-    end if
-    write(*,*) "[OpenLoops] ol_printparameter: parameters written to file ", filename
-  end subroutine olp_printparameter
 
 
   subroutine olp_evalsubprocess_c(id, pp, mu, alpha_s, rval) bind(c,name="OLP_EvalSubProcess")
@@ -389,7 +327,7 @@ module openloops_blha
 #ifdef USE_IFORT
     use ifport, only: system
 #endif
-    use ol_parameters_decl_/**/DREALKIND, only: tmp_dir, verbose
+    use ol_parameters_decl_/**/DREALKIND, only: tmp_dir
     implicit none
     integer, parameter :: cf = 993
     integer :: readok, commentpos
@@ -407,16 +345,14 @@ module openloops_blha
     flags%answer_file_name = trim(contract_file_name)
 
     ierr = 1
-    if (verbose > 0) then
-      write(*,*) "[OpenLoops] BLHA interface for OpenLoops invoked."
-      write(*,*) "[OpenLoops] Reading contract file: ", contract_file_name
-    end if
+    call ol_msg(1,"BLHA interface for OpenLoops invoked.")
+    call ol_msg(1,"Reading contract file: " // contract_file_name)
 
     ! open contract files
     open(cf , file=contract_file_name, status = "old", iostat=readok )
 
     if (readok /= 0) then
-      write(*,*) "[OpenLoops] error: can't find contract file ", contract_file_name
+      call ol_error(1, "can't find contract file " // trim(contract_file_name))
       ierr = 0
       return
     end if
@@ -430,7 +366,7 @@ module openloops_blha
         if (readok == iostat_end) then
           exit ReadLoop
         else
-          write(*,*) "[OpenLoops] error reading contract file"
+          call ol_error(1, "error reading contract file")
           ierr = 0
           return
         end if
@@ -450,16 +386,13 @@ module openloops_blha
       end if
 
       call olp_start_line(linein, lineout, ierrr)
+      call add_blha_answer(trim(lineout))
       if (ierrr == 1) then
-        call add_blha_answer(trim(lineout))
         ierr = ierr*1
       else
-        if (verbose > 0) then
-          write(*,*) "[OpenLoops] Error while reading contract file at: "
-          write(*,*) "[OpenLoops] > ", trim(lineout)
-          call add_blha_answer(trim(lineout))
-          ierr = 0
-        end if
+        call ol_error(1,"error while reading contract file at: ")
+        call ol_msg(1,"> " // trim(lineout))
+        ierr = 0
       end if
 
     end do ReadLoop
@@ -469,25 +402,20 @@ module openloops_blha
 
     ! Write answer file
     if (stdout_contract < 2) then
-      if (verbose > 0) then
-        write(*,*) "[OpenLoops] Writing contract file to: ", trim(flags%answer_file_name)
-      end if
+      call ol_msg(1,"Writing contract file to: " // trim(flags%answer_file_name))
       call write_blha_answer(ierrr)
       if (ierrr /= 1) then
-        write(*,*) "[OpenLoops] error: can't write answer file ", trim(flags%answer_file_name)
+        call ol_msg("Error: can't write answer file " // trim(flags%answer_file_name))
         ierr = 0
       end if
     end if
 
-    ! exit if something went wrong, i.e. not all required flags were set.
     if (ierr /= 1) then
-      write(*,*) "[OpenLoops] error reading/understanding BLHA contract file!"
-      return
-    end if
-
-    ! everything looks fine -> exit without errors
-    if (verbose > 0) then
-      write(*,*) "[OpenLoops] OLP_start: done. "
+    ! exit with error if something went wrong, i.e. not all required flags were set.
+      call ol_error("Error reading/understanding BLHA contract file!")
+    else
+      ! everything looks fine -> exit without errors
+      call ol_msg(1,"OLP_start: done. ")
     end if
 
   end subroutine olp_start
@@ -553,7 +481,7 @@ module openloops_blha
           if (ierrparam == 0) then
             lineout = trim(line) // "      | OK"
           else
-            lineout = trim(line) // "      | Error: unsupported model. Currently only 'SMdiag', 'HEFT', supported"
+            lineout = trim(line) // "      | Error: unsupported model. Currently only 'SM', 'HEFT', supported"
             ierr = 0
           end if
         case ("correctiontype")
@@ -760,14 +688,14 @@ module openloops_blha
             write(lineout,'(A,A,I4)') trim(line),  " | 1 " , libid
           end if
       else
-        print*, "[OpenLoops] Error: amplitude type not specified!"
+        call ol_error(1,"amplitude type not specified!")
         lineout = trim(line) // "     |  Error: amplitude type not specified!"
         ierr=0
         return
       end if
     end if
 
-    if (stdout_contract > 0) print *, trim(lineout)
+    if (stdout_contract > 0) call ol_msg(trim(lineout))
 
   end subroutine olp_start_line
 
@@ -804,7 +732,7 @@ module openloops_blha
     open(cfo, file=trim(flags%answer_file_name) , status = "REPLACE", iostat=readok)
 
     if (readok /= 0) then
-      write(*,*) "[OpenLoops] error: can't open output file " // trim(flags%answer_file_name)
+      call ol_msg("Error: can't open output file " // trim(flags%answer_file_name))
       ierr = 0
       return
     end if

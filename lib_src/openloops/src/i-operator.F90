@@ -18,6 +18,7 @@
 
 
 module ol_i_operator_/**/REALKIND
+  use ol_debug, only: ol_fatal
   implicit none
   contains
 
@@ -138,6 +139,8 @@ subroutine intdip_Gj(j,flavj,M2j,Q2_aux,Gj)
 ! the Les-Houches accord normalisation
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND
+  use ol_debug, only: ol_fatal, ol_error
+  use ol_generic, only: to_string
   use ol_parameters_decl_/**/REALKIND
   use ol_loop_parameters_decl_/**/REALKIND, only: pi2_6, tf, ca, mu2_IR
   use ol_loop_parameters_decl_/**/DREALKIND, only: N_lf, SwF, SwB
@@ -178,16 +181,13 @@ subroutine intdip_Gj(j,flavj,M2j,Q2_aux,Gj)
       Gj(1) = 1
       Gj(0) = 0.5_/**/REALKIND*log(M2j/mu2_IR) - 2
     else
-      write(*,*) '[OpenLoops] subroutine intdip_Gj: arguments out of range'
-      write(*,*) '[OpenLoops] allowed range M2j > 0'
-      write(*,*) '[OpenLoops] M2j = ', M2j
-      stop
+      call ol_error(2,'subroutine intdip_Gj: argument M2j out of range')
+      call ol_fatal()
     end if
   else
-    write(*,*) '[OpenLoops] subroutine intdip_Gj: arguments out of range'
-    write(*,*) '[OpenLoops] allowed range flavj=1,2'
-    write(*,*) '[OpenLoops] flavj = ', flavj
-    stop
+    call ol_error(2,'subroutine intdip_Gj: argument flavj out of range')
+!    call ol_error(2,'flavj = ' // to_string(flavj))
+    call ol_fatal()
   end if
 
   ! Gj = Tj^2*([V_jk] - pi^2/3) + Gamma_j + Gaj + Kaj
@@ -215,6 +215,8 @@ subroutine intdip_Fjk(j,k,Tjk,flavj,M2j,M2k,Q2_aux,Fjk)
 ! if j=initial-state gluon => kappa=2/3 according to (6.52)
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND
+  use ol_debug, only: ol_fatal, ol_error
+  use ol_generic, only: to_string
   use ol_parameters_decl_/**/REALKIND
   use ol_loop_parameters_decl_/**/REALKIND, only: mu2_IR, pi2_6, tf, ca, kappa
   use ol_loop_parameters_decl_/**/DREALKIND, only: N_lf, SwF, SwB
@@ -296,11 +298,11 @@ subroutine intdip_Fjk(j,k,Tjk,flavj,M2j,M2k,Q2_aux,Fjk)
              -pi2_6                   &
              +log(rho)*log(Q2jk/Sjk))/Nujk
   else
-    write(*,*) '[OpenLoops] subroutine intdip_Fjk: arguments out of range'
-    write(*,*) '[OpenLoops] allowed range M2j, M2k >= 0'
-    write(*,*) '[OpenLoops] M2j = ', M2j
-    write(*,*) '[OpenLoops] M2k = ', M2k
-    stop
+    call ol_error(2,'subroutine intdip_Fjk: arguments out of range')
+    call ol_error(2,'allowed range M2j, M2k >= 0')
+!    write(*,*) '[OpenLoops] M2j = ', M2j
+!    write(*,*) '[OpenLoops] M2k = ', M2k
+    call ol_fatal()
   end if
 
   ! non-singular part of nu_j function for gluons (ok)
@@ -319,10 +321,10 @@ subroutine intdip_Fjk(j,k,Tjk,flavj,M2j,M2k,Q2_aux,Fjk)
         if (SwF /= 0) Nuj_nonsing = Nuj_nonsing + (kappa-2._/**/REALKIND/3._/**/REALKIND)*M2k/Sjk*log(2*Mk/(Qjk+Mk))*(2*tf*N_lf)/3
       end if
     else
-      write(*,*) '[OpenLoops] subroutine intdip_Fjk: arguments out of range'
-      write(*,*) '[OpenLoops] allowed range M2k >= 0'
-      write(*,*) '[OpenLoops] M2k =', M2k
-      stop
+      call ol_error(2,'subroutine intdip_Fjk: arguments out of range')
+      call ol_error(2,'allowed range M2k >= 0')
+ !     write(*,*) '[OpenLoops] M2k =', M2k
+      call ol_fatal()
     end if
 
   ! non-singular part of nu_j function for quarks (ok)
@@ -341,17 +343,17 @@ subroutine intdip_Fjk(j,k,Tjk,flavj,M2j,M2k,Q2_aux,Fjk)
                   & + log((Qjk-Mk)/Qjk) - 2*log(((Qjk-Mk)**2-M2j)/Q2jk) - 2*M2j/Sjk*log(Mj/(Qjk-Mk)) &
                   & - Mk/(Qjk-Mk) + 2*Mk*(2*Mk-Qjk)/Sjk + 3*pi2_6
     else
-      write(*,*) '[OpenLoops] subroutine intdip_Fjk: arguments out of range'
-      write(*,*) '[OpenLoops] allowed range M2j, M2k >= 0'
-      write(*,*) '[OpenLoops] M2j =',M2j
-      write(*,*) '[OpenLoops] M2k =',M2k
-      stop
+      call ol_error(2,'subroutine intdip_Fjk: arguments out of range')
+      call ol_error(2,'allowed range M2j, M2k >= 0')
+!      write(*,*) '[OpenLoops] M2j =',M2j
+!      write(*,*) '[OpenLoops] M2k =',M2k
+      call ol_fatal()
     end if
   else
-    write(*,*) '[OpenLoops] subroutine intdip_Fjk: arguments out of range'
-    write(*,*) '[OpenLoops] allowed range flavj=1,2'
-    write(*,*) '[OpenLoops] flavj =', flavj
-    stop
+    call ol_error(2,'subroutine intdip_Fjk: arguments out of range')
+    call ol_error(2,'allowed range flavj=1,2')
+!    write(*,*) '[OpenLoops] flavj =', flavj
+    call ol_fatal()
   end if
 
   Fjk(0) = Fjk(0) + Nuj_nonsing + Gaj*logmu2_Sjk
