@@ -8,6 +8,13 @@
 command -v python2 > /dev/null && PYTHON="python2" || PYTHON="python"
 # SCons executable: prefer the user's installation and use scons-local as fallback
 command -v scons > /dev/null && SCONS="scons -Q" || SCONS="./scons -Q"
+# but if the user's version is not 2.x>2.0 use scons-local anyway
+if [ "$SCONS" == "scons -Q" ]; then
+  if [ `$SCONS -v | grep -c "engine: v2.[^0]"` == "0" ]; then
+    SCONS="./scons -Q"
+  fi
+fi
+
 # directory for generic libraries
 LIBDIR="lib"
 # directory for process libraries
@@ -82,8 +89,8 @@ case "$1" in
     echo "                            (only if installed from SVN)."
     echo "  update --processes     -- update installed processes."
     echo "  libinstall <process(es)> -- download and compile process libraries."
-    echo "  run <process>          -- calculate a sample of phase space points"
-    echo "                            for all sub-processes for of the process <process>."
+    echo "  run                    -- calculate matrix elements for a given process."
+    echo "                            see '`basename $0` run --help' for more information."
     echo "  clean <process(es)>    -- remove object code and libraries of specified processes."
     echo "  clean --all            -- remove object code and libraries of all processes."
     echo "  rm <process(es)>       -- remove source, object code and libraries of specified processes."
@@ -133,14 +140,18 @@ case "$1" in
 
   "interactive"|"int")
     shift
-    $PYTHON -i "$PYOLBINDIR/interactive.py" "$@";;
+    $PYTHON -i "$PYOLBINDIR/interactive_legacy.py" "$@";;
 
   "run")
+    shift
+    $PYTHON "$PYOLBINDIR/run.py" "$@";;
+
+  "runold")
     shift
     to_run="$1"
     if [ -n "$to_run" ]; then
       shift
-      $PYTHON "$PYOLBINDIR/run.py" "$to_run" "$@"
+      $PYTHON "$PYOLBINDIR/run_legacy.py" "$to_run" "$@"
     else
       echo "A process must be specified."
       exit 1
@@ -151,7 +162,7 @@ case "$1" in
     to_run="$1"
     if [ -n "$to_run" ]; then
       shift
-      $PYTHON "$PYOLBINDIR/run.py" "--check" "$to_run" "$@"
+      $PYTHON "$PYOLBINDIR/run_legacy.py" "--check" "$to_run" "$@"
     else
       echo "A process or a process check definition file must be specified."
       exit 1
@@ -216,7 +227,7 @@ case "$1" in
         processes="$processes $arg"
       fi
     done
-    $SCONS auto="$processes" $options generator=2
+    $SCONS auto="$processes" $options
     ;;
 
   "rm")
@@ -252,7 +263,17 @@ case "$1" in
     ;;
 
   "stabilityplot")
+    shift
     $PYTHON "$PYOLBINDIR/plot_stability.py" "$@";;
+
+  "--libdir")
+    shift
+    echo $LIBDIR;;
+
+  "--ldflags")
+    shift
+    echo "-lopenloops";;
+
 
   *)
     echo "Unknown mode: $1"

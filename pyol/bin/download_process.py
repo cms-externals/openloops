@@ -33,7 +33,8 @@ sys.path.insert(0, os.path.abspath(os.path.join('pyol', 'tools')))
 import OLBaseConfig
 import OLToolbox
 
-config = OLBaseConfig.get_config()
+commandline_options = [arg.split('=',1) for arg in sys.argv[1:] if ('=' in arg and not arg.startswith('-'))]
+config = OLBaseConfig.get_config(commandline_options)
 
 #import argparse
 #parser = argparse.ArgumentParser(
@@ -59,7 +60,8 @@ parser.add_option('-i', '--ignore', action='store_true', default=False,
                   help='ignore non-existing processes and collections')
 parser.add_option('-f', '--force', action='store_true', default=False,
                   help='force download')
-(args, procs) = parser.parse_args()
+(args, procs) = parser.parse_args(
+    [arg for arg in sys.argv[1:] if (arg.startswith('-') or '=' not in arg)])
 
 print '\n>>> OpenLoops Process Downloader <<<\n'
 
@@ -101,11 +103,7 @@ else:
 
 def update_channel_db(repo):
     # get repository name of secret repository
-    # (assumes that there are no public repositories named .+_.{16})
-    if len(repo) > 16 and repo[-17] == '_' and '_' not in repo[-16:]:
-        repo_name = repo[:-17]
-    else:
-        repo_name = repo
+    repo_name = OLToolbox.repo_name(repo)
     local_channel_file = channel_db_file % repo_name
     remote_channel_url = channel_db_url % repo
     if os.path.isfile(local_channel_file):
@@ -150,6 +148,7 @@ def download(process, dbs):
     #   differs from the version available on the server;
     # - download is forced by '--force' option;
     print '- process:', process, '...',
+    sys.stdout.flush()
     local_process_dir = os.path.join(config['process_src_dir'], process)
     version_installed = OLToolbox.import_dictionary(
         os.path.join(local_process_dir, 'version.info'), fatal = False)
@@ -189,6 +188,7 @@ def download(process, dbs):
 
     # download the process
     print 'download ...',
+    sys.stdout.flush()
     try:
         rf = urllib2.urlopen(remote_archive)
     except urllib2.HTTPError:
@@ -202,6 +202,7 @@ def download(process, dbs):
     rf.close()
     lf.close()
     print 'extract ...',
+    sys.stdout.flush()
     # remove target directory if it already exists
     try:
         shutil.rmtree(local_process_dir)
@@ -231,6 +232,7 @@ if not os.path.isdir(config['process_lib_dir']):
 first_repo = True
 found_colls = set()
 for repo in config['process_repositories']:
+    repo_name = OLToolbox.repo_name(repo)
     # download the channel database for this repository
     update_channel_db(repo)
     # Latest OpenLoops process API version for which processes
@@ -242,8 +244,10 @@ for repo in config['process_repositories']:
     # with the API of the installed OpenLoops version.
     process_dbs[repo] = OLToolbox.ProcessDB(db=(version_db_url % repo))
     # scan all repositories for collections to download
+    # Note that when the downloader is invoked by the build script,
+    # the collections will already be resolved.
     for coll in collections:
-        if coll == 'all.coll':
+        if coll == 'all.coll' or coll == repo_name + '.coll':
             process_coll = process_dbs[repo].content.keys()
         else:
             if first_repo:

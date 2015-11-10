@@ -1,18 +1,18 @@
 
-OneLOop 3.5
+OneLOop, unofficial version from 10 May 2015
 
 # quad precision library created by
 ./src/avh_olo.py dpkind="dp" qpkind="qp" kindmod="kind_types" cppintf="no"
 
 commented lines
-1938-1939
-2072-2073
-13628-13629
-13762-13763
+1944f
+2078f
+13668f
+13802f
 to avoid warnings "ERROR in OneLOop dilog2_c: r1,r2 = [...] returning 0"
               and "ERROR in OneLOop dilog2_r: r1,r2 = [...] returning 0"
 
 and lines
-1446-1447
-1515-1516
+1452f
+1521f
 to avoid warning "ERROR in OneLOop log2_c: xx = 0, returning 0"

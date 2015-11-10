@@ -19,6 +19,7 @@
 
 module ol_stability
   use KIND_TYPES, only: DREALKIND
+  use ol_debug, only: ol_error, ol_msg, ol_fatal, verbose
   implicit none
   real(DREALKIND), save :: last_relative_deviation = -1, last_vme2 = -1, last_vme2_scaled = -1
   contains
@@ -39,6 +40,7 @@ function check_stability_write(n)
   !                 1 --> adaptive, logarithmic
   !                 2 --> .true. (log every point)
   use ol_parameters_decl_/**/DREALKIND, only: stability_log
+  use ol_generic, only: to_string
   implicit none
   integer, intent(in) :: n
   logical :: check_stability_write
@@ -63,9 +65,9 @@ function check_stability_write(n)
   else if (stability_log == 3) then
     check_stability_write = .true.
   else
-    print *, "[OpenLoops] ERROR: invalid value of stability_log:", stability_log
-    print *, "[OpenLoops]        must be 0(never) / 1(default:adaptive) / 2(always)"
-    stop
+    call ol_error(2,"invalid value of stability_log:" // to_string(stability_log))
+    call ol_msg("    must be 0(never) / 1(default:adaptive) / 2(always)")
+    call ol_fatal()
   end if
 end function check_stability_write
 
@@ -635,7 +637,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
                       & extperm, me_caches)
   use KIND_TYPES, only: DREALKIND
   use ol_data_types_/**/DREALKIND, only: me_cache
-  use ol_parameters_decl_/**/DREALKIND, only: verbose, current_processname, a_switch, &
+  use ol_parameters_decl_/**/DREALKIND, only: current_processname, a_switch, &
     & a_switch_rescue, redlib_qp, write_psp, use_me_cache, parameters_changed
   use ol_loop_parameters_decl_/**/DREALKIND, only: ratcorr_bad, ratcorr_bad_L2, &
     & stability_mode, abscorr_unst, mureg_unscaled
@@ -690,12 +692,12 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
       cache%psp = -1
       allocate(cache%me(18))
     end if
-    if (verbose >= 2) then
+    if (verbose >= 3) then
       if (all(cache%psp == P_scatt)) then
         if (parameters_changed == 0) then
-          print *, "[OpenLoops] " // trim(current_processname) // trim(to_string(extperm)) // ' taken from the cache'
+          call ol_msg(3, trim(current_processname) // "__" //trim(to_string(extperm)) // ' taken from the cache')
         else
-          print *, '[OpenLoops] me-cache: same phase space point, but parameters changed'
+          call ol_msg(3, 'me-cache: same phase space point, but parameters changed')
         end if
       end if
     end if
@@ -727,6 +729,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
     ! double precision + scaling with a single library
     last_relative_deviation = vamp2_dp_scaled(vamp2dp, P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2)
     if (last_relative_deviation > ratcorr_bad) then
+      call ol_msg(3,"stability system: point killed.")
       ! kill point
       killed = killed + 1
       M2L1(0) = 0
@@ -740,6 +743,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
     ! + quad precision with (possibly) a different library
     last_relative_deviation = vamp2_dp_scaled(vamp2dp, P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2)
     if (last_relative_deviation > abscorr_unst) then
+        call ol_msg(3,"stability system: qp rescue invoked.")
       qp_eval = qp_eval + 1
       call vamp2_qp(vamp2qp, P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2, redlib_qp)
     end if
@@ -752,9 +756,11 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
     last_relative_deviation = vamp2_dp_scaled(vamp2dp, P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2)
     call update_stability_histogram(processname, stability_histogram, last_relative_deviation, qp_eval, killed)
     if (last_relative_deviation > abscorr_unst) then
+      call ol_msg(3,"stability system: qp rescue invoked.")
       qp_eval = qp_eval + 1
       last_relative_deviation = vamp2_qp_scaled(vamp2qp, P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2, redlib_qp)
       if (last_relative_deviation > ratcorr_bad) then
+          call ol_msg(3, "stability system: point killed after qp scaling.")
         ! kill point
         killed = killed + 1
         M2L1(0) = 0
@@ -796,8 +802,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
 
   else if (stability_mode >= 20 .and. stability_mode < 30) then
     if (a_switch == a_switch_rescue) then
-      print *, '[OpenLoops] ERROR: stability modes 2x require different redlib1 and redlib2'
-      stop
+      call ol_fatal('stability modes 2x require different redlib1 and redlib2')
     end if
     ! reevaluation with a second library if abs(k-factor) is in
     ! the largest 'trigeff_targ' fraction of the distribution
@@ -817,7 +822,9 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
       abs_kfactor = abs(M2L1(0)/M2L0)
       if (abs_kfactor > abs_kfactor_threshold) then
         ! reevaluate the matrix element with a different reduction library
+        call ol_msg(3,"stability system: reevaluate the matrix element with a different reduction library.")
         call vamp2_dp(vamp2dp, P_scatt, M2L0, M2L1_rescue, IRL1, M2L2, IRL2, redlib = a_switch_rescue)
+        last_relative_deviation = relative_deviation(M2L1(0), M2L1_rescue(0))
         abs_kfactor_rescue = abs(M2L1_rescue(0)/M2L0)
       else
         abs_kfactor_rescue = abs_kfactor
@@ -829,10 +836,12 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
     end if
 
 #ifdef USE_qp
-    if ((M2L0 /= 0 .and. M2L1(0) == 0) .or. (M2L0 == 0 .and. M2L2(0) == 0)) then
-      ! if the point was killed and qp rescue is active, reevaluate it
+    if (last_relative_deviation > abscorr_unst) then
+      ! if the point was reevaluated and is considered unstable
+      ! (last_relative_deviation=-1 if the point was not reevaluated)
       if (stability_mode == 22) then
         ! quad precision rescue
+        call ol_msg(3,"stability system: qp rescue invoked.")
         qp_eval = qp_eval + 1
         call vamp2_qp(vamp2qp, P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2, redlib = redlib_qp)
         last_relative_deviation = 0
@@ -840,10 +849,12 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
           & last_relative_deviation, qp_eval, killed)
       else if (stability_mode == 23) then
         ! quad precision rescue + scaling
+        call ol_msg(3,"stability system: qp rescue invoked.")
         qp_eval = qp_eval + 1
         last_relative_deviation = vamp2_qp_scaled(vamp2qp, P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2, redlib = redlib_qp)
         if (last_relative_deviation > ratcorr_bad) then
           ! kill point
+           call ol_msg(3, "stability system: point killed after qp scaling.")
           killed = killed + 1
           M2L1(0) = 0
         end if
@@ -863,6 +874,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
     last_relative_deviation = vamp2_qp_scaled(vamp2qp, P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2, redlib = redlib_qp)
     if (last_relative_deviation > ratcorr_bad) then
       ! kill point
+      call ol_msg(3, "stability system: point killed after qp scaling.")
       killed = killed + 1
       M2L1(0) = 0
     end if
@@ -872,11 +884,11 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
 #endif
 
   else
-    print *, "ERROR: unknown stability mode:", stability_mode
+    call ol_error(2,"unknown stability mode:" // to_string(stability_mode))
 #ifndef USE_qp
     print *, "Note that some modes are only available when quad precision support is enabled."
 #endif
-    stop
+    call ol_fatal()
 
   end if
 
@@ -893,6 +905,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
     cache%me(8:12)  = M2L2
     cache%me(13:17) = IRL2
     cache%me(18)    = last_relative_deviation
+    parameters_changed = 0
   end if
 
 end subroutine vamp2generic

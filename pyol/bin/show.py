@@ -24,7 +24,7 @@ if sys.version_info[:2] < (2,7):
     sys.exit(1)
 
 import os
-import openloops
+import openloops_legacy as openloops
 import keywordoptions
 
 

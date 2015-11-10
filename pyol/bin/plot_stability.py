@@ -235,7 +235,8 @@ for automatic channel name extraction.""".format(f)
                     fh.readline(), qp=qp, channel=ch)
 
         else:
-            raise Exception('\'{}\' is neither a file nor a directory'.format(f))
+            raise Exception(
+                '\'{}\' is neither a file nor a directory'.format(filedir))
 
     return [data_dict[key] for key in sorted(data_dict.keys())]
 
@@ -275,8 +276,6 @@ def stability_plot(data):
         dp_points = list(data.points)
         while dp_points[-1] == 0:
             dp_points.pop()
-        # If a value is zero in a logarithmic step plot, matplotlib
-        # will omit the vertical line --> use a small number instead.
         n_dp_points = len(dp_points)
         # minimal non-zero data point
         min_dp_point = min(y for y in dp_points if y > 0)/total
@@ -315,7 +314,7 @@ def stability_plot(data):
                                   n_dp_points + xlimit_lower,
                                   n_qp_points + xlimit_lower))
     # lower limit of y axis values for log scale:
-    # 10^n with the larges integer n such that 10^n is smaller
+    # 10^n with the largest integer n such that 10^n is smaller
     # than the smallest value
     miny = 10**math.floor(math.log(min_point, 10))
     pyplot.ylim(miny, 2)

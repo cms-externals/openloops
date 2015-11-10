@@ -108,7 +108,13 @@ def get_config(args=[]):
     # parse options
     parse_option(config, 'num_jobs', converter=int)
     parse_option(config, 'supported_compilers', converter=split_list)
-    parse_option(config, 'fortran_compiler', one_of=config['supported_compilers'])
+    parse_option(config, 'fortran_tool',
+                 one_of=config['supported_compilers']+['auto'])
+    parse_option(config, 'fortran_compiler')
+    parse_option(config, 'cpp')
+    parse_option(config, 'cc')
+    parse_option(config, 'cxx')
+    parse_option(config, 'ccflags', converter=split_list)
     parse_option(config, 'generator', converter=int, one_of=[0,1,2])
     parse_option(config, 'gjobs', converter=int)
     parse_option(config, 'compile', converter=int, one_of=[0,1,2])
@@ -132,19 +138,26 @@ def get_config(args=[]):
     parse_option(config, 'born_optimisation', converter=split_list)
     parse_option(config, 'loop_optimisation', converter=split_list)
     parse_option(config, 'link_optimisation', converter=split_list)
-    parse_option(config, 'import_path', converter=parse_bool)
+    parse_option(config, 'import_env', converter=split_list)
     parse_option(config, 'process_repositories', converter=split_list)
     parse_option(config, 'process_api_version', converter=int)
     parse_option(config, 'template_files', converter=split_list)
     parse_option(config, 'generator_files', converter=split_list)
     parse_option(config, 'force_download', converter=parse_bool)
     parse_option(config, 'process_update', converter=parse_bool)
-    for compiler in config['supported_compilers']:
-        parse_option(config, compiler + '_noautomatic')
-        parse_option(config, compiler + '_f77_flags')
-        parse_option(config, compiler + '_f90_flags')
-        parse_option(config, compiler + '_f_flags')
-        parse_option(config, compiler + '_debug_flags_4')
+
+    if config['fortran_tool'] == 'auto':
+        if config['fortran_compiler'].startswith('ifort'):
+            config['fortran_tool'] = 'ifort'
+        else:
+            config['fortran_tool'] = 'gfortran'
+
+    config['auto_noautomatic'] = config[config['fortran_tool'] + '_noautomatic']
+    config['auto_f77_flags'] = config[config['fortran_tool'] + '_f77_flags']
+    config['auto_f90_flags'] = config[config['fortran_tool'] + '_f90_flags']
+    config['auto_f_flags'] = config[config['fortran_tool'] + '_f_flags']
+    config['auto_debug_flags_4'] = config[config['fortran_tool'] +
+                                          '_debug_flags_4']
     parse_option(config, 'noautomatic', interpolate=True, converter=split_list)
     parse_option(config, 'f77_flags', interpolate=True, converter=split_list)
     parse_option(config, 'f90_flags', interpolate=True, converter=split_list)
@@ -152,7 +165,8 @@ def get_config(args=[]):
     parse_option(config, 'common_flags', interpolate=True, converter=split_list)
     parse_option(config, 'link_flags', interpolate=True, converter=split_list)
     parse_option(config, 'debug_flags_1', converter=split_list)
-    parse_option(config, 'debug_flags_4', interpolate=True, converter=split_list)
+    parse_option(config, 'debug_flags_4', interpolate=True,
+                 converter=split_list)
 
     if config['num_jobs'] <= 0:
         import multiprocessing
@@ -168,6 +182,7 @@ def get_config(args=[]):
 
     if config['debug'] in (1,3,5,7):
         config['f_flags'].extend(config['debug_flags_1'])
+        config['ccflags'].extend(config['debug_flags_1'])
     if config['debug'] in (2,3,6,7):
         config['generic_optimisation'] = ['-O0']
         config['born_optimisation'] = ['-O0']

@@ -35,13 +35,14 @@ module ol_generic
   character(len=26), private, parameter :: upper_case = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
   interface to_string
-    module procedure integer_to_string, integerlist_to_string
+    module procedure integer_to_string, integer1_to_string, integer2_to_string, &
+          & double_to_string, complex_to_string, single_to_string, &
+          & integerlist_to_string, doublelist_to_string
   end interface to_string
 
   interface to_int
     module procedure string_to_integer
   end interface to_int
-
 
   contains
 
@@ -53,18 +54,230 @@ module ol_generic
     integer_to_string = adjustl(integer_to_string)
   end function integer_to_string
 
+  function integer1_to_string(x)
+    use KIND_TYPES, only: intkind1
+    implicit none
+    integer(intkind1) :: x
+    character(12) :: integer1_to_string
+    write(integer1_to_string,*) x
+    integer1_to_string = adjustl(integer1_to_string)
+  end function integer1_to_string
 
-  function integerlist_to_string(x)
+  function integer2_to_string(x)
+    use KIND_TYPES, only: intkind2
+    implicit none
+    integer(intkind2) :: x
+    character(12) :: integer2_to_string
+    write(integer2_to_string,*) x
+    integer2_to_string = adjustl(integer2_to_string)
+  end function integer2_to_string
+
+  function integerlist_to_string(x,del,sep)
     implicit none
     integer :: x(:)
     character(12*size(x)+1) :: integerlist_to_string
+    logical, optional, intent(in) ::  del
+    character(1), optional, intent(in) ::  sep
+    character(1) ::  seperator
     integer :: k
-    integerlist_to_string = "["
-    do k = 1, size(x)-1
-      integerlist_to_string = trim(integerlist_to_string) // trim(integer_to_string(x(k))) // ","
+    if (present(sep)) then
+      seperator = sep
+    else
+      seperator = ","
+    end if
+    integerlist_to_string = ""
+    if (present(del)) then
+      if (del) integerlist_to_string = "["
+    end if
+
+    integerlist_to_string = trim(integerlist_to_string) // trim(integer_to_string(x(1)))
+    do k = 2, size(x)
+      integerlist_to_string = trim(integerlist_to_string) // seperator // trim(integer_to_string(x(k)))
     end do
-    integerlist_to_string = trim(integerlist_to_string) // trim(integer_to_string(x(size(x)))) // "]"
+
+    if (present(del)) then
+      if (del) integerlist_to_string = trim(integerlist_to_string) // "]"
+    end if
+
   end function integerlist_to_string
+
+  function doublelist_to_string(x,del,sep)
+    use KIND_TYPES, only: DREALKIND
+    implicit none
+    real(DREALKIND) :: x(:)
+    character(15*size(x)+1) :: doublelist_to_string
+    logical, optional, intent(in) ::  del
+    character(1), optional, intent(in) ::  sep
+    character(1) ::  seperator
+    integer :: k
+    if (present(sep)) then
+      seperator = sep
+    else
+      seperator = ","
+    end if
+    doublelist_to_string = ""
+    if (present(del)) then
+      if (del) doublelist_to_string = "["
+    end if
+
+    doublelist_to_string = trim(doublelist_to_string) // trim(double_to_string(x(1)))
+    do k = 2, size(x)
+      doublelist_to_string = trim(doublelist_to_string) // seperator // trim(double_to_string(x(k)))
+    end do
+
+    if (present(del)) then
+      if (del) doublelist_to_string = trim(doublelist_to_string) // "]"
+    end if
+
+  end function doublelist_to_string
+
+  function string_to_integerlist(c_in)
+  ! convert a comma/space/slash separated string of numbers into an array of integers
+    implicit none
+    character(len=*), intent(in) :: c_in
+    character(len(c_in)+1) :: c
+    integer, allocatable :: string_to_integerlist(:)
+    integer i, n, pos1
+    logical last_seperator
+
+    c = c_in // " "
+
+    n=0
+    pos1=0
+    last_seperator =  .false.
+    do i = 1, len(c)
+      if (c(i:i) == "[" .or. c(i:i) == "]") c(i:i) = " "
+
+      if (c(i:i) == ',' .or. c(i:i) == ' ' .or. c(i:i) == "/" ) then
+        if (last_seperator)  then
+          pos1 = i
+          cycle
+        end if
+        n = n+1
+        pos1 = i
+        last_seperator = .true.
+      else
+        last_seperator = .false.
+      end if
+    end do
+
+    allocate(string_to_integerlist(n))
+
+    n=0
+    pos1=0
+    last_seperator =  .false.
+    do i = 1, len(c)
+      if (c(i:i) == ',' .or. c(i:i) == ' ' .or. c(i:i) == "/") then
+        if (last_seperator)  then
+          pos1 = i
+          cycle
+        end if
+        n = n+1
+        string_to_integerlist(n) = string_to_integer(c(pos1+1:i-1))
+        pos1 = i
+        last_seperator = .true.
+      else
+        last_seperator = .false.
+      end if
+    end do
+  end function string_to_integerlist
+
+
+  function double_to_string(x)
+    use KIND_TYPES, only: DREALKIND
+    implicit none
+    real(DREALKIND) :: x
+    character(28) :: double_to_string
+    character(26) :: str
+    integer :: k, epos, mantissaendpos
+    logical :: leading0
+    write(str,*) x
+    str = adjustl(str)
+    epos = index(to_lowercase(str), "e")
+    if (epos == 0) then
+      mantissaendpos = len(trim(str))
+    else
+      mantissaendpos = epos-1
+    end if
+    double_to_string = str(1:mantissaendpos)
+    do k = mantissaendpos, 1, -1
+      if (double_to_string(k:k) == "0") then
+        double_to_string(k:k) = " "
+      else
+        exit
+      end if
+    end do
+    if (epos /= 0) then
+      double_to_string = trim(double_to_string) // "e"
+      if (str(epos+1:epos+1) == "+" .or. str(epos+1:epos+1) == "-") then
+        double_to_string = trim(double_to_string) // str(epos+1:epos+1)
+        epos = epos + 1
+      end if
+      leading0 = .true.
+      do k = epos+1, len(str)
+        if (str(k:k) == "0" .and. leading0) then
+          cycle
+        else
+          leading0 = .false.
+          double_to_string = trim(double_to_string) // str(k:k)
+        end if
+      end do
+    end if
+    double_to_string = trim(double_to_string) // "_dp"
+  end function double_to_string
+
+  function single_to_string(x)
+    implicit none
+    real(selected_real_kind(6)) :: x
+    character(20) :: single_to_string
+    character(18) :: str
+    integer :: k, epos, mantissaendpos
+    logical :: leading0
+    write(str,*) x
+    str = adjustl(str)
+    epos = index(to_lowercase(str), "e")
+    if (epos == 0) then
+      mantissaendpos = len(trim(str))
+    else
+      mantissaendpos = epos-1
+    end if
+    single_to_string = str(1:mantissaendpos)
+    do k = mantissaendpos, 1, -1
+      if (single_to_string(k:k) == "0") then
+        single_to_string(k:k) = " "
+      else
+        exit
+      end if
+    end do
+    if (epos /= 0) then
+      single_to_string = trim(single_to_string) // "e"
+      if (str(epos+1:epos+1) == "+" .or. str(epos+1:epos+1) == "-") then
+        single_to_string = trim(single_to_string) // str(epos+1:epos+1)
+        epos = epos + 1
+      end if
+      leading0 = .true.
+      do k = epos+1, len(str)
+        if (str(k:k) == "0" .and. leading0) then
+          cycle
+        else
+          leading0 = .false.
+          single_to_string = trim(single_to_string) // str(k:k)
+        end if
+      end do
+    end if
+    single_to_string = trim(single_to_string) // "_sp"
+  end function single_to_string
+
+
+
+  function complex_to_string(x)
+    use KIND_TYPES, only: DREALKIND
+    implicit none
+    complex(DREALKIND) :: x
+    character(59) :: complex_to_string
+    complex_to_string = "(" // trim(double_to_string(real(x))) // &
+                      & "," // trim(double_to_string(aimag(x))) // ")"
+  end function complex_to_string
 
 
   function string_to_integer(c)
@@ -247,8 +460,6 @@ module ol_generic
     real(DREALKIND) :: relative_deviation
     if (a == b) then
       relative_deviation = 0
-    else if ( a == 0 .and. b == 0) then
-      relative_deviation = 0
     else if ( a == 0 .or. b == 0) then
       relative_deviation = huge(a)
     else
@@ -307,6 +518,23 @@ module ol_generic
     end do
   end function to_lowercase
 
+
+  function count_substring(s1, s2) result(c)
+  ! counts the occurance of string s2 in string s1
+    character(*), intent(in) :: s1, s2
+    integer :: c, p, posn
+
+    c = 0
+    if(len(s2) == 0) return
+    p = 1
+    do
+      posn = index(s1(p:), s2)
+      if(posn == 0) return
+      c = c + 1
+      p = p + posn + len(s2)
+    end do
+  end function count_substring
+
 end module ol_generic
 
 
@@ -325,7 +553,7 @@ module ol_iso_c_utilities
   !   character(kind=c_char), dimension(*), intent(in) :: c_str
   !   character(len=:), allocatable, intent(out) :: f_str
   !   - convert a null terminated C character array to a Fortran allocatable string;
-  use, intrinsic :: iso_c_binding, only: c_char
+  use, intrinsic :: iso_c_binding, only: c_char, c_ptr, c_long, c_short
   implicit none
 
   character(kind=c_char), save, target, private :: dummy_string(1) = "?"
@@ -396,7 +624,7 @@ module ol_iso_c_utilities
 !       f_str(i:i) = f_str_ptr(i)
 !     end do
 !   end subroutine c_f_string_static
-! 
+!
 
 ! deactivate to circumvent a bug in certain gfortran versions.
 ! Previously used in register_process_c, olp_setparameter_c, olp_printparameter_c, olp_start_c
@@ -418,8 +646,100 @@ module ol_iso_c_utilities
 !     end do
 !   end subroutine c_f_string_alloc
 
+
 end module ol_iso_c_utilities
 
+
+module ol_dirent
+  ! err = opendir(dirname)
+  !   open directory; only one directory can be open at a time;
+  !   err=0 if successful
+  ! err = readdir(entryname)
+  !   read next entry from directory;
+  !   err=0 if successful; entryname="" if all entries were retrieved;
+  ! closedir()
+  !   close directory
+  ! mkdir(dirname)
+  !   create directory
+  use, intrinsic :: iso_c_binding, only: c_char, c_null_char
+  use ol_iso_c_utilities, only: c_f_string
+  implicit none
+  private
+  public :: opendir, readdir, closedir, mkdir, direntry_length
+  integer, parameter :: direntry_length = 256
+  interface
+    function c_opendir(dirname) bind(c,name="ol_c_opendir")
+      ! int ol_c_opendir(const char *dirname)
+      use, intrinsic :: iso_c_binding, only: c_char, c_int
+      implicit none
+      character(kind=c_char), dimension(*), intent(in) :: dirname
+      integer(c_int) :: c_opendir
+    end function c_opendir
+    function c_readdir(entryname) bind(c,name="ol_c_readdir")
+      ! int ol_c_readdir(char* entryname)
+      use, intrinsic :: iso_c_binding, only: c_char, c_int
+      implicit none
+      character(kind=c_char), intent(out) :: entryname(256) ! =direntry_length
+      integer(c_int) :: c_readdir
+    end function c_readdir
+    subroutine c_closedir() bind(c,name="ol_c_closedir")
+      ! void ol_c_closedir()
+      implicit none
+    end subroutine c_closedir
+    function c_mkdir(dirname) bind(c,name="ol_c_mkdir")
+      ! int ol_c_mkdir(char* dirname)
+      use, intrinsic :: iso_c_binding, only: c_char, c_int
+      implicit none
+      character(kind=c_char), dimension(*), intent(in) :: dirname
+      integer(c_int) :: c_mkdir
+    end function c_mkdir
+  end interface
+
+  contains
+
+  function opendir(dirname)
+    implicit none
+    character(len=*), intent(in) :: dirname
+    integer :: opendir
+    opendir = c_opendir(trim(dirname) // c_null_char)
+    if (opendir == 127) then
+      print *, "[OpenLoops] opendir: a directory is already open."
+    else if (opendir /= 0) then
+      print *, "[OpenLoops] opendir: error", opendir
+    end if
+  end function opendir
+
+  function readdir(entryname)
+    implicit none
+    character(*), intent(out) :: entryname
+    integer :: readdir
+    character(kind=c_char) :: c_entryname(direntry_length)
+    if (len(entryname) < 256) then
+      print *, "[OpenLoops] readdir argument length <256."
+      readdir = 127
+      return
+    end if
+    readdir = c_readdir(c_entryname)
+    if (readdir /= 0) then
+      print *, "[OpenLoops] readdir: error reading directory content."
+    end if
+    entryname = ""
+    call c_f_string(c_entryname, entryname, direntry_length)
+  end function readdir
+
+  subroutine closedir()
+    implicit none
+    call c_closedir()
+  end subroutine closedir
+
+  function mkdir(dirname)
+    implicit none
+    character(len=*), intent(in) :: dirname
+    integer :: mkdir
+    mkdir = c_mkdir(trim(dirname) // c_null_char)
+  end function mkdir
+
+end module ol_dirent
 
 
 module ol_dlfcn
@@ -430,7 +750,10 @@ module ol_dlfcn
   public :: RTLD_LAZY, RTLD_NOW, RTLD_GLOBAL, RTLD_LOCAL
   public :: dlopen, dlsym, dlclose
   ! dlopen modes:
-  integer(c_int), parameter :: RTLD_LAZY = 1, RTLD_NOW = 2, RTLD_GLOBAL = 256, RTLD_LOCAL = 0
+  integer(c_int), bind(c,name="ol_c_rtld_lazy") :: RTLD_LAZY
+  integer(c_int), bind(c,name="ol_c_rtld_now") :: RTLD_NOW
+  integer(c_int), bind(c,name="ol_c_rtld_global") :: RTLD_GLOBAL
+  integer(c_int), bind(c,name="ol_c_rtld_local") :: RTLD_LOCAL
 
   interface
     function c_dlopen(file, mode) bind(c,name="dlopen")

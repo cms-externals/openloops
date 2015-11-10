@@ -137,41 +137,45 @@ def export_dictionary(filename, dic, form='%s %s'):
     export_list(filename, ls)
 
 
-
 # ============ #
 # SVN revision #
 # ============ #
-
 
 def get_svn_revision(mandatory=False):
     """Get the SVN revision number from `svn info`
     in the current working directory."""
     import subprocess
-
-    svninfo_proc = subprocess.Popen(
-        ['svn', 'info'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    svninfo_out, svninfo_err = svninfo_proc.communicate()
-    svninfo_exitcode = svninfo_proc.returncode
-
+    svninfo_exitcode = 1
+    try:
+        svninfo_proc = subprocess.Popen(
+            ['svn', 'info'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        svninfo_out, svninfo_err = svninfo_proc.communicate()
+        svninfo_exitcode = svninfo_proc.returncode
+    except OSError:
+        try:
+            svninfo_proc = subprocess.Popen(
+                ['svnlite', 'info'],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            svninfo_out, svninfo_err = svninfo_proc.communicate()
+            svninfo_exitcode = svninfo_proc.returncode
+        except OSError:
+            pass
     revision = 'none'
-    for line in svninfo_out.split('\n'):
-        line = line.split()
-        if len(line) == 2 and line[0] == 'Revision:' and line[1].isdigit():
-            revision = int(line[1])
-            break
-
+    if not svninfo_exitcode:
+        for line in svninfo_out.split('\n'):
+            line = line.split()
+            if len(line) == 2 and line[0] == 'Revision:' and line[1].isdigit():
+                revision = int(line[1])
+                break
     if mandatory and (revision == 'none' or svninfo_exitcode != 0):
         raise OSError(svninfo_exitcode,
                       '`svn info` failed. ' + svninfo_err.strip())
-
     return revision
-
 
 
 # ============================ #
 # Process library source files #
 # ============================ #
-
 
 def get_subprocess_src(loops, sub_process, processlib_src_dir,
                        nvirtualfiles=0, override_loops=False):
@@ -400,3 +404,11 @@ class ChannelDB:
                            time.strftime(timeformat))
             export_list(tmp_file, data)
             os.rename(tmp_file, self.db_file)
+
+
+def repo_name(repo):
+    # (assumes that there are no public repositories named .+_.{16})
+    if len(repo) > 16 and repo[-17] == '_' and '_' not in repo[-16:]:
+        return repo[:-17]
+    else:
+        return repo

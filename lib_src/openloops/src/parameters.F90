@@ -22,7 +22,7 @@ module ol_data_types_/**/REALKIND
   type wfun
     ! four complex components for the wave function
      complex(REALKIND) :: j(4)
-    ! indicator if left- or right components of of-sheel line vanish
+    ! indicator if left- or right components of of-shell line vanish
     !                      j= (0,0,0,0) (0,0,j3,j4) (j1,j2,0,0) (j1,j2,j3,j4)
     integer(intkind1) :: h !    B"00"      B"01"       B"10"        B"11"
     integer(intkind2) :: e ! helicities of external on-shell lines
@@ -67,6 +67,7 @@ end module ol_global_decl
 module ol_momenta_decl_/**/REALKIND
   use KIND_TYPES, only: REALKIND
   use ol_global_decl, only: MaxParticles
+  use ol_debug, only: ol_msg
   implicit none
   ! Internal momenta for up to 'MaxParticles' external particles
   ! Components 1:4 = light cone representation; component 5 = squared momentum
@@ -84,13 +85,13 @@ module ol_momenta_decl_/**/REALKIND
       momenta_nan_check = 0
     else
       ! contains NaN
-      write(*,*) "[OpenLoops] === WARNING ==="
-      write(*,*) "[OpenLoops] corrupted phase space point:"
+      call ol_msg("=== WARNING ===")
+      call ol_msg("corrupted phase space point:")
       do i = 1, size(P,2)
         write(*,*) P(:,i)
       end do
       momenta_nan_check = 1
-      write(*,*) "[OpenLoops] ==============="
+      call ol_msg("===============")
     end if
   end function momenta_nan_check
 
@@ -156,17 +157,16 @@ module ol_parameters_decl_/**/REALKIND
   integer, save :: parameters_status = 0
 #ifdef PRECISION_dp
   integer, save :: parameters_verbose = 0
-  integer, save :: verbose = 0
   integer, parameter :: procname_length = 80
   character(procname_length) :: current_processname = 'none' ! set by vamp2generic()
   integer, parameter :: max_parameter_length = 255 ! used for stability_logdir, install_path,
                                                    ! contract_file, printparameter file
   integer, parameter :: max_parameter_name_length = 30 ! maximal length of parameter names in init routines
   ! 0: never, 1: on finish() call, 2: adaptive, 3: always
-  integer, save :: stability_log = 2
+  integer, save :: stability_log = 0
   integer, save :: write_psp = 0 ! write out phase space points from vamp2generic is called
   integer, save :: use_me_cache = 1
-  integer, save :: parameters_changed = 0
+  integer, save :: parameters_changed = 1 ! unchanged: ME for the same psp can be taken from cache
   character(len=max_parameter_length) :: stability_logdir = "stability_log"
   character(len=max_parameter_length) :: tmp_dir = "."
   character(len=max_parameter_length) :: allowed_libs = ""
@@ -196,8 +196,10 @@ module ol_parameters_decl_/**/REALKIND
   ! in the tensor library cache system
   integer, save :: next_channel_number = 1
   integer, save :: coli_cache_use = 1
-  ! select alpha_QED renormalization scheme: 0 = on-shell scheme, 1 = G_mu scheme
-  integer, save :: ew_scheme = 1
+  ! select alpha_QED input scheme: 0 = on-shell = alpha(0), 1 = G_mu, 2 = alpha(MZ)
+  integer, save :: ew_scheme = 2
+  ! select alpha_QED renormalization scheme: 0 = on-shell = alpha(0), 1 = G_mu, 2 = alpha(MZ)
+  integer, save :: ew_renorm_scheme = 2
   ! coupling order
   integer :: coupling_QCD(0:1) = -1
   integer :: coupling_EW(0:1) = -1
@@ -209,6 +211,10 @@ module ol_parameters_decl_/**/REALKIND
   integer, save :: ew_renorm_switch = 3
   integer, save :: do_ew_renorm = 0
   integer, save :: cms_on = 1
+  ! select only specific polarization of external vector bosons
+  ! 0: both, 1: only transverse, 2: only longitudinal
+  integer, save :: select_pol_V = 0
+  integer :: add_associated_ew = 0
 #endif
 
   ! Numerical constants
@@ -259,7 +265,11 @@ module ol_parameters_decl_/**/REALKIND
   real(REALKIND), save :: MREG_unscaled = 1._/**/REALKIND                       ! collinear mass regulator for photon WF CT
   ! Coupling constants
   real(REALKIND), save :: alpha_QCD = 0.1258086856923967_/**/REALKIND ! LO MRST
-  real(REALKIND), save :: alpha_QED = 1/128._/**/REALKIND
+  real(REALKIND), save :: alpha_QED_MZ = 1/128._/**/REALKIND          ! alpha(MZ) derived from PDG 2014
+  real(REALKIND), save :: alpha_QED_0  = 1/137.035999074_/**/REALKIND  ! alpha(0) from PDG 2014
+  real(REALKIND), save :: alpha_QED
+  real(REALKIND), save :: Gmu_unscaled = 0.0000116637_/**/REALKIND    ! G_mu
+  real(REALKIND), save :: Gmu
   ! Everything beyond this line is derived from the values given above and initialised by parameters_init().
   real(REALKIND), save :: rescalefactor = 1.1
   ! scaled masses, widths and yukawas
@@ -278,13 +288,13 @@ module ol_parameters_decl_/**/REALKIND
   real(REALKIND), save :: rMX, wMX
   real(REALKIND), save :: rMY, wMY
   ! Complex masses, complex and real squared masses
-  complex(REALKIND), save ::  ME,   MM,   ML,   MU,   MD,   MS,   MC,   MB,   MT,   MW,   MZ,   MH,  MX,    MY
-  complex(REALKIND), save ::  ME2,  MM2,  ML2,  MU2,  MD2,  MS2,  MC2,  MB2,  MT2,  MW2,  MZ2,  MH2, MX2,   MY2
+  complex(REALKIND), save ::  ME,   MM,   ML,   MU,   MD,   MS,   MC,   MB,   MT,   MW,   MZ,   MH,   MX,   MY
+  complex(REALKIND), save ::  ME2,  MM2,  ML2,  MU2,  MD2,  MS2,  MC2,  MB2,  MT2,  MW2,  MZ2,  MH2,  MX2,  MY2
   complex(REALKIND), save ::  YE,   YM,   YL,   YU,   YD,   YS,   YC,   YB,   YT
   complex(REALKIND), save ::  YE2,  YM2,  YL2,  YU2,  YD2,  YS2,  YC2,  YB2,  YT2
-  complex(REALKIND), save ::  YC2pair, YB2pair, YT2pair ! pair masses: only non-zero if the SU(2) partner is active
   real(REALKIND),    save :: rYE2, rYM2, rYL2, rYU2, rYD2, rYS2, rYC2, rYB2, rYT2
   real(REALKIND),    save :: rME2, rMM2, rML2, rMU2, rMD2, rMS2, rMC2, rMB2, rMT2, rMW2, rMZ2, rMH2, rMX2, rMY2
+  complex(REALKIND), save :: YC2pair, YB2pair, YT2pair ! pair masses: only non-zero if the SU(2) partner is active
   ! collinear mass regulator for photon WF CT
   real(REALKIND),    save :: MREG
   ! Coupling constants
@@ -320,7 +330,27 @@ module ol_parameters_decl_/**/REALKIND
   ! take the following real for the moment. In general can be complex
   real(REALKIND), save :: epsilonWqq(3) = 0
   real(REALKIND), save :: epsilonWln(3) = 0
-
+  ! 2HDM parameters
+  ! thdm_a ("alpha") is the (h0, H0) mixing angle,
+  ! thdmTB is the ratio of the VEVs of the two Higgs doublets
+  integer, save :: thdm_type = 2 ! 2HDM Type I or Type II
+  real(REALKIND), save :: rMA0_unscaled = 130, wMA0_unscaled = 0 ! pseudoscalar Higgs mass and width
+  real(REALKIND), save :: rMHH_unscaled = 140, wMHH_unscaled = 0 ! heavy higgs mass and width
+  real(REALKIND), save :: rMHp_unscaled = 150, wMHp_unscaled = 0 ! charged Higgs mass and width
+  real(REALKIND), save :: rMA0, wMA0, rMA02
+  real(REALKIND), save :: rMHH, wMHH, rMHH2
+  real(REALKIND), save :: rMHp, wMHp, rMHp2
+  complex(REALKIND), save :: MA0, MA02, MHH, MHH2, MHp, MHp2
+  ! basic parameters: tan(beta), sin(beta-alpha), lambda5
+  real(REALKIND), save :: thdmTB = 1, thdmSBA = 1, thdmL5 = 0
+  real(REALKIND), save :: thdm_a, thdm_b
+  real(REALKIND), save :: thdmCA, thdmSA, thdmCB, thdmSB
+  real(REALKIND), save :: thdmC2A, thdmS2A, thdmC2B, thdmS2B
+  real(REALKIND), save :: thdmCAB, thdmSAB, thdmCBA
+  ! Type I/II dependent couplins
+  real(REALKIND), save :: thdmYuk1, thdmYuk2, thdmYuk3
+  ! Charged Higgs-fermion left/right couplings
+  complex(REALKIND), save :: thdmHpud(2), thdmHpdu(2), thdmHpcs(2), thdmHpsc(2), thdmHptb(2), thdmHpbt(2)
 
 end module ol_parameters_decl_/**/REALKIND
 
@@ -347,7 +377,7 @@ module ol_loop_parameters_decl_/**/REALKIND
   integer,        save :: loop_parameters_status = 0
 
 #ifdef PRECISION_dp
-  integer,        save :: maxpoint = 6
+  integer,        save :: maxpoint = 6, maxpoint_active = -1
   integer,        save :: maxrank = 6
   integer,        save :: norm_swi = 0     ! switch controlling normalisation of UV/IR poles
   character(10),  save :: norm_name
@@ -366,29 +396,31 @@ module ol_loop_parameters_decl_/**/REALKIND
   integer,        save :: deviation_mode = 1  ! deviation measure in vamp scaling based on
                                               ! (1) k-factor (2) virtual matrix element
 
-  real(REALKIND), save :: trigeff_targ = .2   ! target efficiency of K-factor based stability trigger (should not be << 0.1)
-  real(REALKIND), save :: abscorr_unst = 0.01 ! absolute correction discrepancy above which a point is considered "unstable"
-  real(REALKIND), save :: ratcorr_bad  = 1    ! relative deviation to two virtual matrix elements above which
+  real(REALKIND), save :: trigeff_targ = .2_/**/REALKIND   ! target efficiency of K-factor based stability trigger (should not be << 0.1)
+  real(REALKIND), save :: abscorr_unst = 0.01_/**/REALKIND ! relative deviation above which a point is considered "unstable" and
+                                              ! reevaluated in quad precision (if active); also logs the point in 2x modes
+  real(REALKIND), save :: ratcorr_bad  = 1    ! relative deviation of two virtual matrix elements above which
                                               ! an unstable point is considered "bad" and possibly "killed"
                                               ! (i.e. the finite part of the virtual correcton is set to zero)
-  real(REALKIND), save :: ratcorr_bad_L2 = 10 ! relative deviation to two virtual matrix elements above which
+  real(REALKIND), save :: ratcorr_bad_L2 = 10 ! relative deviation of two virtual matrix elements above which
                                               ! an unstable point is killed in loop induced amplitudes
 
   ! Collier parameters
-  integer,           save :: cll_channels = 50      ! number of cache channels
+  integer,           save :: cll_channels = 50, cll_channels_active = -1 ! number of cache channels
   real(REALKIND),    save :: C_PV_threshold = 1.e-6 ! threshold precision to activate 3-point alternative reductions
   real(REALKIND),    save :: D_PV_threshold = 1.e-6 ! threshold precision to activate 4-point alternative reductions
   integer,           save :: dd_red_mode    = 2     ! PV or alternative 3/4-point reductions
   ! setaccuracy_cll() arguments
-  real(REALKIND),    save :: cll_pvthr = 1.e-6, cll_accthr = 1.e-4, cll_mode3thr = 1.e-8
+  real(REALKIND),    save :: cll_pvthr = 1.e-6_/**/REALKIND, cll_accthr = 1.e-4_/**/REALKIND
+  real(REALKIND),    save :: cll_mode3thr = 1.e-8_/**/REALKIND
   integer,           save :: cll_tenred = 7 ! settenred_cll(): # of legs from which on component reduction is used
   real(REALKIND),    save :: ti_os_thresh = 1.e-10
 
   ! CutTools parameters
   real(REALKIND),    save :: opprootsvalue_unscaled = 1000
   real(REALKIND),    save :: opprootsvalue
-  real(REALKIND),    save :: opplimitvalue = 0.01
-  real(REALKIND),    save :: oppthrs       = 1.e-6
+  real(REALKIND),    save :: opplimitvalue = 0.01_/**/REALKIND
+  real(REALKIND),    save :: oppthrs       = 1.e-6_/**/REALKIND
   integer,           save :: oppidig       = 0
   integer,           save :: oppscaloop    = 2
 #ifndef USE_ONELOOP
@@ -435,7 +467,9 @@ module ol_loop_parameters_decl_/**/REALKIND
   real(REALKIND), save      :: de1_IR      = 0 ! numerical value of single IR pole (independent of norm-convention)
   real(REALKIND), save      :: de2_i_IR    = 0 ! numerical value of double IR pole using actual norm-convention
   real(REALKIND), save      :: de2_i_shift = 0 ! double pole shift defining actual norm convention
-  real(REALKIND), save      :: mureg_unscaled = 100    ! renormalisation scale
+  real(REALKIND), save      :: muren_unscaled = 100    ! renormalisation scale
+  real(REALKIND), save      :: mureg_unscaled = 100    ! regularization scale
+  real(REALKIND), save      :: muren
   real(REALKIND), save      :: mureg
   real(REALKIND), save      :: x_UV  = 1       ! rescaling factor for dim-reg scale in UV-divergent quantities
   real(REALKIND), save      :: x_IR  = 1       ! rescaling factor for dim-reg scale in IR-divergent quantities
@@ -450,7 +484,8 @@ module ol_loop_parameters_decl_/**/REALKIND
   ! the following derived parameters are initilised by subroutine loop_parameters_init
   real(REALKIND), save :: de2_0_IR  ! numerical value of double IR pole using LH-accord convention (i=0)
   real(REALKIND), save :: de2_1_IR  ! numerical value of double IR pole using COLI convention (i=1)
-  real(REALKIND), save :: mureg2    ! squared renormalisation scale
+  real(REALKIND), save :: muren2    ! squared renormalisation scale
+  real(REALKIND), save :: mureg2    ! squared regularization scale
   real(REALKIND), save :: mu2_UV    ! dim-reg scale for UV-divergent quantities
   real(REALKIND), save :: mu2_IR    ! dim-reg scale for IR-divergent quantities
   real(REALKIND), save :: muyc2 ! squared yukawa renormalization scale for c quark
@@ -502,6 +537,8 @@ module ol_loop_parameters_decl_/**/REALKIND
 
   ! Additional parameters for R2
   complex(REALKIND), save :: MQ2sum, MQ2sumpairs
+  complex(REALKIND), save :: YQD2sum, YQU2sum
+  complex(REALKIND), save :: YQD2sumpairs, YQU2sumpairs
 
   ! Additional counterterms for R2 QCD
   complex(REALKIND), save :: ctZGG
@@ -525,6 +562,12 @@ module ol_loop_parameters_decl_/**/REALKIND
   real(REALKIND), save :: R2HEFTggggh
   real(REALKIND), save :: R2HEFThqq
   real(REALKIND), save :: R2HEFTghqq
+
+  ! 2HDM
+  complex(REALKIND), save :: thdmctHpsc(2), thdmctHpbt(2), thdmctHpcs(2), thdmctHptb(2)
+  complex(REALKIND), save :: thdmctHGG, thdmctHh0GG, thdmctHHGG, thdmctHHhGG
+  complex(REALKIND), save :: thdmctXA0GG, thdmctHhHhGG, thdmctA0A0GG
+  complex(REALKIND), save :: thdmctPHpGG, thdmctHpHpGG
 
   ! EW_renormalisation renormalisation constants
   complex(REALKIND), save :: dZMBEW     = 0 ! bottom-quark mass RC       : MB_bare = MB+dZMBEW)

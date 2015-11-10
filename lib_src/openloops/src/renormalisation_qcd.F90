@@ -41,10 +41,12 @@ subroutine qcd_renormalisation
 ! dgQCD = strong coupling RC         : g_bare  = (1+dgQCD)*g_ren
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND
+  use ol_debug, only: ol_msg, ol_error, ol_fatal
+  use ol_generic, only: to_string
   use ol_parameters_decl_/**/REALKIND
   use ol_loop_parameters_decl_/**/REALKIND
 #ifndef PRECISION_dp
-  use ol_parameters_decl_/**/DREALKIND, only: LeadingColour
+  use ol_parameters_decl_/**/DREALKIND, only: LeadingColour, model
   use ol_loop_parameters_decl_/**/DREALKIND, only: &
     & nc, nf, nf_up, nf_down, N_lf, nq_nondecoupl, CT_is_on, R2_is_on, SwF, SwB
 #endif
@@ -59,9 +61,9 @@ subroutine qcd_renormalisation
   N_lf = count(zeromasses(:nf))
 
   if (N_lf /= 3 .and. N_lf /= 4 .and. N_lf /= 5) then
-    write(*,*) '[OpenLoops] ERROR in qcd_renormalisation:'
-    write(*,*) '[OpenLoops] N_lf = ', N_lf, 'is not supported.'
-    stop
+    call ol_error(2, 'in qcd_renormalisation:')
+    call ol_msg( 'N_lf = ' // to_string(N_lf) // 'is not supported.')
+    call ol_fatal()
   end if
 #endif
 
@@ -133,13 +135,13 @@ subroutine qcd_renormalisation
       dZYT = -cf * (4 + 3*(de1_UV+log(mu2_UV/muyt2)))
     end if
     ! MS-bar renormalization constant for gQCD, YM-contribution
-    dgQCD = -(11*ca)/6 * (de1_UV + log(mu2_UV/mureg2))
+    dgQCD = -(11*ca)/6 * (de1_UV + log(mu2_UV/muren2))
   end if
   if (SwF /= 0) then
     ! fermionic
     dZg   = dZg - (4*tf)/3 * N_lf * (deT_UV - deT_IR)
     ! MS-bar renormalization constant for gQCD; contribution for nf quarks
-    dgQCD = dgQCD + (2*tf*nf)/3 * (de1_UV + log(mu2_UV/mureg2))
+    dgQCD = dgQCD + (2*tf*nf)/3 * (de1_UV + log(mu2_UV/muren2))
     if (nf > 3) then
       if (MC /= 0) then
         dZg = dZg - (4*tf)/3 * deC_UV
@@ -186,6 +188,10 @@ subroutine qcd_renormalisation
   ! Sum of squared quark masses
   MQ2sum = MU2 + MD2 + MS2
   MQ2sumpairs = YU2 + YD2
+  YQD2sum = YD2 + YS2
+  YQU2sum = YU2
+  YQD2sumpairs = YD2
+  YQU2sumpairs = YU2
   nf_up = 1
   nf_down = 2
   YC2pair = 0
@@ -194,16 +200,23 @@ subroutine qcd_renormalisation
   if (nf > 3) then
     MQ2sum = MQ2sum + MC2
     MQ2sumpairs = MQ2sumpairs + YS2 + YC2
+    YQU2sum = YQU2sum + YC2
+    YQD2sumpairs = YQD2sumpairs + YS2
+    YQU2sumpairs = YQU2sumpairs + YC2
     nf_up = nf_up + 1
     YC2pair = YC2
   end if
   if (nf > 4) then
     MQ2sum = MQ2sum + MB2
+    YQD2sum = YQD2sum + YB2
     nf_down = nf_down + 1
   end if
   if (nf > 5) then
     MQ2sum = MQ2sum + MT2
     MQ2sumpairs = MQ2sumpairs + YB2 + YT2
+    YQU2sum = YQU2sum + YT2
+    YQD2sumpairs = YQD2sumpairs + YB2
+    YQU2sumpairs = YQU2sumpairs + YT2
     nf_up = nf_up + 1
     YB2pair = YB2
     YT2pair = YT2
@@ -294,6 +307,14 @@ subroutine qcd_renormalisation
     ctHEFTggh   = (11+2*dgQCD + dZg) * [ rZERO, -rONE, rZERO, rZERO, rONE]
     ctHEFTgggh  = (11+3*dgQCD + 1.5_/**/REALKIND*dZg)
     ctHEFTggggh = (11+4*dgQCD + 2*dZg)
+
+    ! 2HDM
+    if (trim(model) == "2hdm") then
+      thdmctHpcs = [ -YS*(-thdmYuk3) * (dZc/2 + dZq/2       ), YC/thdmTB * (dZc/2 + dZq/2 + dZYC) ]
+      thdmctHpsc = [ -YC/thdmTB * (dZc/2 + dZq/2 + dZYC), YS*(-thdmYuk3) * (dZc/2 + dZq/2       ) ]
+      thdmctHptb = [ -YB*(-thdmYuk3) * (dZt/2 + dZb/2 + dZYB), YT/thdmTB * (dZt/2 + dZb/2 + dZYT) ]
+      thdmctHpbt = [ -YT/thdmTB * (dZt/2 + dZb/2 + dZYT), YB*(-thdmYuk3) * (dZt/2 + dZb/2 + dZYB) ]
+    end if
   end if
 
   if (R2_is_on /= 0) then
@@ -321,10 +342,10 @@ subroutine qcd_renormalisation
       ctVcc  = ctVcc - 2*cf
       ctVbb  = ctVbb - 2*cf
       ctVqq  = ctVqq - 2*cf
-      ctScs  = ctScs - [4*cf,4*cf]
-      ctSsc  = ctSsc - [4*cf,4*cf]
-      ctStb  = ctStb - [4*cf,4*cf]
-      ctSbt  = ctSbt - [4*cf,4*cf]
+      ctScs  = ctScs - 4*cf*gPcs
+      ctSsc  = ctSsc - 4*cf*gPsc
+      ctStb  = ctStb - 4*cf*gPtb
+      ctSbt  = ctSbt - 4*cf*gPbt
       ctSqq  = ctSqq - 4*cf
       ctScc  = ctScc - 4*cf
       ctSbb  = ctSbb - 4*cf
@@ -336,6 +357,14 @@ subroutine qcd_renormalisation
       R2HEFTggggh = 0.125_/**/REALKIND
       R2HEFThqq   = 0.25_/**/REALKIND*(nc-1._/**/REALKIND/nc)
       R2HEFTghqq  = 0.25_/**/REALKIND*(3._/**/REALKIND/nc-5*nc)
+
+      ! 2HDM
+     if (trim(model) == "2hdm") then
+       thdmctHpcs = thdmctHpcs - 4*cf*thdmHpcs
+       thdmctHpsc = thdmctHpsc - 4*cf*thdmHpsc
+       thdmctHptb = thdmctHptb - 4*cf*thdmHptb
+       thdmctHpbt = thdmctHpbt - 4*cf*thdmHpbt
+     end if
     end if
     if (SwF /= 0) then
       ! fermionic
@@ -346,22 +375,43 @@ subroutine qcd_renormalisation
       ! ZGG R2 coupling: 4/3*sum_q(a_q)
       ctZGG = (nf_down-nf_up)*(-2*tf)/(3*cw*sw)
       ! HGG R2 coupling: 2*sum_q(m_q*v_q)
-      ctHGG = -2*tf*MQ2sum/(sw*MW)
+      ctHGG = -2*tf*MQ2sum/(sw*MW) ! *MQ*YQ/MQ2sum in Feynman rule
       ! VVGG R2 coupling: 2/3*sum(v1*v2+a1*a2)
       ctAAGG = (nf_up*4+nf_down)*(tf*4)/27
       ctAZGG = (nf_up*(-6+16*sw2)+nf_down*(-3+4*sw2)) * tf/(27*cw*sw)
       ctZZGG = (nf_up*(9-24*sw2+32*sw2**2)+nf_down*(9-12*sw2+ 8*sw2**2)) * tf/(54*cw2*sw2)
       ctWWGG = int(nf/2)*tf/(3*sw2) ! tf/(3*sw2) per SU(2) doublet
       ! SSGG R2 coupling: 2*sum(v1*v2-a1*a2)
-      ctHHGG = tf*MQ2sum/(sw2*MW2)
+      ctHHGG = tf*MQ2sum/(sw2*MW2) ! *YQ2/MQ2sum in Feynman rule
       ctHXGG = 0
-      ctXXGG = tf*MQ2sum/(sw2*MW2)
+      ctXXGG = tf*MQ2sum/(sw2*MW2) ! *YQ2/MQ2sum in Feynman rule
       ctPPGG = tf*MQ2sumpairs/(sw2*MW2)
       ! VGGG R2 coupling: [ 4/3*tf*sum_q(v_q), -12*tf*CI*sum_q(a_q) ]
       dummy_complex = -(4*tf)/9*(2*nf_up-nf_down)
       ctAGGG = [ dummy_complex, ZERO ]
       ctZGGG = [ (nf_up*(3-8*sw2)+nf_down*(-3+4*sw2)) * tf/(9*cw*sw) , (nf_up-nf_down)*3*tf*CI/(sw*cw) ]
       R2GGGG = int(2*tf) ! switch on the 4-gluon R2
+      ! 2HDM
+      if (trim(model) == "2hdm") then
+        ! SGG
+        ! thdmctA0GG = 0
+        thdmctHGG = -(thdmYuk1*YQD2sum + thdmCA/thdmSB*YQU2sum)/(MW*sw)
+        thdmctHh0GG = -(thdmYuk2*YQD2sum + thdmSA/thdmSB*YQU2sum)/(MW*sw)
+        ! SSGG
+        ! thdmctHA0GG = 0
+        ! thdmctXHhGG = 0
+        ! thdmctHhA0GG = 0
+        ! thdmctHXGG = 0 (effectively unchanged wrt. SM)
+        ! XXGG unchanged wrt. SM
+        ! PPGG unchanged wrt. SM
+        thdmctHHGG = (thdmYuk1**2*YQD2sum + thdmCA**2/thdmSB**2*YQU2sum)/(2*MW2*sw2)
+        thdmctHHhGG = (thdmYuk1*thdmYuk2*YQD2sum + thdmCA*thdmSA/thdmSB**2*YQU2sum)/(2*MW2*sw2)
+        thdmctXA0GG = (-thdmYuk3*YQD2sum + YQU2sum/thdmTB)/(2*MW2*sw2)
+        thdmctHhHhGG = (thdmYuk2**2*YQD2sum + thdmSA**2/thdmSB**2*YQU2sum)/(2*MW2*sw2)
+        thdmctA0A0GG = (thdmYuk3**2*YQD2sum + YQU2sum/thdmTB**2)/(2*MW2*sw2)
+        thdmctPHpGG = (-thdmYuk3*YQD2sumpairs + YQU2sumpairs/thdmTB)/(2*MW2*sw2)
+        thdmctHpHpGG = (thdmYuk3**2*YQD2sumpairs + YQU2sumpairs/thdmTB**2)/(2*MW2*sw2)
+      end if
     end if
 
   end if

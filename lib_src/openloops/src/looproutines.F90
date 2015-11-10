@@ -18,6 +18,7 @@
 
 
 module ol_loop_routines_/**/REALKIND
+  use ol_debug, only: ol_fatal, ol_msg, ol_error
   implicit none
   contains
 
@@ -25,6 +26,8 @@ module ol_loop_routines_/**/REALKIND
 subroutine tensor_integral(rank, momenta, masses_2, TI)
 ! ****************************************************
   use KIND_TYPES, only: REALKIND
+  use ol_debug, only: ol_error, ol_msg
+  use ol_generic, only: to_string
 #ifdef USE_COLLIER
   use ol_parameters_decl_/**/DREALKIND, only: current_processname
   use ol_loop_parameters_decl_/**/DREALKIND, only: tensor_reduction_error
@@ -70,19 +73,19 @@ subroutine tensor_integral(rank, momenta, masses_2, TI)
   ! Error handling should be in a separate routine which handles errors from all reduction libraries.
   ! Call might be moved to the process code.
   if (tensor_reduction_error > 0) then
-    write(*,*) "[OpenLoops] === TENSOR INTEGRAL REDUCTION ERROR ==="
+    call ol_error("=== TENSOR INTEGRAL REDUCTION ERROR ===")
     if (TI_library == 1) then
-      write(*,*) "[OpenLoops] library: Coli"
+      call ol_msg(1,"library: Coli")
     else if (TI_library == 2) then
-      write(*,*) "[OpenLoops] library: DD"
+      call ol_msg(1,"library: DD")
     end if
-    write(*,*) "[OpenLoops] process: ", current_processname
-    write(*,*) "[OpenLoops] phase space point:"
+    call ol_msg(1,"process: " // current_processname )
+    call ol_msg(1,"phase space point:")
     do l = 1, nParticles
-      write(*,*) P_ex(:,l)
+      print*, P_ex(:,l)
       crossing(inverse_crossing(l)) = l
     end do
-    write(*,*) "[OpenLoops] crossing:", crossing(1:nParticles)
+    call ol_msg(1,"crossing:" // to_string(crossing(1:nParticles)))
     T2dim = 0
   end if
 
@@ -103,8 +106,7 @@ subroutine tensor_integral(rank, momenta, masses_2, TI)
   call lorentz2lc_tensor(rank, T_Lor, TI)
 #else
   TI = 0 ! prevent compiler warning
-  print *, '[OpenLoops] ERROR in tensor_integral: Collier is not available'
-  stop
+  call ol_fatal('in tensor_integral: Collier is not available')
 #endif
 end subroutine tensor_integral
 
@@ -158,8 +160,7 @@ subroutine scalar_integral(momenta, masses_2)
 #endif
 
 #else
-  print *, '[OpenLoops] ERROR in scalar_integral: Collier is not available'
-  stop
+  call ol_fatal('in scalar_integral: Collier is not available')
 #endif
 end subroutine scalar_integral
 
@@ -194,8 +195,7 @@ subroutine covariant_coefficients(rank, momenta, masses_2)
 
   deallocate(Coefs)
 #else
-  print *, '[OpenLoops] ERROR in covariant_coefficients: Collier (legacy) is not available'
-  stop
+  call ol_fatal('in covariant_coefficients: Collier (legacy) is not available')
 #endif
 end subroutine covariant_coefficients
 
@@ -251,6 +251,7 @@ subroutine TI_call(rank, momenta, masses_2, Gsum, M2)
 ! ***************************************************
   use KIND_TYPES, only: REALKIND
   use ol_parameters_decl_/**/DREALKIND, only: a_switch
+  use ol_generic, only: to_string
   implicit none
   integer,           intent(in)    :: rank
   complex(REALKIND), intent(in)    :: momenta(:,:), masses_2(:), Gsum(:)
@@ -279,8 +280,7 @@ subroutine TI_call(rank, momenta, masses_2, Gsum, M2)
     ! Samurai
     call samurai_interface(rank, momenta, masses_2, Gsum, M2add)
   else
-    write(*,*) '[OpenLoops] ERROR in TI_call: amp_switch out of range: ', a_switch
-    stop
+    call ol_fatal('in TI_call: amp_switch out of range: ' // to_string(a_switch))
   end if
   M2 = M2 + real(M2add)
 end subroutine TI_call
@@ -294,7 +294,9 @@ function TI2_call(rank, momenta, masses_2, Gsum, TI)
 ! Returns the contribution to the amplitude
 ! ****************************************************
   use KIND_TYPES, only: REALKIND
+  use ol_debug, only: ol_fatal, ol_msg, ol_error
   use ol_parameters_decl_/**/DREALKIND, only: a_switch
+  use ol_generic, only: to_string
   implicit none
   integer,           intent(in)    :: rank
   complex(REALKIND), intent(in)    :: momenta(:,:), masses_2(:), Gsum(:), TI(:)
@@ -314,9 +316,9 @@ function TI2_call(rank, momenta, masses_2, Gsum, TI)
     ! Samurai
     call samurai_interface(rank, momenta, masses_2, Gsum, TI2_call)
   else
-    write(*,*) '[OpenLoops] ERROR in TI2_call: amp_switch out of range: ', a_switch
-    write(*,*) '[OpenLoops] note that modes 2 and 3 are not supported in loop^2.'
-    stop
+    call ol_error(2, 'in TI2_call: amp_switch out of range: ' // to_string(a_switch))
+    call ol_msg('note that modes 2 and 3 are not supported in loop^2.')
+    call ol_fatal()
   end if
 end function TI2_call
 
@@ -477,10 +479,7 @@ subroutine cuttools_interface(rank, momenta, masses2, Gtensor, M2)
   logical            :: cts_stable
 
   if (de1_UV /= de1_IR) then
-    write(*,*) '[OpenLoops] === ERROR ==='
-    write(*,*) '[OpenLoops] pole1_UV != pole1_IR is not allowed with CutTools.'
-    write(*,*) '[OpenLoops] ============='
-    stop
+    call ol_fatal('pole1_UV != pole1_IR is not allowed with CutTools.')
   end if
 
   tensor_stored(:size(Gtensor)) = Gtensor
@@ -506,8 +505,7 @@ subroutine cuttools_interface(rank, momenta, masses2, Gtensor, M2)
   M2 = cts_amp_array(0) + cts_amp_array(1)*de1_IR + cts_amp_array(2)*de2_i_IR
 #else
   M2 = 0 ! prevent compiler warning
-  print *, '[OpenLoops] ERROR in cuttools_interface: CutTools is not available'
-  stop
+  call ol_fatal('cuttools_interface: CutTools is not available')
 ! #ifdef USE_CUTTOOLS
 #endif
 end subroutine cuttools_interface
@@ -536,10 +534,7 @@ subroutine samurai_interface(rank, momenta, masses2, Gtensor, M2)
   logical           :: sam_test
 
   if (de1_UV /= de1_IR) then
-    write(*,*) '[OpenLoops] === ERROR ==='
-    write(*,*) '[OpenLoops] pole1_UV != pole1_IR is not allowed with Samurai.'
-    write(*,*) '[OpenLoops] ========'
-    stop
+    call ol_fatal('pole1_UV != pole1_IR is not allowed with Samurai.')
   end if
 
   tensor_stored(:size(Gtensor)) = Gtensor
@@ -562,12 +557,10 @@ subroutine samurai_interface(rank, momenta, masses2, Gtensor, M2)
 #endif
 #ifdef USE_SAMURAI
 #ifndef PRECISION_dp
-  print *, '[OpenLoops] ERROR in samurai_interface: Samurai only supports double precision'
-  stop
+  call ol_fatal('in samurai_interface: Samurai only supports double precision')
 #endif
 #else
-  print *, '[OpenLoops] ERROR in samurai_interface: Samurai is not available'
-  stop
+  call ol_fatal('in samurai_interface: Samurai is not available')
 #endif
 end subroutine samurai_interface
 

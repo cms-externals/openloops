@@ -114,7 +114,8 @@ class OLLibrary:
         else:
             self.mod_dir = mod_dir
         self.mod_dependencies = list(mod_dependencies)
-        self.linklibs = linklibs + [dep.lower() for dep in mod_dependencies]
+        self.linklibs = list(set(
+            linklibs + [dep.lower() for dep in mod_dependencies]))
         self.src = []
         self.add(src_dir = src_dir, mp_src = list(mp_src), dp_src = list(dp_src),
                  version_src = list(version_src), py_src = list(py_src), to_cpp = to_cpp)

@@ -193,6 +193,7 @@ def upload_process(process, db, ch_db, api):
     to a repository on the web server."""
     # need: repository_path, deprecated_path, backup_old_processes
     print '- upload process:', process, '...',
+    sys.stdout.flush()
     old_date, old_hash, old_descr = db.get(process, (None, None, None))
     process_dir = os.path.join(config['process_src_dir'], process)
     process_version_file = os.path.join(process_dir, 'version.info')
@@ -252,10 +253,12 @@ def upload_process(process, db, ch_db, api):
             os.rename(server_process_archive, server_backup_archive)
         except OSError:
             print '[process backup failed]',
+            sys.stdout.flush()
         try:
             os.rename(server_process_definition, server_backup_definition)
         except OSError:
             print '[definition backup failed]',
+            sys.stdout.flush()
 
     # create process archive
     archive = tarfile.open(local_process_archive, 'w:gz')
@@ -290,14 +293,25 @@ def upload_process(process, db, ch_db, api):
         info_options = info_options[0].split()[1:]
     else:
         info_options = []
-    info_files = [
-        os.path.join(process_dir, inf) for inf in os.listdir(process_dir)
-        if inf.startswith('info_' + process + '_') and inf.endswith('.txt')]
+    info_files = OLToolbox.import_list(os.path.join(
+        process_dir, "process_definition", "subprocesses.list"))
+    info_files = [os.path.join(process_dir, "info_" + proc + ".txt")
+                  for proc in info_files]
+    info_files_extra = OLToolbox.import_list(os.path.join(
+        process_dir, "process_definition", "subprocesses_extra.list"))
+    info_files_extra = [os.path.join(process_dir, "info_" + proc + ".txt")
+                  for proc in info_files_extra]
     channels = []
     for inf in info_files:
         channels.extend([line.split() + info_options
                          for line in OLToolbox.import_list(inf)])
-    ch_db.update({process: channels})
+    channels.sort(key=lambda el: el[1])
+    channels_extra = []
+    for inf in info_files_extra:
+        channels_extra.extend([line.split() + info_options
+                         for line in OLToolbox.import_list(inf)])
+    channels_extra.sort(key=lambda el: el[1])
+    ch_db.update({process: channels + channels_extra})
     # upload process archive and definition, delete temporary local archive
     shutil.copyfile(local_process_archive, server_process_archive)
     os.remove(local_process_archive)
@@ -309,6 +323,7 @@ def delete_process(process, db, ch_db, api):
     """Delete a process from a repository on the server."""
     # need: repository_path, deprecated_path, backup_old_processes
     print '- delete process:', process, '...',
+    sys.stdout.flush()
     old_date, old_hash, old_descr = db.get(process, (None, None, None))
     if not old_date:
         print 'skipped: does not exist'
@@ -326,18 +341,22 @@ def delete_process(process, db, ch_db, api):
             os.rename(server_process_archive, server_backup_archive)
         except OSError:
             print '[process backup failed]',
+            sys.stdout.flush()
         try:
             os.rename(server_process_definition, server_backup_definition)
         except OSError:
             print '[definition backup failed]',
+            sys.stdout.flush()
     else:
         try:
             os.remove(server_process_archive)
         except OSError:
             print '[deleting process failed]',
+            sys.stdout.flush()
             os.remove(server_process_definition)
         except OSError:
             print '[deleting definition failed]',
+            sys.stdout.flush()
     # update process and channel databases
     db.remove(process)
     ch_db.remove(process)
@@ -400,6 +419,7 @@ for process in process_list:
 
 if process_db.updated or channel_db.updated:
     print 'update process database ...',
+    sys.stdout.flush()
     process_db.export_db(version_db_file)
     channel_db.export_db(channel_db_file)
 

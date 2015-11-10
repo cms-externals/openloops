@@ -1,5 +1,7 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-# Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
+# Copyright 2015 Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
 #
 # This file is part of OpenLoops.
 #
@@ -17,172 +19,160 @@
 # along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
 
 
+# TODO
+# * Python version check.
+# * Accept internal channel identifier to register a process
+#   (distingish from library name).
+# * set model automatically, print message.
+
+
 import sys
-
-if sys.version_info[:2] < (2,7):
-    print "Python 2.7 required."
-    sys.exit(1)
-
-import os
+import argparse
+import time
 import openloops
-import keywordoptions
 
-false_values = ("false", "f", "none", "no", "n", "off", "0")
-true_values = ("true", "t", "all", "yes", "y", "on", "1")
+# =============== #
+# argument parser #
+# =============== #
 
-args = sys.argv
-check = False
+def amptype_conv(a):
+    a = a.lower()
+    try:
+        return int(a)
+    except ValueError:
+        return a
 
-if "--check" in args:
-    args = [arg for arg in args if arg != "--check"]
-    check = True
+parser = argparse.ArgumentParser()
+parser.add_argument('process', metavar='PROCESS',
+                    help='The process to calculate')
+parser.add_argument(
+    '-a', '--amptype', type=amptype_conv, default=openloops.LOOP,
+    choices=openloops.AMPTYPES.keys()+openloops.AMPTYPES.values(),
+    help='amptype')
+parser.add_argument(
+    '-e', '--energy', type=float, default=openloops.default_energy,
+    help='Energy to be used in phase space point generation.')
+parser.add_argument(
+    '-n', type=int, metavar='POINTS', default=None,
+    help='Number of phase space points to calculate matrix elements for.')
+parser.add_argument(
+    '-t', '--time', dest='timing', action='store_true', default=False,
+    help='''Measure runtime per phase space point
+         (may be inaccurate for very simple processes).''')
+parser.add_argument(
+    '--tt', type=float, dest='mintime', metavar='MINTIME', default=10,
+    help='Minimal time for runtime measurements in seconds.')
+parser.add_argument(
+    '--tn', type=int, dest='minn', metavar='MINN', default=1,
+    help='Minimal number of points in runtime measurements.')
+parser.add_argument(
+    '-v', '--verbose', type=int, default=1, help='Verbosity level')
+# This is just to create a help message, opt=val pairs are extracted manually
+# to avoid ordering conflicts between options and positional arguments.
+parser.add_argument(
+    'options', metavar='OPT=VAL', nargs='*',
+    help='Options to pass to directly to OpenLoops')
 
-ko = keywordoptions.KeywordOptions(strict = False)
+options = [arg for arg in sys.argv[1:] if ('=' in arg and not arg.startswith('-'))]
+args = parser.parse_args(
+    [arg for arg in sys.argv[1:] if (arg.startswith('-') or '=' not in arg)])
+if not args.timing and args.n is None:
+    args.n = 1
 
-ko.add("energy", converter=float)
-ko.add("subprocess", converter=openloops.parse_subprocess_argument)
-ko.add("n", converter=int)
-ko.add("verbose", converter=int, default=1)
-#ko.add(openloops.Parameters.names, group="parameters")
-ko.add("save", default="False")
-if check:
-    ko.add("data", default="True")
+# ======================== #
+# parameter initialisation #
+# ======================== #
 
+openloops.set_parameter('splash',0)
 
-def strip_stringlist(ls):
-    """
-    Take a list of strings, cut away comments starting with "#",
-    strip off whitespace, and remove empty strings.
-    """
-    strippedls = [li.split("#")[0].strip() for li in ls]
-    strippedls = [li for li in strippedls if li != ""]
-    return strippedls
+for opt in options:
+    try:
+        key, val = opt.split('=',1)
+    except ValueError:
+        print '[PYOL] ERROR: invalid option \'{}\''.format(opt)
+        sys.exit(1)
+    if key.startswith('alpha') and '/' in val:
+        try:
+            valnum, valden = val.split('/')
+            val = float(valnum)/float(valden)
+        except ValueError:
+            print '[PYOL] ERROR: invalid option \'{}\''.format(opt)
+    if args.verbose >= 3:
+        print 'call set_parameter({},{})'.format(key,val)
+    openloops.set_parameter(key, val)
 
-def split_first(s):
-    ls = s.split(" ", 1)
-    if len(ls) == 1:
-        ls.append("")
-    return ls
+# ================== #
+# register processes #
+# ================== #
 
+is_library = False
+if not '>' in args.process:
+    is_library = True
+    try:
+        procinfo = openloops.ProcessInfo(args.process)
+    except openloops.ProcessInfoError:
+        is_library = False
 
-def default_data_file(process_name):
-    return os.path.join(openloops.test_data_folder, process_name + ".ptd")
-
-
-def data_files(data, save, process_name=None):
-    # data is None/false/0 -> no src, or true/1 -> auto src, or a file name
-    if not data or data.lower() in false_values:
-        src = None
-    elif data.lower() in true_values:
-        src = default_data_file(process_name)
-    else:
-        src = data
-    # save is false/0/new -> no dst, or true/1 -> auto dst = src if defined, otherwise default dst.
-    # save=new will save to src if it doesn't exist.
-    if save.lower() in false_values or save.lower() == "new":
-        dst = None
-    elif save.lower() in true_values:
-        if src is None:
-            dst = default_data_file(process_name)
-        else:
-            dst = src
-    else:
-        dst = save
-    return src, dst
-
-
-try:
-    with open(args[1]) as fh:
-        file_input = True
-        test_definitions = [split_first(td) for td in strip_stringlist(fh.readlines())]
-except IOError:
-    file_input = False
-    test_definitions = [[args[1], args[2:]]]
-
-
-if file_input:
-    global_options = [td[1] for td in test_definitions if td[0] == "global_options"]
-    test_definitions = [td for td in test_definitions if td[0] != "global_options"]
-    if len(global_options) == 0:
-        global_options = ""
-    elif len(global_options) == 1:
-        global_options = global_options[0] + " "
-    else:
-        raise openloops.OpenLoopsError("Only one global_options specification is allowed.")
-    override_options = " " + " ".join(args[2:])
+if not is_library:
+    # register a partonic channel
+    try:
+        processes = [openloops.Process(args.process, args.amptype)]
+    except openloops.RegisterProcessError:
+        print ('[PYOL] ERROR registering process \'{}\' ' +
+               'with amptype {}.').format(args.process, args.amptype)
+        if not '>' in args.process:
+            print '(reading info file failed, too)'
+        sys.exit(1)
 else:
-    global_options = []
-    override_options = []
+    # register channels from a process library
+    try:
+        processes = procinfo.register()
+    except openloops.RegisterProcessError as err:
+        print ('[PYOL] ERROR while registering process from library ' +
+                '{}:\n       {}').format(args.process, err.args[0])
+        sys.exit(1)
 
+# === #
+# run #
+# === #
 
+def eval_and_print(proc, first=False):
+    me = proc.evaluate(args.energy)
+    if args.verbose >= 2:
+        print me.psp
+    if args.verbose >= 1:
+        if first:
+            if me.amptype == openloops.TREE:
+                print '{:>23}'.format('tree')
+            elif me.amptype == openloops.LOOP:
+                print (5*'{:>23}').format(
+                    'tree', 'finite', 'ir1', 'ir2', 'acc')
+            elif me.amptype == openloops.LOOP2:
+                print (2*'{:>23}').format('loop2', 'acc')
+        print me.valuestr()
 
-def run_process(test_def, dst_override=None, quiet=False):
-    process_name = test_def[0]
-    options = global_options + test_def[1] + override_options
-    ko.parse(options)
-    if dst_override:
-        save = dst_override
-    else:
-        save = ko.save
-    src, dst = data_files(None, save, process_name)
-    if not dst and ko.save.lower() == "new":
-        default_dst = default_data_file(process_name)
-        if not os.path.exists(default_dst):
-            dst = default_dst
-    if not quiet:
-        print "\nProcess:", process_name, "with options", options
-        if ko.remaining_args:
-            print "WARNING: unrecognised options:", ko.remaining_args
-        print "Destination file:", dst
-        print
-    ptd = openloops.ProcessTestData(test_def[0],
-                                    subprocess=ko.subprocess,
-                                    phasespace=ko.energy,
-                                    n=ko.n,
-                                    parameters=openloops.Parameters(**ko.unknown_options),
-                                    verbose=ko.verbose)
-    if dst:
-        ptd.dump(dst)
-        print "Created reference data."
-
-
-
-def check_process(test_def):
-    process_name = test_def[0]
-    options = global_options + test_def[1] + override_options
-    print "\nProcess:", process_name, "with options", options, "(ignored in check mode)"
-    ko.parse(options)
-    if ko.remaining_args:
-        print "WARNING: unrecognised options:", ko.remaining_args
-    src, dst = data_files(ko.data, ko.save, process_name)
-    src_msg = src
-    if src and not os.path.exists(src):
-        if ko.save.lower() == "new":
-            dst = src
-        src = None
-        src_msg = "NOT FOUND"
-    print "Source file:     ", src_msg
-    print "Destination file:", dst
+for proc in processes:
     print
-    if src is None:
-        run_process(test_def, dst_override=dst, quiet=True)
-        if not dst:
-            print "NOT VALIDATED"
+    print '"' + proc.process + '"'
+    if not args.timing:
+        for n in range(args.n):
+            eval_and_print(proc, first=not(n))
     else:
-        ptd = openloops.ProcessTestData.load(src)
-        new_ptd = ptd.validate(verbose=ko.verbose)
-        agrees = new_ptd.check_successful
-        if agrees:
-            print "Validation succeeded"
+        eval_and_print(proc, first=True)
+        eval_and_print(proc)
+        starttime = time.clock()
+        if args.n is not None:
+            npoints = args.n
+            for n in range(args.n):
+                eval_and_print(proc, first=not(n))
         else:
-            print "VALIDATION FAILED"
-        if dst is not None and (agrees or force):
-            new_ptd.dump(dst)
+            npoints = 0
+            while (time.clock() < starttime + args.mintime or
+                   npoints < args.minn):
+                npoints = npoints + 1
+                eval_and_print(proc)
+        endtime = time.clock()
+        print ('time per phase space point: {:3f} ms (avg. of {} ' +
+               'points)').format(1000*(endtime - starttime)/npoints, npoints)
 
-
-
-for test_def in test_definitions:
-    if check:
-        check_process(test_def)
-    else:
-        run_process(test_def)
+print

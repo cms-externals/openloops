@@ -22,12 +22,14 @@ module ol_wavefunctions_/**/REALKIND
   implicit none
   private
   public :: wf_S, wf_V, wf_V_Std, wf_Q, wf_A, wfIN_Q
+  public :: pol_wf_S, pol_wf_V, pol_wf_Q, pol_wf_A
   real(REALKIND) :: small_real = 1.e-44_dp
   contains
 
 ! **********************************************************************
 subroutine wf_S(P, M, POL, J_S)
 ! Wave function for a scalar particle. Just returns 1.
+! (version without POLSEL kept for compatibility with old process code)
 ! **********************************************************************
   implicit none
   real(REALKIND),    intent(in)  :: P(0:3), M
@@ -37,10 +39,24 @@ subroutine wf_S(P, M, POL, J_S)
   J_S(2:4) = 0
 end subroutine wf_S
 
+! **********************************************************************
+subroutine pol_wf_S(P, M, POL, J_S, POLSEL)
+! Wave function for a scalar particle. Just returns 1.
+! (version without POLSEL kept for compatibility with old process code)
+! **********************************************************************
+  implicit none
+  real(REALKIND),    intent(in)  :: P(0:3), M
+  integer,           intent(in)  :: POL
+  integer, optional, intent(in)  :: POLSEL
+  complex(REALKIND), intent(out) :: J_S(4)
+  J_S(1) = 1
+  J_S(2:4) = 0
+end subroutine pol_wf_S
 
 ! **********************************************************************
 subroutine wf_V(P, M, POL, J_V)
 ! vector boson wave function (incoming and outgoing)
+! (version without POLSEL kept for compatibility with old process code)
 ! ----------------------------------------------------------------------
 ! P(0:3): incoming momentum (standard representation)
 ! POL:    -1|0|+1 polarisation
@@ -85,6 +101,58 @@ subroutine wf_V(P, M, POL, J_V)
 end subroutine wf_V
 
 
+! **********************************************************************
+subroutine pol_wf_V(P, M, POL, J_V, POLSEL)
+! vector boson wave function (incoming and outgoing)
+! ----------------------------------------------------------------------
+! P(0:3): incoming momentum (standard representation)
+! POL:    -1|0|+1 polarisation
+! M >= 0: real mass
+! ----------------------------------------------------------------------
+! if P(0) > 0
+! J_V(1:4) = EPS(P,POL)
+!          = incoming vector boson wave function (light-cone representation)
+! ----------------------------------------------------------------------
+! if P(0) < 0
+! J_V(1:4) = EPS^*(-P,POL)
+!          = outgoing vector boson wave function (light-cone representation)
+! **********************************************************************
+  use KIND_TYPES
+  use ol_global_decl, only: MaxParticles
+  use ol_external_decl_/**/REALKIND, only: P_ex, Ward_array
+  use ol_parameters_decl_/**/DREALKIND, only: Ward_tree, Ward_loop
+  use ol_kinematics_/**/REALKIND, only: Std2LC_Rep
+  implicit none
+  real(REALKIND),    intent(in)  :: P(0:3), M
+  integer,           intent(in)  :: POL
+  integer, optional, intent(in)  :: POLSEL
+  complex(REALKIND), intent(out) :: J_V(4)
+  integer :: i
+
+  if (Ward_tree /= 0 .or. Ward_loop /= 0) then
+    do i = 1, MaxParticles
+      ! identify the particle number to associate the Ward_array(i)
+      if ((P(0) >= 0 .and. all(P == P_ex(:,i))) .or. (P(0) < 0 .and. all(-P == P_ex(:,i)))) exit
+    end do
+
+    if (Ward_array(i) == 1) then
+      call Std2LC_Rep(P, J_V)
+    else
+      ! normal wavefunction
+      call wf_V_Std(P, M, POL, J_V)
+    end if
+
+  else
+    if (present(POLSEL)) then
+      call wf_V_Std(P, M, POL, J_V, POLSEL)
+    else
+      call wf_V_Std(P, M, POL, J_V)
+    end if
+  end if
+
+end subroutine pol_wf_V
+
+
 ! ! **********************************************************************
 ! subroutine wf_V(P, M, POL, J_V)
 ! ! vector boson wave function (incoming and outgoing)
@@ -127,7 +195,7 @@ end subroutine wf_V
 
 
 ! **********************************************************************
-subroutine wf_V_Std(P, M, POL, J_V)
+subroutine wf_V_Std(P, M, POL, J_V, POLSEL)
 ! wave function for IN/OUT vector boson
 ! ----------------------------------------------------------------------
 ! P(0:3) : incoming momentum P^mu (standard representation)
@@ -146,15 +214,16 @@ subroutine wf_V_Std(P, M, POL, J_V)
 
   real(REALKIND),    intent(in)  :: P(0:3), M
   integer,           intent(in)  :: POL
+  integer, optional, intent(in)  :: POLSEL
   complex(REALKIND), intent(out) :: J_V(4)
   complex(REALKIND) :: J_AUX(4)
 
   if (P(0) >= 0) then ! incoming gluon -> EPS(P)
-    call wfIN_V(P,M,POL,J_V)
+    call wfIN_V(P,M,POL,J_V, POLSEL)
 !    call wf_interface_V(P,M,POL,J_V) ! gauge-fixing of Stefano's algebraic code
 !    call wfIN_V_MG(P,M,POL,J_V) ! MadGraph convention
   else if (P(0) < 0) then ! outgoing gluon -> EPS^*(-P)
-    call wfIN_V(-P,M,POL,J_AUX)
+    call wfIN_V(-P,M,POL,J_AUX, POLSEL)
 !    call wf_interface_V(-P,M,POL,J_AUX) ! gauge-fixing Stefano's algebraic code
 !    call wfIN_V_MG(P,M,POL,J_AUX) ! MadGraph convention
 
@@ -252,6 +321,7 @@ end subroutine wf_gf_V
 ! **********************************************************************
 subroutine wf_Q(P, M, POL, J_Q)
 ! wave function for an incoming quark or outgoing anti-quark
+! (version without POLSEL kept for compatibility with old process code)
 ! ----------------------------------------------------------------------
 ! P(0:3)   : incoming momentum P^mu (standard representation)
 ! M >= 0   : mass
@@ -278,13 +348,56 @@ subroutine wf_Q(P, M, POL, J_Q)
     ! call wfIN_Q(-P,-M,-POL,J_Q)
     call wfIN_Q(-P,-M,POL,J_Q)
   end if
-
 end subroutine wf_Q
+
+
+! **********************************************************************
+subroutine pol_wf_Q(P, M, POL, J_Q, POLSEL)
+! wave function for an incoming quark or outgoing anti-quark
+! ----------------------------------------------------------------------
+! P(0:3)   : incoming momentum P^mu (standard representation)
+! M >= 0   : mass
+! POL      : +1|-1 quark polarisation as (14,15) of hep-ph/0002082 (HELAC)
+!            but with flipped polarisation for outgoing anti-quarks
+! ----------------------------------------------------------------------
+! if P(0) > 0:
+! J_Q(1:4) = U(P,M,POL)
+!          = incoming quark wave function
+! ----------------------------------------------------------------------
+! if P(0) < 0:
+! J_Q(1:4) = V(-P,M,POL) = U(-P,-M,-POL)
+!          = outgoing anti-quark wave function
+! **********************************************************************
+  implicit none
+
+  real(REALKIND),    intent(in)  :: P(0:3), M
+  integer,           intent(in)  :: POL
+  complex(REALKIND), intent(out) :: J_Q(4)
+  integer, optional, intent(in)  :: POLSEL
+
+  if (present(POLSEL)) then
+    if (P(0) >= 0) then ! in-quark -> U(P,M,POL)
+      call wfIN_Q(P,M,POL,J_Q, POLSEL)
+    else if (P(0) < 0) then ! out-antiquark -> V(-P,M,POL)=U(-P,-M,-POL)
+      ! call wfIN_Q(-P,-M,-POL,J_Q)
+      call wfIN_Q(-P,-M,POL,J_Q, POLSEL)
+    end if
+  else
+    if (P(0) >= 0) then ! in-quark -> U(P,M,POL)
+      call wfIN_Q(P,M,POL,J_Q)
+    else if (P(0) < 0) then ! out-antiquark -> V(-P,M,POL)=U(-P,-M,-POL)
+      ! call wfIN_Q(-P,-M,-POL,J_Q)
+      call wfIN_Q(-P,-M,POL,J_Q)
+    end if
+  end if
+
+end subroutine pol_wf_Q
 
 
 ! **********************************************************************
 subroutine wf_A(P, M, POL, J_A)
 ! wave function for incoming anti-quark or outgoing quark
+! (version without POLSEL kept for compatibility with old process code)
 ! ----------------------------------------------------------------------
 ! P(0:3)   : incoming momentum P^mu (standard representation)
 ! M>=0     : mass
@@ -312,6 +425,7 @@ subroutine wf_A(P, M, POL, J_A)
 !     call wfIN_Q(-P,M,POL,J_AUX)
     call wfIN_Q(-P,M,-POL,J_AUX)
   end if
+
   ! Dirac conjugation of spinor
   J_A(1) = -conjg(J_AUX(3))
   J_A(2) = -conjg(J_AUX(4))
@@ -322,25 +436,87 @@ end subroutine wf_A
 
 
 ! **********************************************************************
-subroutine wfIN_V(P, M, POL, EPS)
+subroutine pol_wf_A(P, M, POL, J_A, POLSEL)
+! wave function for incoming anti-quark or outgoing quark
+! ----------------------------------------------------------------------
+! P(0:3)   : incoming momentum P^mu (standard representation)
+! M>=0     : mass
+! POL      : +1|-1 quark polarisation as (14,15) of hep-ph/0002082 (HELAC)
+!            but with flipped polarisation for outgoing quarks
+! ----------------------------------------------------------------------
+! if P(0)>0
+! J_A(1:4) = Vbar(P,M,POL) = Ubar(P,-M,-POL)
+!          = INCOMING-antiquark wave function
+! ----------------------------------------------------------------------
+! if P(0)<0
+! J_A(1:4) = Ubar(-P,M,POL)
+!          = OUTGOING-antiquark wave function
+! **********************************************************************
+  implicit none
+
+  real(REALKIND),    intent(in)  :: P(0:3), M
+  integer,           intent(in)  :: POL
+  integer,  optional,  intent(in)  :: POLSEL
+  complex(REALKIND), intent(out) :: J_A(4)
+  complex(REALKIND) :: J_AUX(4)
+
+  if (present(POLSEL)) then
+    if (P(0) >= 0) then ! in-antiquark -> V(P,M,POL)=U(P,-M,-POL)
+      call wfIN_Q(P,-M,-POL,J_AUX,POLSEL)
+    else if(P(0) < 0) then ! out-quark -> U(-P,M,POL)
+  !     call wfIN_Q(-P,M,POL,J_AUX)
+      call wfIN_Q(-P,M,-POL,J_AUX,POLSEL)
+    end if
+  else
+    if (P(0) >= 0) then ! in-antiquark -> V(P,M,POL)=U(P,-M,-POL)
+      call wfIN_Q(P,-M,-POL,J_AUX)
+    else if(P(0) < 0) then ! out-quark -> U(-P,M,POL)
+  !     call wfIN_Q(-P,M,POL,J_AUX)
+      call wfIN_Q(-P,M,-POL,J_AUX)
+    end if
+  end if
+
+  ! Dirac conjugation of spinor
+  J_A(1) = -conjg(J_AUX(3))
+  J_A(2) = -conjg(J_AUX(4))
+  J_A(3) = -conjg(J_AUX(1))
+  J_A(4) = -conjg(J_AUX(2))
+
+end subroutine pol_wf_A
+
+
+! **********************************************************************
+subroutine wfIN_V(P, M, POL, EPS, POLSEL)
 ! wave function EPS(P,POL) for vector boson; P0 > 0
 ! as in (3.15) of hep-ph/9805445 (Dittmaier)
 ! I/O see subroutine wf_V
 ! **********************************************************************
   use ol_parameters_decl_/**/REALKIND, only: CI, sqrt05
+  use ol_debug, only: ol_fatal, ol_error
   implicit none
 
   real(REALKIND),    intent(in)  :: P(0:3), M
   integer,           intent(in)  :: POL
   complex(REALKIND), intent(out) :: EPS(4)
+  integer, optional, intent(in)  :: POLSEL
   real(REALKIND)    :: P2_T, P_T, P_MOD
   real(REALKIND)    :: SIN_THETA, ONEPCOS_THETA , ONEMCOS_THETA
   real(REALKIND)    :: COS_THETA, COS_PHI, SIN_PHI
   complex(REALKIND) :: EPHI_PLUS, EPHI_MINUS
 
   if (P(0) < 0) then
-    write (*,*) '[OpenLoops] ERROR in subroutine wfIN_V: P0 < 0 forbidden'
-    stop
+    call ol_fatal('in subroutine wfIN_V: P0 < 0 forbidden')
+  end if
+
+  if (present(POLSEL)) then
+    if (POLSEL == 0) then
+      continue
+    else if (POL == 0 .and. POLSEL == 2) then
+      continue
+    else if (POL /= POLSEL) then
+      EPS = small_real
+      return
+    end if
   end if
 
   P2_T  = P(1)**2 + P(2)**2
@@ -383,7 +559,7 @@ subroutine wfIN_V(P, M, POL, EPS)
     EPHI_MINUS = (P(1) - CI*P(2)) / P_T ! substitute for cmplx()
 
   else
-    write(*,*) '[OpenLoops] ERROR in subroutine wfIN_V: P^2_T < 0 forbidden'
+    call ol_error('in subroutine wfIN_V: P^2_T < 0 forbidden')
   end if
 
   if (POL == 1) then ! plus polarisation
@@ -476,16 +652,18 @@ end subroutine wfIN_V_MG
 
 
 ! **********************************************************************
-subroutine wfIN_Q(P, M, POL, WF)
+subroutine wfIN_Q(P, M, POL, WF, POLSEL)
 ! wave function U(P,M,POL) for incoming Quark; P(0) > 0; M = 0 or M > 0 or M < 0
 ! adapted from hep-ph/9805445 (Dittamier): m -> -m owing to Y.Z. conventions for Chiral rep.
 ! related to hep-ph/0002082 (HELAC) via Q -> POL*exp(POL*I*Phi)*Q
 ! **********************************************************************
   use ol_parameters_decl_/**/REALKIND, only: CI
+  use ol_debug, only: ol_fatal
   implicit none
 
   real(REALKIND),    intent(in)  :: P(0:3), M
   integer,           intent(in)  :: POL
+  integer, optional,  intent(in)  :: POLSEL
   complex(REALKIND), intent(out) :: WF(4)
   real(REALKIND)    :: P2_T, P_T, P_MOD
   real(REALKIND)    :: COST, SINT, COSTHALF, SINTHALF, CHI, COSP, SINP
@@ -493,16 +671,29 @@ subroutine wfIN_Q(P, M, POL, WF)
   complex(REALKIND) :: ZETA
 
   if (P(0) < 0) then
-    write(*,*) '[OpenLoops] ERROR in subroutine wfIN_Q: P0 < 0 forbidden'
-    stop
+    call ol_fatal('in subroutine wfIN_Q: P0 < 0 forbidden')
+  end if
+
+  if (present(POLSEL)) then
+    if (POLSEL == 0) then
+      continue
+    else if (POL /= POLSEL) then
+      WF = 0
+      return
+    end if
   end if
 
   P2_T  = P(1)*P(1) + P(2)*P(2)
   P_T   = sqrt(P2_T)
   P_MOD = sqrt(P2_T + P(3)*P(3))
 
-  COST = P(3) / P_MOD
-  SINT = P_T  / P_MOD
+  if (P_MOD == 0) then
+    COST = 1
+    SINT = 0
+  else
+    COST = P(3) / P_MOD
+    SINT = P_T  / P_MOD
+  end if
 
   if (P2_T == 0) then
     COSP = 1
@@ -538,6 +729,7 @@ subroutine wfIN_Q(P, M, POL, WF)
   end if
 
 end subroutine wfIN_Q
+
 
 end module ol_wavefunctions_/**/REALKIND
 
@@ -645,6 +837,7 @@ subroutine wf_A(P, M, POL, A)
   else if(P(0) < 0) then ! out-quark -> U(-P,M,POL)
     call wfIN_Q(-P,M,-POL,J_AUX)
   end if
+
   ! Dirac conjugation of spinor
   A%j(1) = -conjg(J_AUX(3))
   A%j(2) = -conjg(J_AUX(4))
@@ -719,12 +912,14 @@ module ol_h_wavefunctions_/**/REALKIND
   implicit none
   private
   public :: wf_S, wf_V, wf_Q, wf_A
+  public :: pol_wf_S, pol_wf_V, pol_wf_Q, pol_wf_A
   contains
 
 ! **********************************************************************
 subroutine wf_S(P, M, POL, S)
 ! Wave function for a scalar particle.
 ! Just returns 1 in the component 1 of a 4 component wave function.
+! (version without POLSEL kept for compatibility with old process code)
 ! **********************************************************************
   use ol_data_types_/**/REALKIND, only: wfun
   implicit none
@@ -737,8 +932,25 @@ end subroutine wf_S
 
 
 ! **********************************************************************
+subroutine pol_wf_S(P, M, POL, S, POLSEL)
+! Wave function for a scalar particle.
+! Just returns 1 in the component 1 of a 4 component wave function.
+! **********************************************************************
+  use ol_data_types_/**/REALKIND, only: wfun
+  implicit none
+  real(REALKIND), intent(in)    :: P(0:3), M
+  integer,        intent(in)    :: POL(1) ! only 1 helicity state
+  integer, optional, intent(in) :: POLSEL
+  type(wfun),     intent(out)   :: S(1)
+  S(1)%j(1) = 1 ! S%j(2:4) components are not used
+  S(1)%j(2:4) = 0
+end subroutine pol_wf_S
+
+
+! **********************************************************************
 subroutine wf_Q(P, M, POL, Q)
 ! wave function for an incoming quark or outgoing anti-quark
+! (version without POLSEL kept for compatibility with old process code)
 ! ----------------------------------------------------------------------
 ! P(0:3): incoming momentum P^mu (standard representation)
 ! M >= 0: mass
@@ -796,8 +1008,82 @@ end subroutine wf_Q
 
 
 ! **********************************************************************
+subroutine pol_wf_Q(P, M, POL, Q, POLSEL)
+! wave function for an incoming quark or outgoing anti-quark
+! ----------------------------------------------------------------------
+! P(0:3): incoming momentum P^mu (standard representation)
+! M >= 0: mass
+! POL(:): set of helicity states to be summed
+! POL(k): +1|-1 quark polarisation as (14,15) of hep-ph/0002082 (HELAC)
+!         but with flipped polarisation for outgoing anti-quarks
+! ----------------------------------------------------------------------
+! if P(0) > 0:
+! Q(k)%j(1:4) = U(P,M,POL(k))
+!             = incoming quark wave function
+! ----------------------------------------------------------------------
+! if P(0) < 0:
+! Q(k)%j(1:4) = V(-P,M,POL(k)) = U(-P,-M,-POL(k))
+!             = outgoing anti-quark wave function
+! **********************************************************************
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_wavefunctions_/**/REALKIND, only: wfIN_Q
+  implicit none
+  real(REALKIND), intent(in)  :: P(0:3), M
+  integer,        intent(in)  :: POL(:)
+  integer, optional,  intent(in)  :: POLSEL
+  type(wfun),     intent(out) :: Q(:)
+  integer :: k
+
+  do k = 1, size(POL)
+
+    if (POL(k) == 99) then
+      ! signal to ignore all remaining polarisation states
+      Q(k:size(POL))%j(1) = 0
+      Q(k:size(POL))%j(2) = 0
+      Q(k:size(POL))%j(3) = 0
+      Q(k:size(POL))%j(4) = 0
+      Q(k:size(POL))%h = B"00"
+      exit
+    end if
+
+    if (present(POLSEL)) then
+      if (POLSEL == 0) then
+        continue
+      else if (POL(k) /= POLSEL) then
+        Q(k)%j(1) = 0
+        Q(k)%j(2) = 0
+        Q(k)%j(3) = 0
+        Q(k)%j(4) = 0
+        Q(k)%h = B"00"
+        cycle
+      end if
+    end if
+
+    if (P(0) >= 0) then ! in-quark -> U(P,M,POL(k))
+      call wfIN_Q(P, M, POL(k), Q(k)%j)
+    else if (P(0) < 0) then ! out-antiquark -> V(-P,M,POL(k)) = U(-P,-M,-POL(k))
+      call wfIN_Q(-P, -M, POL(k), Q(k)%j)
+    end if
+
+    if(M /= 0)then
+      Q(k)%h = B"11"
+    else
+      if(POL(k) == 1)then
+        Q(k)%h = B"10"
+      else
+        Q(k)%h = B"01"
+      end if
+    end if
+
+  end do
+
+end subroutine pol_wf_Q
+
+
+! **********************************************************************
 subroutine wf_A(P, M, POL, A)
 ! wave function for incoming anti-quark or outgoing quark
+! (version without POLSEL kept for compatibility with old process code)
 ! ----------------------------------------------------------------------
 ! P(0:3): incoming momentum P^mu (standard representation)
 ! M >= 0: mass
@@ -861,8 +1147,88 @@ end subroutine wf_A
 
 
 ! **********************************************************************
+subroutine pol_wf_A(P, M, POL, A, POLSEL)
+! wave function for incoming anti-quark or outgoing quark
+! ----------------------------------------------------------------------
+! P(0:3): incoming momentum P^mu (standard representation)
+! M >= 0: mass
+! POL(:): set of helicity states to be summed
+! POL(k): +1|-1 quark polarisation as (14,15) of hep-ph/0002082 (HELAC)
+!         but with flipped polarisation for outgoing quarks
+! ----------------------------------------------------------------------
+! if P(0) > 0:
+! A(k)%j(1:4) = Vbar(P,M,POL(k)) = Ubar(P,-M,-POL(k))
+!             = INCOMING-antiquark wave function
+! ----------------------------------------------------------------------
+! if P(0) < 0:
+! A(k)%j(1:4) = Ubar(-P,M,POL(k))
+!             = OUTGOING-antiquark wave function
+! **********************************************************************
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_wavefunctions_/**/REALKIND, only: wfIN_Q
+  implicit none
+
+  real(REALKIND), intent(in)  :: P(0:3), M
+  integer,        intent(in)  :: POL(:)
+  integer, optional, intent(in)  :: POLSEL
+  type(wfun),     intent(out) :: A(size(POL))
+  complex(REALKIND) :: J_AUX(4)
+  integer :: k
+
+  do k = 1, size(POL)
+
+    if(POL(k) == 99) then ! signal to ignore all remaining polarisation states
+      A(k:size(POL))%j(1) = 0
+      A(k:size(POL))%j(2) = 0
+      A(k:size(POL))%j(3) = 0
+      A(k:size(POL))%j(4) = 0
+      A(k:size(POL))%h = B"00"
+      exit
+    end if
+
+    if (present(POLSEL)) then
+      if (POLSEL == 0) then
+        continue
+      else if (-POL(k) /= POLSEL) then
+        A(k)%j(1) = 0
+        A(k)%j(2) = 0
+        A(k)%j(3) = 0
+        A(k)%j(4) = 0
+        A(k)%h = B"00"
+        cycle
+      end if
+    end if
+
+    if (P(0) >= 0) then ! in-antiquark -> V(P,M,POL(k))=U(P,-M,-POL(k))
+      call wfIN_Q(P, -M, -POL(k), J_AUX)
+    else if(P(0) < 0) then ! out-quark -> U(-P,M,POL(k))
+      call wfIN_Q(-P, M, -POL(k), J_AUX)
+    end if
+    ! Dirac conjugation of spinor
+    A(k)%j(1) = -conjg(J_AUX(3))
+    A(k)%j(2) = -conjg(J_AUX(4))
+    A(k)%j(3) = -conjg(J_AUX(1))
+    A(k)%j(4) = -conjg(J_AUX(2))
+
+    if (M /= 0) then
+      A(k)%h = B"11"
+    else
+      if (POL(k) == 1) then
+        A(k)%h = B"10"
+      else
+        A(k)%h = B"01"
+      end if
+    end if
+
+  end do
+
+end subroutine pol_wf_A
+
+
+! **********************************************************************
 subroutine wf_V(P, M, POL, V)
 ! vector boson wave function (incoming and outgoing)
+! (version without POLSEL kept for compatibility with old process code)
 ! ----------------------------------------------------------------------
 ! P(0:3): incoming momentum (standard representation)
 ! POL(:): set of helicity states
@@ -932,5 +1298,94 @@ subroutine wf_V(P, M, POL, V)
   end if
 
 end subroutine wf_V
+
+
+! **********************************************************************
+subroutine pol_wf_V(P, M, POL, V, POLSEL)
+! vector boson wave function (incoming and outgoing)
+! ----------------------------------------------------------------------
+! P(0:3): incoming momentum (standard representation)
+! POL(:): set of helicity states
+! POL(k): +1|0|-1 as defined in subroutine wfIN_V
+! M >= 0: real mass
+! ----------------------------------------------------------------------
+! if P(0) > 0:
+! V(k)%j(1:4) = EPS(P,POL(k))
+!             = incoming vector boson wave function (light-cone representation)
+! ----------------------------------------------------------------------
+! if P(0) < 0:
+! V(k)%j(1:4) = EPS^*(-P,POL(k))
+!             = outgoing vector boson wave function (light-cone representation)
+! **********************************************************************
+  use KIND_TYPES
+  use ol_global_decl, only: MaxParticles
+  use ol_external_decl_/**/REALKIND, only: P_ex, Ward_array
+  use ol_parameters_decl_/**/DREALKIND, only: Ward_tree, Ward_loop
+  use ol_kinematics_/**/REALKIND, only: Std2LC_Rep
+  use ol_wavefunctions_/**/REALKIND, only: wf_V_Std
+  use ol_data_types_/**/REALKIND, only: wfun
+  implicit none
+  real(REALKIND),    intent(in)  :: P(0:3), M
+  integer,           intent(in)  :: POL(:)
+  integer, optional, intent(in)  :: POLSEL
+  type(wfun),        intent(out) :: V(:)
+  integer :: i, k
+
+  if (Ward_tree /= 0 .or. Ward_loop /= 0) then
+
+    do i = 1, MaxParticles
+      ! identify the particle number to associate the Ward_array(i)
+      if ((P(0) >= 0 .and. all(P == P_ex(:,i))) .or. (P(0) < 0 .and. all(-P == P_ex(:,i)))) exit
+    end do
+
+    if (Ward_array(i) == 1) then
+      call Std2LC_Rep(P,V(1)%j)
+      do k = 2, size(POL)
+        V(k)%j = 0
+      end do
+    else
+      do k = 1, size(POL)
+        if (POL(k) == 99) then ! signal to ignore all remaining polarisation states
+          V(k:size(POL))%j(1) = 0
+          V(k:size(POL))%j(1) = 0
+          V(k:size(POL))%j(1) = 0
+          V(k:size(POL))%j(1) = 0
+          exit
+        end if
+        ! normal wavefunction
+        call wf_V_Std(P, M, POL(k), V(k)%j)
+      end do
+    end if
+
+  else
+
+    do k = 1, size(POL)
+      if (POL(k) == 99) then ! signal to ignore all remaining polarisation states
+        V(k:size(POL))%j(1) = 0
+        V(k:size(POL))%j(2) = 0
+        V(k:size(POL))%j(3) = 0
+        V(k:size(POL))%j(4) = 0
+        exit
+      end if
+      if (present(POLSEL)) then
+        if (POLSEL == 0) then
+          continue
+        else if (POL(k) == 0 .and. POLSEL == 2) then
+          continue
+        else if (POL(k) /= POLSEL) then
+          V(k)%j(1) = 0
+          V(k)%j(2) = 0
+          V(k)%j(3) = 0
+          V(k)%j(4) = 0
+          cycle
+        end if
+      end if
+      call wf_V_Std(P, M, POL(k), V(k)%j)
+    end do
+
+  end if
+
+end subroutine pol_wf_V
+
 
 end module ol_h_wavefunctions_/**/REALKIND
