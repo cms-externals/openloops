@@ -1,0 +1,3 @@
+pphwjj cddxsxhwg 1 EW=2,0 QCD=3,0 CKMORDER=0 MODEL=sm_yuksel Type=t YukB=1 YukT=1 nc=3 nf=6 MU=0 MD=0 MS=0 MC=0 YU=0 YD=0 YS=0 YC=0 LeadingColour=0
+pphwjj uccxdxhwg map=cddxsxhwg
+pphwjj udxbbxhwg condmap=cddxsxhwg[1,4,2,3,5,6] MB=0 YB=0
