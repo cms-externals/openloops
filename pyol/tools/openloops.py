@@ -33,6 +33,9 @@ import atexit
 import ctypes
 import collections
 from ctypes import c_int, c_double, c_char_p, byref, POINTER
+import OLBaseConfig
+
+config = OLBaseConfig.get_config()
 
 proclib_dir = 'proclib'
 
@@ -502,13 +505,8 @@ class ProcessInfo(object):
 
 
 if __name__ == '__main__':
-    set_parameter('splash',0)
     set_parameter('stability_mode',11)
-    p = Process('1 -1 -> 22 21')
-    #me = p.evaluate()
-    #print 'psp', me.psp
-    #print 'tree', me.tree, me.loop
-
-    #set_parameter('rmb',0)
-    #for ch in ProcessInfo('ppajj').iterchannels():
-        #print ch
+    proc = Process('1 -1 -> 22 21')
+    me = proc.evaluate()
+    print 'pp =', me.psp
+    print me

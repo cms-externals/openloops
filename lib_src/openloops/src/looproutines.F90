@@ -250,13 +250,18 @@ end subroutine fake_tensor_integral
 subroutine TI_call(rank, momenta, masses_2, Gsum, M2)
 ! ***************************************************
   use KIND_TYPES, only: REALKIND
-  use ol_parameters_decl_/**/DREALKIND, only: a_switch
+  use ol_parameters_decl_/**/DREALKIND, only: a_switch, &
+    & ti_monitor, pid_string, stability_logdir, max_parameter_length
+  use ol_kinematics_/**/REALKIND, only: LC2Std_Rep_cmplx, momenta_invariants
   use ol_generic, only: to_string
   implicit none
   integer,           intent(in)    :: rank
   complex(REALKIND), intent(in)    :: momenta(:,:), masses_2(:), Gsum(:)
   real(REALKIND),    intent(inout) :: M2
   complex(REALKIND) :: M2add
+  integer :: outunit = 44, k
+  character(len=max_parameter_length) :: outfile
+  complex(REALKIND) :: momenta_TI(0:3,size(momenta,2))
   if (a_switch == 0) then
     call fake_tensor_integral(rank, momenta, masses_2, Gsum, M2add)
   else if (a_switch == 1 .or. a_switch == 7) then
@@ -283,6 +288,22 @@ subroutine TI_call(rank, momenta, masses_2, Gsum, M2)
     call ol_fatal('in TI_call: amp_switch out of range: ' // to_string(a_switch))
   end if
   M2 = M2 + real(M2add)
+  if (ti_monitor > 0) then
+    outfile = trim(stability_logdir) // "/ti_monitor_" // trim(to_string(a_switch)) // ".log"
+    open(unit=outunit, file=outfile, form='formatted', position='append')
+    if (ti_monitor > 1) write(outunit,*) ''
+    write(outunit,*) 'm2add= ', real(M2add), M2
+    if (ti_monitor > 1) then
+      write(outunit,*) 'rank= ', rank
+      write(outunit,*) 'masses2= ', masses_2
+      do k = 1, size(momenta,2)
+        call LC2Std_Rep_cmplx(momenta(:,k), momenta_TI(:,k))
+        write(outunit,*) 'p= ', real(momenta_TI(:,k))
+      end do
+      write(outunit,*) 'mominv= ', real(momenta_invariants(momenta_TI))
+    end if
+    close(outunit)
+  end if
 end subroutine TI_call
 
 

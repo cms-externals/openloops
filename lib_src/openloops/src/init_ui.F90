@@ -172,6 +172,8 @@ module ol_init
       case ("write_parameters", "parameters_write")
         if (val == 0) write_params_at_start = .false.
         if (val == 1) write_params_at_start = .true.
+      case ("ti_monitor", "timonitor")
+        ti_monitor = val
       case ("nf", "n_quarks")
         call set_if_modified(nf, val)
       case ("nq_nondecoupled", "minnf_alphasrun")
@@ -256,7 +258,6 @@ module ol_init
           call ol_error(1,"unrecognised ew_scheme:" // to_string(val))
         else
           call set_if_modified(ew_scheme, val)
-          call set_if_modified(ew_renorm_scheme, val)
         end if
       case ("ew_renorm_scheme")
         if (val /= 0 .and. val /= 1 .and. val /= 2) then
@@ -272,6 +273,14 @@ module ol_init
         call set_if_modified(cll_tenred, val)
       case ("cll_channels")
         cll_channels = val
+      case ("cll_log")
+        cll_log = val
+      case ("olo_verbose")
+        if (olo_verbose /= val) reset_opp = .true.
+        call set_if_modified(olo_verbose, val)
+      case ("olo_unit")
+        if (olo_outunit /= val) reset_opp = .true.
+        call set_if_modified(olo_outunit, val)
       case ("cuttools_idig")
         if (oppidig /= val) cuttools_not_init = .true.
         call set_if_modified(oppidig, val)
@@ -297,30 +306,28 @@ module ol_init
       case ("verbose")
         call set_verbose(val)
       case ("do_not_stop")
-        if (do_not_stop) then
+        if (val == 1) then
           do_not_stop = .true.
         else
           do_not_stop = .false.
         end if
       case ("no_splash", "nosplash")
         if (val == 0) then
-          splash_todo = .true.
-          olo_splash_done = .false.
-          cts_splash_todo = .true.
+          nosplash = .false.
         else
-          splash_todo = .false.
-          olo_splash_done = .true.
-          cts_splash_todo = .false.
+          nosplash = .true.
         end if
       case ("splash")
         if (val == 0) then
-          splash_todo = .false.
-          olo_splash_done = .true.
-          cts_splash_todo = .false.
+          nosplash = .true.
         else
-          splash_todo = .true.
-          olo_splash_done = .false.
-          cts_splash_todo = .true.
+          nosplash = .false.
+        end if
+      case ("check_collection")
+        if (val == 1) then
+          check_collection  = .true.
+        else
+          check_collection = .false.
         end if
       case ("preset")
         if (val == 1) then
@@ -346,6 +353,8 @@ module ol_init
           call set_if_modified(redlib_qp, 5)
           call set_if_modified(stability_mode, 22)
           call set_if_modified(ew_renorm_switch, 1)
+        else
+          call ol_error("preset not available:" // trim(to_string(val)))
         end if
       case default
         error = 1
@@ -691,6 +700,91 @@ module ol_init
       case("hqq_left")
         call set_if_modified(gH(2), val)
 
+      case("theta_cabi", "theta_cabibbo", "cabi")
+        call set_if_modified(ThetaCabi, val)
+      case("hpovev")
+        call set_if_modified(HPOvev, val)
+      case("kapww", "hpokapww")
+        call set_if_modified(HPOkapWW, val)
+      case("kapzz", "hpokapzz")
+        call set_if_modified(HPOkapZZ, val)
+      case("epsww", "hpoepsww")
+        call set_if_modified(HPOepsWW, val)
+      case("aepsww", "hpoaepsww")
+        call set_if_modified(HPOaepsWW, val)
+      case("epszz", "hpoepszz")
+        call set_if_modified(HPOepsZZ, val)
+      case("aepszz", "hpoaepszz")
+        call set_if_modified(HPOaepsZZ, val)
+      case("epsza", "hpoepsza")
+        call set_if_modified(HPOepsZA, val)
+      case("aepsza", "hpoaepsza")
+        call set_if_modified(HPOaepsZA, val)
+      case("epsaa", "hpoepsaa")
+        call set_if_modified(HPOepsAA, val)
+      case("aepsaa", "hpoaepsaa")
+        call set_if_modified(HPOaepsAA, val)
+      case("epszner", "hpoepszner")
+        call set_if_modified(HPOepsZnn(1,1), val)
+      case("epsznmr", "hpoepsznmr")
+        call set_if_modified(HPOepsZnn(2,1), val)
+      case("epsznlr", "hpoepsznlr")
+        call set_if_modified(HPOepsZnn(3,1), val)
+      case("epszer", "hpoepszer")
+        call set_if_modified(HPOepsZll(1,1), val)
+      case("epszmr", "hpoepszmr")
+        call set_if_modified(HPOepsZll(2,1), val)
+      case("epszlr", "hpoepszlr")
+        call set_if_modified(HPOepsZll(3,1), val)
+      case("epsznel", "hpoepsznel")
+        call set_if_modified(HPOepsZnn(1,2), val)
+      case("epsznml", "hpoepsznml")
+        call set_if_modified(HPOepsZnn(2,2), val)
+      case("epsznll", "hpoepsznll")
+        call set_if_modified(HPOepsZnn(3,2), val)
+      case("epszel", "hpoepszel")
+        call set_if_modified(HPOepsZll(1,2), val)
+      case("epszml", "hpoepszml")
+        call set_if_modified(HPOepsZll(2,2), val)
+      case("epszll", "hpoepszll")
+        call set_if_modified(HPOepsZll(3,2), val)
+      case("epszdr", "hpoepszdr")
+        call set_if_modified(HPOepsZdd(1,1), val)
+      case("epszsr", "hpoepszsr")
+        call set_if_modified(HPOepsZdd(2,1), val)
+      case("epszbr", "hpoepszbr")
+        call set_if_modified(HPOepsZdd(3,1), val)
+      case("epszur", "hpoepszur")
+        call set_if_modified(HPOepsZuu(1,1), val)
+      case("epszcr", "hpoepszcr")
+        call set_if_modified(HPOepsZuu(2,1), val)
+      case("epsztr", "hpoepsztr")
+        call set_if_modified(HPOepsZuu(3,1), val)
+      case("epszdl", "hpoepszdl")
+        call set_if_modified(HPOepsZdd(1,2), val)
+      case("epszsl", "hpoepszsl")
+        call set_if_modified(HPOepsZdd(2,2), val)
+      case("epszbl", "hpoepszbl")
+        call set_if_modified(HPOepsZdd(3,2), val)
+      case("epszul", "hpoepszul")
+        call set_if_modified(HPOepsZuu(1,2), val)
+      case("epszcl", "hpoepszcl")
+        call set_if_modified(HPOepsZuu(2,2), val)
+      case("epsztl", "hpoepsztl")
+        call set_if_modified(HPOepsZuu(3,2), val)
+      case("epswlne", "hpoepswlne")
+        call set_if_modified(HPOepsWln(1), val)
+      case("epswlnm", "hpoepswlnm")
+        call set_if_modified(HPOepsWln(2), val)
+      case("epswlnl", "hpoepswlnl")
+        call set_if_modified(HPOepsWln(3), val)
+      case("epswdu", "hpoepswdu")
+        call set_if_modified(HPOepsWqq(1), val)
+      case("epswsc", "hpoepswsc")
+        call set_if_modified(HPOepsWqq(2), val)
+      case("epswbt", "hpoepswbt")
+        call set_if_modified(HPOepsWqq(3), val)
+
       case ("fact_uv")
         call set_if_modified(x_uv, 1/val)
       case ("fact_ir")
@@ -718,7 +812,7 @@ module ol_init
       case ("cll_accthr")
         call set_if_modified(cll_accthr, val)
       case ("cll_mode3thr")
-        cll_mode3thr = val
+        call set_if_modified(cll_mode3thr, val)
       case ("ti_os_thresh")
         call set_if_modified(ti_os_thresh, val)
       case ("cuttools_rootsvalue")
@@ -728,7 +822,7 @@ module ol_init
         if (opplimitvalue /= val) cuttools_not_init = .true.
         call set_if_modified(opplimitvalue, val)
       case ("opp_threshold")
-        if (oppthrs /= val) reset_oppthrs = .true.
+        if (oppthrs /= val) reset_opp = .true.
         call set_if_modified(oppthrs, val)
       case ("dd_c_threshold")
         if (c_pv_threshold /= val) dd_not_init = .true.
@@ -1040,25 +1134,31 @@ module ol_init
         end if
         write_shopping_list = .true.
       case ("model")
-        if (to_lowercase(trim(val)) == "sm" &
-          .or. to_lowercase(trim(val)) == "smdiag" &
-          .or. to_lowercase(trim(val)) == "sm_yuksel") then
+        select case (to_lowercase(trim(val)))
+          case ("sm", "smdiag", "sm_yuksel")
             model = "sm"
             call set_if_modified(nf, 6)
-        else if (to_lowercase(trim(val)) == "sm_vaux" ) then
-          model = to_lowercase(trim(val))
-          call set_if_modified(nf, 6)
-          call set_if_modified(cms_on, 0)
-        else if (to_lowercase(trim(val)) == "heft" .or. to_lowercase(trim(val)) == "sm+ehc") then
-          model = "heft"
-          call set_if_modified(nf, 5)
-        else if (to_lowercase(trim(val)) == "2hdm" .or. to_lowercase(trim(val)) == "thdm") then
-          model = "2hdm"
-          call set_if_modified(nf, 6)
-        else
+          case ("sm_vaux")
+            model = "sm_vaux"
+            call set_if_modified(nf, 6)
+            call set_if_modified(cms_on, 0)
+          case ("heft", "sm+ehc")
+            model = "heft"
+            call set_if_modified(nf, 5)
+          case ("2hdm1", "thdm1", "2hdmi", "thdmi")
+            model = "2hdm"
+            thdm_type = 1
+            call set_if_modified(nf, 6)
+          case ("2hdm", "thdm", "2hdm2", "thdm2", "2hdmii", "thdmii")
+            model = "2hdm"
+            thdm_type = 2
+            call set_if_modified(nf, 6)
+          case ("hpoprodmfv_ufo", "hpoprodmfv_ufo_fixed", "higgspo")
+            model = "higgspo"
+            call set_if_modified(nf, 6)
+        case default
           call ol_error(1, "unknown model: " // trim(val) // ", model set to: " // trim(model))
-        end if
-
+        end select
 
 
       case default

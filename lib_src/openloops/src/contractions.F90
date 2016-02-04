@@ -390,7 +390,7 @@ end subroutine cont_CD
 ! **********************************************************************
 subroutine cont_VV(nsync, A, B, cont, n, t, nhel, den)
 ! Contraction of (complex) Lorentz vectors in light-cone representation
-! as part of a wave function oblect
+! as part of a wave function object
 ! **********************************************************************
 ! A(1:n(1)),B(1:n(2)) = wfun type (%h component ignored)
 ! cont(1:nhel)        = contractions
@@ -469,5 +469,36 @@ subroutine cont_QA(nsync, Q, A, cont, n, t, nhel, den)
   if(nsync <= 2) call helbookkeeping_cont(nsync, Q, A, cont, n, t, nhel)
 
 end subroutine cont_QA
+
+
+
+
+! **********************************************************************
+subroutine cont_EpPPP(B, C, D, Aout)
+! Aout^i = I * gLC^i_a * ep_{abcd} * B^b*C^c*D^d
+! where gLC is the metric in light-cone representation.
+! Aout, B, C, D are in contravariant ligh-cone representation.
+! Factors are so that X.gLC.Aout = cont_VV(X,Aout) = ep_{ijkl} * x^i*b^j*c^k*d^l
+! where x,b,c,d are the vectors X,B,C,D in standard representation.
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: B(4), C(4), D(4)
+  complex(REALKIND), intent(out) :: Aout(4)
+  complex(REALKIND)              :: C1D4, C1D3, C1D2, C2D3, C2D4, C3D4
+  C1D2    = C(1)*D(2) - C(2)*D(1)
+  C1D3    = C(1)*D(3) - C(3)*D(1)
+  C1D4    = C(1)*D(4) - C(4)*D(1)
+  C2D3    = C(2)*D(3) - C(3)*D(2)
+  C2D4    = C(2)*D(4) - C(4)*D(2)
+  C3D4    = C(3)*D(4) - C(4)*D(3)
+  Aout(1) = - B(1) * C3D4 - B(4) * C1D3 + B(3) * C1D4
+  Aout(2) =   B(2) * C3D4 - B(3) * C2D4 + B(4) * C2D3
+  Aout(3) =   B(3) * C1D2 + B(1) * C2D3 - B(2) * C1D3
+  Aout(4) = - B(4) * C1D2 + B(2) * C1D4 - B(1) * C2D4
+  Aout    = (0._/**/REALKIND, 0.5_/**/REALKIND) * Aout
+end subroutine cont_EpPPP
+
+
 
 end module ol_h_contractions_/**/REALKIND
