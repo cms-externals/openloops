@@ -1,24 +1,4 @@
 
-#dd_version = ''
-dd_version = '_dp19032014'
-#dd_version = '_03092015'
-if dd_version != '_03092015':
-    dd_cppdef = ['COLLIER_LEGACY', 'collierdd']
-else:
-    dd_cppdef = []
-
-
-# TODO
-# - Use kind types from kind_types module in CutTools.
-# - When compiling a process: check for compatibility with the OpenLoops version.
-
-# Coli cpp defines (default):
-# - ALLCHECK (false) -- print maximal information
-# - CHECK (false) -- perform various checks
-# - SING (true) -- take singular contributions into account
-# - PUBCHECK (false) -- check against publication
-
-
 help_message = """
 OpenLoops build system
 
@@ -28,9 +8,9 @@ Usage: scons [options] <loops>=proc1,proc2,...
 - t=tree, l=loop, s=loop_squared, p=pseudo_tree;
   if 'l' is present, any combination of these is allowed (inalphabetic order),
   otherwise 't' must be alone
-- If a processes ends with a slash (/) it is treated as a process collection,
+- If a processes ends with a '.coll' it is treated as a process collection,
   i.e. the corresponding list of processes from the collection file on the web
-  server is used. The special collection all/ downloads all processes.
+  server is used. The special collection all.coll downloads all processes.
 - Several <loops> arguments can be given, even with the same <loops>.
 
 Options
@@ -94,6 +74,10 @@ User defined options can be set in ./openloops.cfg
 in the same way as in default.cfg.
 """
 
+# TODO
+# - Use kind types from kind_types module in CutTools.
+# - When compiling a process: check for compatibility with the OpenLoops version.
+
 import os
 import sys
 import subprocess
@@ -153,13 +137,28 @@ if config['compile'] == 0 or (config['compile'] == 1 and
 else:
     compile_libraries = config['compile_libraries']
 
+# Coli legacy cpp defines (default)
+# - ALLCHECK (false) -- print maximal information
+# - CHECK (false) -- perform various checks
+# - SING (true) -- take singular contributions into account
+# - PUBCHECK (false) -- check against publication
+# Coli cpp defines
+# - SING -- take singular contributions into account
+# - CHECK -- perform various checks
+# - WARN -- issue warnings
+# - NEWCHECK -- print untested scalar function calls
+
 cpp_defines = map(lambda lib: 'USE_' + lib.upper(), config['link_libraries'])
 cpp_defines += [('KIND_TYPES', 'kind_types'),
                 ('DREALKIND', 'dp'),
                 ('QREALKIND', 'qp'),
                 'USE_' + config['fortran_tool'].upper(),
                 ('OL_INSTALL_PATH', '\\"' + install_path + '\\"'),
-                'SING'] + dd_cppdef
+                'SING']
+if config['collier_legacy']:
+    cpp_defines.append('COLLIER_LEGACY')
+else:
+    cpp_defines.append('collierdd')
 
 
 # ================= #
@@ -173,6 +172,8 @@ for libname in ['olcommon', 'rambo', 'qcdloop', 'oneloop', 'cuttools', 'samurai'
     lib_src_dirs[libname] = os.path.join(config['lib_src_dir'], libname, 'src')
     lib_obj_dirs[libname] = os.path.join(config['lib_src_dir'], libname, 'obj')
     lib_mod_dirs[libname] = os.path.join(config['lib_src_dir'], libname, 'mod')
+if config['collier_legacy']:
+    lib_src_dirs['collier'] = os.path.join(config['lib_src_dir'], 'collier', 'src_legacy')
 
 # OLCommon
 olcommon_dp_src = ['kind_types.F90', 'debug.F90', 'cwrappers.c']
@@ -209,7 +210,7 @@ openloops_mp_src = [
     'contractions.F90', 'converter.F90', 'counterterms.F90', 'helicity.F90',
     'i-operator.F90', 'kinematics.F90', 'laststep.F90', 'loopmom_tensor.F90',
     'looproutines.F90', 'Lpropagators.F90', 'Lvertices.F90', 'parameters.F90',
-    'parameters_init.F90', 'renormalisation_qcd.F90',
+    'parameters_init.F90', 'renormalisation_ew.F90', 'renormalisation_qcd.F90',
     'propagators.F90', 'vertices.F90', 'wavefunctions.F90']
 
 openloops_dp_src = [
@@ -239,29 +240,10 @@ samurai_dp_src = [
     'options.f90', 'precision.f90', 'save.f90']
 
 # Collier
-collier_src_mp = [
-    # DD
-    'dd_global.F', 'dd_aux.F', 'dd_2pt.F', 'dd_3pt.F', 'dd_3pt_coll.F',
-    'dd_4pt.F', 'dd_5pt.F', 'dd_6pt.F', 'dd_newinterface.F',
-    # BuildTensors
-    'bt_BuildTensors.F90', 'bt_Checks.F90', 'bt_FourVectors.F90',
-    'bt_GramCayley.F90', 'bt_LightCone.F90', 'bt_MatrixManipulations.F90',
-    'bt_TensorManipulations.F90', 'bt_TensorReduction.F90', 'bt_TI_interface.F90']
-
-collier_src_dp = [
-    # Coli
-    'coli_aux.F', 'coli_b0.F', 'coli_c0.F', 'coli_cache.F', 'coli_ctoliserg.F',
-    'coli_ctolis.F', 'coli_d0.F', 'coli_d0reg.F', 'coli_oint2.F', 'coli_oint.F',
-    # DD
-    'dd_generic.F', 'dd_generic_interface.F',
-    # BuildTensors
-    'bt_Generic.F90', 'bt_Combinatorics.F90', 'bt_Interface.F90']
-
-collier_inc_dp = [
-    'coli_checkparams.h', 'coli_common_cache.h', 'coli_common.h',
-    'coli_params_cache.h', 'coli_params.h']
-
-if dd_version == '_dp19032014':
+if config['collier_legacy']:
+    collier_inc_dp = [
+        'coli_checkparams.h', 'coli_common_cache.h', 'coli_common.h',
+        'coli_params_cache.h', 'coli_params.h']
     collier_src_mp = []
     collier_src_dp = [
         # DD
@@ -275,8 +257,7 @@ if dd_version == '_dp19032014':
         'bt_BuildTensors.F90', 'bt_Checks.F90', 'bt_FourVectors.F90',
         'bt_GramCayley.F90', 'bt_LightCone.F90', 'bt_MatrixManipulations.F90',
         'bt_TensorManipulations.F90', 'bt_TensorReduction.F90', 'bt_TI_interface.F90']
-
-if dd_version == '_03092015':
+else:
     collier_inc_dp = []
     collier_src_mp = []
     collier_src_dp = [
@@ -345,7 +326,7 @@ if 'cuttools' in compile_libraries:
                lib_src_dirs['cuttools'], duplicate = 0)
     cuttools_lib = OLLibrary(name = 'cuttools',
                              target_dir = config['generic_lib_dir'],
-                             mod_dependencies = ['oneloop'],
+                             mod_dependencies = ['oneloop', 'olcommon'],
                              linklibs = [ll for ll in config['link_libraries']
                                          if ll == 'qcdloop'],
                              src_dir = lib_obj_dirs['cuttools'],
@@ -366,13 +347,13 @@ if 'collier' in compile_libraries:
     collier_lib = OLLibrary(name = 'collier',
                             target_dir = config['generic_lib_dir'],
                             mod_dependencies = ['olcommon'],
-                            src_dir = lib_src_dirs['collier'] + dd_version,
+                            src_dir = lib_src_dirs['collier'],
                             mp_src = collier_src_mp,
                             dp_src = collier_src_dp,
                             to_cpp = cpp_container)
 
     # collier: preprocess include files, but don't add them to the list of source files
-    cpp_container.add(src_dir = lib_src_dirs['collier'] + dd_version,
+    cpp_container.add(src_dir = lib_src_dirs['collier'],
                       dp_src = collier_inc_dp)
 
 if 'openloops' in compile_libraries:
@@ -546,8 +527,10 @@ def split_processlist(loops, procs):
                     process_coll_add = OLToolbox.import_list(
                         os.path.join(collection_url % repo, coll), fatal=False)
                 if process_coll_add is not None:
-                    found_collection = True
-                    process_coll.extend(process_coll_add)
+                    if not '<' in ''.join(process_coll_add):
+                        # if it is not an html file with an error message
+                        found_collection = True
+                        process_coll.extend(process_coll_add)
                 first_repo = False
             if not found_collection:
                 print 'ERROR: process collection ' + coll + ' not found.'

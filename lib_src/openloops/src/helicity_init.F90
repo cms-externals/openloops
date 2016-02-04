@@ -30,7 +30,7 @@ subroutine heltable(n_in, n, tab)
   implicit none
   integer,           intent(in)  :: n_in(:)
   integer(intkind2), intent(out) :: n(:), tab(:,:)
-  integer :: i1, i2, i3, i4, i5
+  integer :: i1, i2, i3, i4, i5, i6
 
   n = n_in
 
@@ -70,8 +70,26 @@ subroutine heltable(n_in, n, tab)
         end do
       end do
     end do
+  else if (size(n) == 6) then
+    i6 = 1
+    do i1 = 1, n(1)
+      do i2 = 1, n(2)
+        do i3 = 1, n(3)
+          do i4 = 1, n(4)
+            do i5 = 1, n(5)
+              tab(1,i6) = i1
+              tab(2,i6) = i2
+              tab(3,i6) = i3
+              tab(4,i6) = i4
+              tab(5,i6) = i5
+              i6 = i6 + 1
+            end do
+          end do
+        end do
+      end do
+    end do
   else
-    call ol_fatal("heltable: " // to_string(size(n)) // " point vertices are not supported.")
+    call ol_fatal("heltable: " // trim(to_string(size(n))) // " point vertices are not supported.")
   end if
 
 end subroutine heltable

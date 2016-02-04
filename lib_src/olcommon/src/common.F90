@@ -37,7 +37,7 @@ module ol_generic
   interface to_string
     module procedure integer_to_string, integer1_to_string, integer2_to_string, &
           & double_to_string, complex_to_string, single_to_string, &
-          & integerlist_to_string, doublelist_to_string
+          & integerlist_to_string, doublelist_to_string, complexlist_to_string
   end interface to_string
 
   interface to_int
@@ -75,10 +75,10 @@ module ol_generic
   function integerlist_to_string(x,del,sep)
     implicit none
     integer :: x(:)
-    character(12*size(x)+1) :: integerlist_to_string
-    logical, optional, intent(in) ::  del
-    character(1), optional, intent(in) ::  sep
-    character(1) ::  seperator
+    character(13*size(x)+1) :: integerlist_to_string
+    logical, optional, intent(in) :: del
+    character(1), optional, intent(in) :: sep
+    character(1) :: seperator
     integer :: k
     if (present(sep)) then
       seperator = sep
@@ -89,26 +89,23 @@ module ol_generic
     if (present(del)) then
       if (del) integerlist_to_string = "["
     end if
-
-    integerlist_to_string = trim(integerlist_to_string) // trim(integer_to_string(x(1)))
+    if (size(x) /= 0) integerlist_to_string = trim(integerlist_to_string) // trim(integer_to_string(x(1)))
     do k = 2, size(x)
       integerlist_to_string = trim(integerlist_to_string) // seperator // trim(integer_to_string(x(k)))
     end do
-
     if (present(del)) then
       if (del) integerlist_to_string = trim(integerlist_to_string) // "]"
     end if
-
   end function integerlist_to_string
 
   function doublelist_to_string(x,del,sep)
     use KIND_TYPES, only: DREALKIND
     implicit none
     real(DREALKIND) :: x(:)
-    character(15*size(x)+1) :: doublelist_to_string
-    logical, optional, intent(in) ::  del
-    character(1), optional, intent(in) ::  sep
-    character(1) ::  seperator
+    character(29*size(x)+1) :: doublelist_to_string
+    logical, optional, intent(in) :: del
+    character(1), optional, intent(in) :: sep
+    character(1) :: seperator
     integer :: k
     if (present(sep)) then
       seperator = sep
@@ -119,17 +116,41 @@ module ol_generic
     if (present(del)) then
       if (del) doublelist_to_string = "["
     end if
-
-    doublelist_to_string = trim(doublelist_to_string) // trim(double_to_string(x(1)))
+    if (size(x) /= 0) doublelist_to_string = trim(doublelist_to_string) // trim(double_to_string(x(1)))
     do k = 2, size(x)
       doublelist_to_string = trim(doublelist_to_string) // seperator // trim(double_to_string(x(k)))
     end do
-
     if (present(del)) then
       if (del) doublelist_to_string = trim(doublelist_to_string) // "]"
     end if
-
   end function doublelist_to_string
+
+  function complexlist_to_string(x,del,sep)
+    use KIND_TYPES, only: DREALKIND
+    implicit none
+    complex(DREALKIND) :: x(:)
+    character(60*size(x)+1) :: complexlist_to_string
+    logical, optional, intent(in) :: del
+    character(1), optional, intent(in) :: sep
+    character(1) :: seperator
+    integer :: k
+    if (present(sep)) then
+      seperator = sep
+    else
+      seperator = ","
+    end if
+    complexlist_to_string = ""
+    if (present(del)) then
+      if (del) complexlist_to_string = "["
+    end if
+    if (size(x) /= 0) complexlist_to_string = trim(complexlist_to_string) // trim(complex_to_string(x(1)))
+    do k = 2, size(x)
+      complexlist_to_string = trim(complexlist_to_string) // seperator // trim(complex_to_string(x(k)))
+    end do
+    if (present(del)) then
+      if (del) complexlist_to_string = trim(complexlist_to_string) // "]"
+    end if
+  end function complexlist_to_string
 
   function string_to_integerlist(c_in)
   ! convert a comma/space/slash separated string of numbers into an array of integers
@@ -650,7 +671,7 @@ module ol_iso_c_utilities
 end module ol_iso_c_utilities
 
 
-module ol_dirent
+module ol_cwrappers
   ! err = opendir(dirname)
   !   open directory; only one directory can be open at a time;
   !   err=0 if successful
@@ -666,6 +687,7 @@ module ol_dirent
   implicit none
   private
   public :: opendir, readdir, closedir, mkdir, direntry_length
+  public :: stdout_off, stdout_on
   integer, parameter :: direntry_length = 256
   interface
     function c_opendir(dirname) bind(c,name="ol_c_opendir")
@@ -693,6 +715,15 @@ module ol_dirent
       character(kind=c_char), dimension(*), intent(in) :: dirname
       integer(c_int) :: c_mkdir
     end function c_mkdir
+  end interface
+
+  interface
+    subroutine stdout_off() bind(c,name="ol_c_stdout_off")
+      implicit none
+    end subroutine stdout_off
+    subroutine stdout_on() bind(c,name="ol_c_stdout_on")
+      implicit none
+    end subroutine stdout_on
   end interface
 
   contains
@@ -739,7 +770,7 @@ module ol_dirent
     mkdir = c_mkdir(trim(dirname) // c_null_char)
   end function mkdir
 
-end module ol_dirent
+end module ol_cwrappers
 
 
 module ol_dlfcn
