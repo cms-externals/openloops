@@ -655,21 +655,6 @@ end subroutine vert_HG_G
 
 
 ! **********************************************************************
-subroutine counter_HG_G_vert(S, V2, P2, V_out, P3)
-! Effective Higgs gluon -> gluon vertex for double operator insertion
-! V_out(3) = (P2(3)*P3(2) - P2.P3*g(2,3))*S*V2(2) = S*P3.V2*P2(3) - S*P2.P3*V2(3)
-! note that P3 is outgoing
-! **********************************************************************
-  use KIND_TYPES, only: REALKIND
-  use ol_contractions_/**/REALKIND, only: cont_VV
-  implicit none
-  complex(REALKIND), intent(in)  :: S(4), V2(4), P2(4), P3(4)
-  complex(REALKIND), intent(out) :: V_out(4)
-  call vert_HG_G(S, V2, P2, V_out, P3)
-end subroutine counter_HG_G_vert
-
-
-! **********************************************************************
 subroutine vert_GGG_H(V1, P1, V2, P2, V3, P3, S_out)
 ! Effective gluon gluon gluon -> Higgs vertex
 ! S_out = (g(1,2)*(P1-P2)(3) + g(2,3)*(P2-P3)(1) + g(3,1)*(P3-P1)(2)) * V1(1)*V2(2)*V3(3)
@@ -685,21 +670,6 @@ end subroutine vert_GGG_H
 
 
 ! **********************************************************************
-subroutine counter_GGG_H_vert(V1, P1, V2, P2, V3, P3, S_out)
-! Effective gluon gluon gluon -> Higgs vertex for double operator insertion
-! S_out = (g(1,2)*(P1-P2)(3) + g(2,3)*(P2-P3)(1) + g(3,1)*(P3-P1)(2)) * V1(1)*V2(2)*V3(3)
-!       = V1.V2*(P1-P2).V3 + V2.V3*(P2-P3).V1 + V3.V1*(P3-P1).V2
-! **********************************************************************
-  use KIND_TYPES, only: REALKIND
-  use ol_contractions_/**/REALKIND, only: cont_VV
-  implicit none
-  complex(REALKIND), intent(in)  :: V1(4), P1(4), V2(4), P2(4), V3(4), P3(4)
-  complex(REALKIND), intent(out) :: S_out(4)
-  call vert_GGG_H(V1, P1, V2, P2, V3, P3, S_out)
-end subroutine counter_GGG_H_vert
-
-
-! **********************************************************************
 subroutine vert_HGG_G(S, V2, P2, V3, P3, V_out, P4)
 ! Effective Higgs gluon gluon -> gluon vertex
 ! V_out(4) = (g(2,3)*(P2-P3)(4) + g(3,4)*(P3+P4)(2) + g(4,2)*(-P4-P2)(3)) * S*V2(2)*V3(3)
@@ -712,21 +682,6 @@ subroutine vert_HGG_G(S, V2, P2, V3, P3, V_out, P4)
   complex(REALKIND), intent(out) :: V_out(4)
   V_out = (S(1) * cont_VV(V2,V3)) * (P2-P3) + (S(1) * cont_VV(P3+P4,V2)) * V3 - (S(1) * cont_VV(P4+P2,V3)) * V2
 end subroutine vert_HGG_G
-
-
-! **********************************************************************
-subroutine counter_HGG_G_vert(S, V2, P2, V3, P3, V_out, P4)
-! Effective Higgs gluon gluon -> gluon vertex for double operator insertion
-! V_out(4) = (g(2,3)*(P2-P3)(4) + g(3,4)*(P3+P4)(2) + g(4,2)*(-P4-P2)(3)) * S*V2(2)*V3(3)
-!          = S*V2.V3*(P2-P3)(4) + S*(P3+P4).V2*V3(4) - S*(P4+P2).V3*V2(4)
-! **********************************************************************
-  use KIND_TYPES, only: REALKIND
-  use ol_contractions_/**/REALKIND, only: cont_VV
-  implicit none
-  complex(REALKIND), intent(in)  :: S(4), V2(4), P2(4), V3(4), P3(4), P4(4)
-  complex(REALKIND), intent(out) :: V_out(4)
-  call vert_HGG_G(S, V2, P2, V3, P3, V_out, P4)
-end subroutine counter_HGG_G_vert
 
 
 ! **********************************************************************
@@ -746,22 +701,6 @@ end subroutine vert_GGGG_H
 
 
 ! **********************************************************************
-subroutine counter_GGGG_H_vert(V1, V2, V3, V4, S_out)
-! Effective gluon gluon gluon gluon -> Higgs vertex for double operator insertion
-! for factorised colour monomials f(a,b,x)*f(c,d,x)
-! S_out = (g(1,3)*g(2,4) - g(1,4)*g(2,3)) * V1(1) * V2(2) * V3(3) * V4(4)
-!       = V1.V3*V2.V4 - V1.V4*V2.V3
-! **********************************************************************
-  use KIND_TYPES, only: REALKIND
-  use ol_contractions_/**/REALKIND, only: cont_VV
-  implicit none
-  complex(REALKIND), intent(in)  :: V1(4), V2(4), V3(4), V4(4)
-  complex(REALKIND), intent(out) :: S_out(4)
-  call vert_GGGG_H(V1, V2, V3, V4, S_out)
-end subroutine counter_GGGG_H_vert
-
-
-! **********************************************************************
 subroutine vert_HGGG_G(S, V2, V3, V4, V_out)
 ! Effective Higgs gluon gluon gluon -> gluon vertex
 ! for factorised colour monomials f(a,b,x)*f(c,d,x)
@@ -775,22 +714,6 @@ subroutine vert_HGGG_G(S, V2, V3, V4, V_out)
   complex(REALKIND), intent(out) :: V_out(4)
   V_out = (S(1)*cont_VV(V2,V4)) * V3 - (S(1)*cont_VV(V3,V4)) * V2
 end subroutine vert_HGGG_G
-
-
-! **********************************************************************
-subroutine counter_HGGG_G_vert(S, V2, V3, V4, V_out)
-! Effective Higgs gluon gluon gluon -> gluon vertex for double operator insertion
-! for factorised colour monomials f(a,b,x)*f(c,d,x)
-! V_out(5) = (g(2,4)*g(3,5) - g(2,5)*g(3,4)) * S * V2(2) * V3(3) * V4(4)
-!          = S*V2.V4*V3(5) - S*V3.V4*V2(5)
-! **********************************************************************
-  use KIND_TYPES, only: REALKIND
-  use ol_contractions_/**/REALKIND, only: cont_VV
-  implicit none
-  complex(REALKIND), intent(in)  :: S(4), V2(4), V3(4), V4(4)
-  complex(REALKIND), intent(out) :: V_out(4)
-  call vert_HGGG_G(S, V2, V3, V4, V_out)
-end subroutine counter_HGGG_G_vert
 
 
 ! ======================================================================
