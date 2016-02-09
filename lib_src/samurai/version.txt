@@ -1,0 +1,8 @@
+
+Samurai 2.9.0 from gosam-contrib 2.0
+
+./configure --disable-ql --disable-golem95
+
+Modifications in mmisavholo.f90 for compatibility with OneLOop >= 3.3.1:
+- "use avh_olo_kinds" --> "use avh_olo_dp_kinds"
+- replace "avh_olo_mu_set" by "olo_scale" and add it to the "use avh_olo" statements (4 times)

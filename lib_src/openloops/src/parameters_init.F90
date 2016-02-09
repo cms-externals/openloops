@@ -694,7 +694,7 @@ subroutine loop_parameters_init(renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, 
   use ol_parameters_decl_/**/REALKIND
   use ol_loop_parameters_decl_/**/REALKIND
   use ol_qcd_renormalisation_/**/REALKIND, only: qcd_renormalisation
-!   use ol_ew_renormalisation_/**/REALKIND, only: ew_renormalisation
+  use ol_ew_renormalisation_/**/REALKIND, only: ew_renormalisation
 #ifdef USE_COLLIER
 #ifdef COLLIER_LEGACY
   use dd_init_/**/REALKIND, only: dd_setmode, dd_setparam
@@ -833,7 +833,7 @@ subroutine loop_parameters_init
   use dd_init_/**/REALKIND, only: dd_setmode, dd_setparam
 #endif
   use ol_qcd_renormalisation_/**/REALKIND, only: qcd_renormalisation
-!   use ol_ew_renormalisation_/**/REALKIND, only: ew_renormalisation
+  use ol_ew_renormalisation_/**/REALKIND, only: ew_renormalisation
   implicit none
 
   if (norm_swi == 0) then
@@ -1039,9 +1039,9 @@ subroutine loop_parameters_init
 #endif
 
   call qcd_renormalisation
-!   if (do_ew_renorm /= 0) then
-!     call ew_renormalisation
-!   end if
+  if (do_ew_renorm /= 0) then
+    call ew_renormalisation
+  end if
 
   ! Increment number of time this function has been called:
 #ifdef PRECISION_dp
