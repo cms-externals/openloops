@@ -118,7 +118,7 @@ if config['release']:
 else:
     release_version = ''
 
-svn_revision = str(OLToolbox.get_svn_revision(mandatory = False))
+svn_revision = "1.0" #str(OLToolbox.get_svn_revision(mandatory = False))
 
 # Install directory; only effect is that this is put into
 # the openloops library as a string. TODO: override by command line argument;
@@ -210,7 +210,7 @@ openloops_mp_src = [
     'contractions.F90', 'converter.F90', 'counterterms.F90', 'helicity.F90',
     'i-operator.F90', 'kinematics.F90', 'laststep.F90', 'loopmom_tensor.F90',
     'looproutines.F90', 'Lpropagators.F90', 'Lvertices.F90', 'parameters.F90',
-    'parameters_init.F90', 'renormalisation_qcd.F90',
+    'parameters_init.F90', 'renormalisation_ew.F90', 'renormalisation_qcd.F90',
     'propagators.F90', 'vertices.F90', 'wavefunctions.F90']
 
 openloops_dp_src = [
