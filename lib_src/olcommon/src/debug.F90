@@ -24,11 +24,14 @@ module ol_debug
   implicit none
   private
   public :: set_verbose, get_verbose, get_error, ol_msg, ol_error, ol_fatal
+  public :: ol_write_msg
   public :: error, verbose, do_not_stop
+  public :: olodebug_unit
 
   integer, save :: verbose = 0
   integer, save :: error = 0
   logical, save :: do_not_stop = .false.
+  integer, save :: olodebug_unit = stdout ! if >= 0, used in CutTools to print olo() calls which caused an error
 
   interface ol_msg
     module procedure ol_print_msg_level, ol_print_msg
@@ -62,17 +65,16 @@ module ol_debug
     implicit none
     integer, intent(in) :: level
     character(len=*), intent(in) :: msg
-    if (verbose >= level) write(stdout,*) "[OpenLoops] " // trim(msg)
+    if (verbose >= level) call ol_write_msg("[OpenLoops] " // trim(msg))
   end subroutine ol_print_msg_level
 
   subroutine ol_error_level(err, msg)
     implicit none
     integer, intent(in) :: err
     character(len=*), intent(in), optional :: msg
+    character(len=100) :: err_format
     error = err
-    if (present(msg)) then
-      write(stderr,*) "[OpenLoops] Error: " // trim(msg)
-    end if
+    if (present(msg)) call ol_write_msg("[OpenLoops] Error: " // trim(msg), stderr)
   end subroutine ol_error_level
 
   subroutine ol_error_msg(msg)
@@ -98,17 +100,28 @@ module ol_debug
     character(len=*), optional, intent(in) :: msg
     integer, optional, intent(out) :: fatal_err
     error = 2
-    if (present(msg)) write(stderr,*) "[OpenLoops] ERROR: " // trim(msg)
+    if (present(msg)) call ol_write_msg("[OpenLoops] ERROR: " // trim(msg), stderr)
     if (present(fatal_err)) then
       fatal_err = 1
     else if (do_not_stop) then
-      if (verbose > 0) write(stderr,*) "[OpenLoops] FATAL ERROR."
+      if (verbose > 0) call ol_write_msg("[OpenLoops] FATAL ERROR.", stderr)
     else
-      if (verbose > 0) then
-        write(stderr,*) "[OpenLoops] STOP."
-      end if
+      if (verbose > 0) call ol_write_msg("[OpenLoops] STOP.", stderr)
       stop
     end if
   end subroutine ol_fatal
+
+  subroutine ol_write_msg(msg, unit)
+    implicit none
+    integer, intent(in), optional :: unit
+    character(len=*), intent(in) :: msg
+    character(len=100) :: format_msg
+    write (format_msg, '("(a", I4, ")")' )  len_trim(msg)
+    if (present(unit)) then
+      write(unit,format_msg) trim(msg)
+    else
+      write(stdout,format_msg) trim(msg)
+    end if
+  end subroutine ol_write_msg
 
 end module ol_debug

@@ -638,9 +638,9 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
   use KIND_TYPES, only: DREALKIND
   use ol_data_types_/**/DREALKIND, only: me_cache
   use ol_parameters_decl_/**/DREALKIND, only: current_processname, a_switch, &
-    & a_switch_rescue, redlib_qp, write_psp, use_me_cache, parameters_changed
+    & a_switch_rescue, redlib_qp, write_psp, use_me_cache, parameters_changed, scaling_mode
   use ol_loop_parameters_decl_/**/DREALKIND, only: ratcorr_bad, ratcorr_bad_L2, &
-    & stability_mode, abscorr_unst, mureg_unscaled
+    & stability_mode, abscorr_unst, mureg_unscaled, polecheck_is
   use ol_generic, only: relative_deviation, factorial, perm_pos, to_string
   implicit none
   character(*), intent(in) :: processname
@@ -653,6 +653,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
   type(me_cache), allocatable, target, intent(inout) :: me_caches(:)
   real(DREALKIND) :: M2L1_rescue(0:2), M2L2_rescue(0:4), abs_kfactor, abs_kfactor_rescue
   type(me_cache), pointer :: cache
+  integer :: mode2
 #ifndef USE_qp
   logical, intent(in) :: vamp2qp
 #endif
@@ -801,15 +802,20 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
 
 
   else if (stability_mode >= 20 .and. stability_mode < 30) then
+    if (scaling_mode == 3 .or. polecheck_is == 1) then
+      mode2 = 1
+    else
+      mode2 = 2
+    end if
     if (a_switch == a_switch_rescue) then
       call ol_fatal('stability modes 2x require different redlib1 and redlib2')
     end if
     ! reevaluation with a second library if abs(k-factor) is in
     ! the largest 'trigeff_targ' fraction of the distribution
-    call vamp2_dp(vamp2dp, P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2)
+    call vamp2_dp(vamp2dp, P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2, mode=1)
     if (M2L0 == 0) then
       ! loop induced: always reevaluate
-      call vamp2_dp(vamp2dp, P_scatt, M2L0, M2L1_rescue, IRL1, M2L2_rescue, IRL2, redlib = a_switch_rescue)
+      call vamp2_dp(vamp2dp, P_scatt, M2L0, M2L1_rescue, IRL1, M2L2_rescue, IRL2, redlib=a_switch_rescue, mode=mode2)
       last_relative_deviation = relative_deviation(M2L2(0), M2L2_rescue(0))
       if (last_relative_deviation > ratcorr_bad_L2) then
         ! kill point
@@ -823,7 +829,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
       if (abs_kfactor > abs_kfactor_threshold) then
         ! reevaluate the matrix element with a different reduction library
         call ol_msg(3,"stability system: reevaluate the matrix element with a different reduction library.")
-        call vamp2_dp(vamp2dp, P_scatt, M2L0, M2L1_rescue, IRL1, M2L2, IRL2, redlib = a_switch_rescue)
+        call vamp2_dp(vamp2dp, P_scatt, M2L0, M2L1_rescue, IRL1, M2L2, IRL2, redlib=a_switch_rescue, mode=mode2)
         last_relative_deviation = relative_deviation(M2L1(0), M2L1_rescue(0))
         abs_kfactor_rescue = abs(M2L1_rescue(0)/M2L0)
       else

@@ -1,1 +1,0 @@
-pphllj eexbbxhgg 1 EW=3,0 QCD=2,0 CKMORDER=0 MODEL=sm_yuksel Type=t ME=0 YE=0 YukB=1 YukT=1 nc=3 nf=6 MU=0 MD=0 MS=0 MC=0 YU=0 YD=0 YS=0 YC=0 LeadingColour=0

@@ -1,1 +1,0 @@
-ppzwjj uxdbbxzwx 1 EW=2,0 QCD=2,1 CKMORDER=0 MODEL=sm Type=lt nc=3 nf=6 MU=0 MD=0 MS=0 MC=0 LeadingColour=0

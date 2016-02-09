@@ -369,7 +369,6 @@ subroutine helbookkeeping_vert4(ntry, WF1, WF2, WF3, WF4, n, t)
 end subroutine helbookkeeping_vert4
 
 
-
 ! **********************************************************************
 subroutine helbookkeeping_vert5(ntry, WF1, WF2, WF3, WF4, WF5, n, t)
 ! ----------------------------------------------------------------------
@@ -484,7 +483,7 @@ subroutine helbookkeeping_vert5(ntry, WF1, WF2, WF3, WF4, WF5, n, t)
     do h2 = 1, n(2)
       do h3 = 1, n(3)
         do h4 = 1, n(4)
-          i  = h4 + n4_in * ((h3-1) + n3_in * (h2-1 + n2_in * (h1-1))) ! assumes input table in standard inititalisation form
+          i  = h4 + n4_in * (h3-1 + n3_in * (h2-1 + n2_in * (h1-1))) ! assumes input table in standard inititalisation form
           if (all(WF5(i)%j == 0)) cycle ! skips vanishing WF5 components
           h5 = h5 + 1
           t(1,h5) = h1
@@ -532,6 +531,190 @@ subroutine helbookkeeping_vert5(ntry, WF1, WF2, WF3, WF4, WF5, n, t)
 end subroutine helbookkeeping_vert5
 
 
+! **********************************************************************
+subroutine helbookkeeping_vert6(ntry, WF1, WF2, WF3, WF4, WF5, WF6, n, t)
+! ----------------------------------------------------------------------
+! WF1(1:n(1)),WF2(1:n(2)),WF3(1:n(3)), WF3(1:n(4)) = input wfun arrays
+! WF5(1:n(4))                                      = output wfun array
+! vanishing components moved at the end of WF5 array and marked via %e = -1
+! non-zero WF5 components ordered according to global helicity label
+! WF1(h1), WF2(h2), WF3(h3), WF(h4) <-> WF5(h5) connection stored in
+! table hi = t(i,h5) with i=1,2,3,4
+! array sizes n(1), n(2), n(3), n(4), n(5) restricted to non-vanishing components
+! **********************************************************************
+  use KIND_TYPES, only: intkind1, intkind2
+  use ol_generic, only: to_string
+  use ol_debug, only: ol_error, ol_fatal
+  use ol_data_types_/**/REALKIND, only: wfun
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(6), t(5,n(6))
+  type(wfun),        intent(in)    :: WF1(n(1)), WF2(n(2)), WF3(n(3)), WF4(n(4)), WF5(n(5))
+  type(wfun),        intent(out)   :: WF6(n(6))
+  integer(intkind2) :: h1, h2, h3, h4, h5, h6, i, n2_in, n3_in, n4_in, n5_in
+  integer(intkind2) :: iq, imin, emin
+  integer(intkind2) :: taux(5)
+  type(wfun)        :: WFaux
+
+  if(ntry /= 1) then ! the following operations input table t in initialisation form
+    call ol_error(2,'in subroutine helbookkeeping_vert6:')
+    call ol_error(2,'ntry =' // to_string(ntry) // ' not allowed')
+    call ol_fatal()
+  end if
+
+  ! sets n(1) = # of non-zero WF1 components and check that all zeros are at the end
+  h1 = n(1)
+  do i = 1, n(1)
+    if (WF1(i)%e == -1_intkind2) then
+      h1 = i - 1
+      exit
+    end if
+  end do
+  do i = h1 + 1, n(1)
+    if (WF1(i)%e /= -1_intkind2) then
+      call ol_error(2,'in subroutine helbookkeeping_vert5:')
+      call ol_error(2,'i, h1, n(1), WF1(i)%e =' // to_string(i) // " " // to_string(h1) // " " //  &
+                  &  to_string(n(1)) // " " //  to_string(WF1(i)%e))
+      call ol_fatal()
+    end if
+  end do
+  n(1) = h1
+
+  ! sets n(2) = # of non-zero WF2 components and check that all zeros are at the end
+  h2 = n(2)
+  do i = 1, n(2)
+    if (WF2(i)%e == -1_intkind2) then
+      h2 = i - 1
+      exit
+    end if
+  end do
+  do i = h2 + 1, n(2)
+    if (WF2(i)%e /= -1_intkind2) then
+      call ol_error(2,'in subroutine helbookkeeping_vert5:')
+      call ol_error(2,'i, h2, n(2), WF2(i)%e =' // to_string(i) // " " // to_string(h2) // " " //  &
+                  &  to_string(n(2)) // " " //  to_string(WF2(i)%e))
+      call ol_fatal()
+    end if
+  end do
+  n2_in = n(2)
+  n(2) = h2
+
+  ! sets n(3) = # of non-zero WF3 components and check that all zeros are at the end
+  h3 = n(3)
+  do i = 1, n(3)
+    if (WF3(i)%e == -1_intkind2) then
+      h3 = i - 1
+      exit
+    end if
+  end do
+  do i = h3 + 1, n(3)
+    if (WF3(i)%e /= -1_intkind2) then
+      call ol_error(2,'in subroutine helbookkeeping_vert5:')
+      call ol_error(2,'i, h3, n(3), WF3(i)%e =' // to_string(i) // " " // to_string(h3) // " " //  &
+                  &  to_string(n(3)) // " " //  to_string(WF3(i)%e))
+      call ol_fatal()
+    end if
+  end do
+  n3_in = n(3)
+  n(3) = h3
+
+
+  ! sets n(4) = # of non-zero WF4 components and check that all zeros are at the end
+  h4 = n(4)
+  do i = 1, n(4)
+    if (WF4(i)%e == -1_intkind2) then
+      h4 = i - 1
+      exit
+    end if
+  end do
+  do i = h4 + 1, n(4)
+    if (WF4(i)%e /= -1_intkind2) then
+      call ol_error(2,'in subroutine helbookkeeping_vert5:')
+      call ol_error(2,'i, h4, n(4), WF4(i)%e =' // to_string(i) // " " // to_string(h4) // " " //  &
+                  &  to_string(n(4)) // " " //  to_string(WF4(i)%e))
+      call ol_fatal()
+    end if
+  end do
+  n4_in = n(4)
+  n(4) = h4
+
+
+  ! sets n(4) = # of non-zero WF4 components and check that all zeros are at the end
+  h5 = n(5)
+  do i = 1, n(5)
+    if (WF5(i)%e == -1_intkind2) then
+      h5 = i - 1
+      exit
+    end if
+  end do
+  do i = h5 + 1, n(5)
+    if (WF5(i)%e /= -1_intkind2) then
+      call ol_error(2,'in subroutine helbookkeeping_vert6:')
+      call ol_error(2,'i, h5, n(5), WF5(i)%e =' // to_string(i) // " " // to_string(h5) // " " //  &
+                  &  to_string(n(5)) // " " //  to_string(WF5(i)%e))
+      call ol_fatal()
+    end if
+  end do
+  n5_in = n(5)
+  n(5) = h5
+
+
+  ! restrict I/O table to non-vanishing helicity configurations
+  i  = 0 ! index of WF5 states
+  h6 = 0 ! index of non-zero WF5 states
+  do h1 = 1, n(1)
+    do h2 = 1, n(2)
+      do h3 = 1, n(3)
+        do h4 = 1, n(4)
+          do h5 = 1, n(5)
+            i  = h5 + n5_in * (h4-1 + n4_in * (h3-1 + n3_in * (h2-1 + n2_in * (h1-1)))) ! assumes input table in standard inititalisation form
+            if (all(WF6(i)%j == 0)) cycle ! skips vanishing WF5 components
+            h6 = h6 + 1
+            t(1,h6) = h1
+            t(2,h6) = h2
+            t(3,h6) = h3
+            t(4,h6) = h4
+            t(5,h6) = h5
+            WF6(h6)%e = WF1(h1)%e + WF2(h2)%e + WF3(h3)%e + WF4(h4)%e + WF5(h5)%e ! additive helicity label for outgoing states
+            if (h6 == i) cycle
+            WF6(h6)%j = WF6(i)%j ! shifts non-zero components to first part of WF6 array
+            WF6(h6)%h = WF6(i)%h ! shifts non-zero components to first part of WF6 array
+          end do
+        end do
+      end do
+    end do
+  end do
+
+  ! put vanishing components at the end of WF4 array
+  do i = h6 + 1, n(6)
+    WF6(i)%j = 0
+    WF6(i)%h = B"00"
+    WF6(i)%e = -1_intkind2 ! marker for vanising helicity states
+  end do
+
+  ! sets n(6) = # of non-vanishing I/O helicity configurations
+  n(6) = h5
+
+  ! sort non-vanishing WF5(1:h5) components and adapt table accordingly
+  do i = 1, n(6) - 1
+    emin = WF6(i)%e
+    imin = i
+    do iq = i + 1, n(6)              ! look for component with helicity < emin
+      if (WF6(iq)%e >= emin) cycle
+      emin = WF6(iq)%e
+      imin = iq
+    end do
+    if (imin > i) then
+       WFaux     = WF6(i) ! flip WF6(i) <-> WF6(imin) components
+       WF6(i)    = WF6(imin)
+       WF6(imin) = WFaux
+       taux        = t(1:5,i) ! same for table
+       t(1:5,i)    = t(1:5,imin)
+       t(1:5,imin) = taux
+    end if
+  end do
+
+end subroutine helbookkeeping_vert6
 
 
 ! **********************************************************************

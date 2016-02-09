@@ -1,3 +1,0 @@
-ppwttj cxttxddxswx 1 EW=1,0 QCD=4,0 CKMORDER=0 MODEL=sm Type=t nc=3 nf=6 MU=0 MD=0 MS=0 MC=0 LeadingColour=0
-ppwttj uxccxttxdwx map=cxttxddxswx[1,4,5,2,3,6,7]
-ppwttj uxttxdbbxwx condmap=cxttxddxswx[1,2,3,6,4,5,7] MB=0

@@ -165,6 +165,8 @@ module ol_parameters_decl_/**/REALKIND
   ! 0: never, 1: on finish() call, 2: adaptive, 3: always
   integer, save :: stability_log = 0
   integer, save :: write_psp = 0 ! write out phase space points from vamp2generic is called
+  integer, save :: ti_monitor = 0 ! 1: write squared matrix element contribution per tensor integral
+                                  ! 2: also write tensor integral call arguments to a file.
   integer, save :: use_me_cache = 1
   integer, save :: parameters_changed = 1 ! unchanged: ME for the same psp can be taken from cache
   character(len=max_parameter_length) :: stability_logdir = "stability_log"
@@ -176,6 +178,7 @@ module ol_parameters_decl_/**/REALKIND
   logical, save :: write_shopping_list = .false.
   logical, save :: write_params_at_start = .false.
   logical, save :: stability_logdir_not_created = .true.
+  logical, save :: nosplash = .false.
   character(16) :: pid_string ! 11 for pid, "-", 4 random characters
   ! OpenLoops installation path; used to locate info files and process libraries
   ! character(len=:), allocatable :: install_path ! gfortran 4.7: doesn't work in modules and type (though it does in subroutines)
@@ -215,6 +218,8 @@ module ol_parameters_decl_/**/REALKIND
   ! 0: both, 1: only transverse, 2: only longitudinal
   integer, save :: select_pol_V = 0
   integer :: add_associated_ew = 0
+  ! library loader: check online collection: yes/no
+  logical :: check_collection = .true.
 #endif
 
   ! Numerical constants
@@ -313,23 +318,50 @@ module ol_parameters_decl_/**/REALKIND
   ! Vertex scale factors for naive deviations from the Standard Model (changes don't affect CT/R2)
   real(REALKIND), save :: lambdaHHH = 1, lambdaHWW = 1, lambdaHZZ = 1
   ! Coefficients of Higgs FormFactors/Pseudo-Observables
-  real(REALKIND), save :: kappaWW = 1
-  real(REALKIND), save :: kappaZZ = 1
-  real(REALKIND), save :: epsilonWW = 0
-  real(REALKIND), save :: aepsilonWW = 0
-  real(REALKIND), save :: epsilonZZ = 0
-  real(REALKIND), save :: aepsilonZZ = 0
-  real(REALKIND), save :: epsilonZA = 0
-  real(REALKIND), save :: aepsilonZA = 0
-  real(REALKIND), save :: epsilonAA = 0
-  real(REALKIND), save :: aepsilonAA = 0
-  real(REALKIND), save :: epsilonZnn(3) = 0
-  real(REALKIND), save :: epsilonZll(3) = 0
-  real(REALKIND), save :: epsilonZdd(3) = 0
-  real(REALKIND), save :: epsilonZuu(3) = 0
-  ! take the following real for the moment. In general can be complex
-  real(REALKIND), save :: epsilonWqq(3) = 0
-  real(REALKIND), save :: epsilonWln(3) = 0
+  ! Cabibbo Angle
+  real(REALKIND), save :: ThetaCabi = 0.2274_/**/REALKIND
+  real(REALKIND), save :: cCabi, sCabi
+  ! Higgs vev
+  real(REALKIND), save :: HPOvev_unscaled  = 246.22_/**/REALKIND
+  real(REALKIND), save :: HPOvev
+  ! Z/W-Pole
+  real(REALKIND), save :: HPOgZeL = -0.2696_/**/REALKIND
+  real(REALKIND), save :: HPOgZeR = 0.2315_/**/REALKIND
+  real(REALKIND), save :: HPOgZmL = -0.269_/**/REALKIND
+  real(REALKIND), save :: HPOgZmR = 0.232_/**/REALKIND
+  real(REALKIND), save :: HPOgZlL = -0.2693_/**/REALKIND
+  real(REALKIND), save :: HPOgZlR = 0.23270_/**/REALKIND
+  real(REALKIND), save :: HPOgZv  = 0.5_/**/REALKIND
+  real(REALKIND), save :: HPOgZuL = 0.3467000_/**/REALKIND
+  real(REALKIND), save :: HPOgZuR = -0.1547000_/**/REALKIND
+  real(REALKIND), save :: HPOgZdL = -0.4243000_/**/REALKIND
+  real(REALKIND), save :: HPOgZdR = 0.07735000_/**/REALKIND
+  real(REALKIND), save :: HPOgWeL = 0.994_/**/REALKIND
+  real(REALKIND), save :: HPOgWmL = 0.991_/**/REALKIND
+  real(REALKIND), save :: HPOgWlL = 1.025_/**/REALKIND
+  real(REALKIND), save :: HPOgWqL = 1._/**/REALKIND
+  ! PO
+  real(REALKIND), save :: HPOkapWW = 1
+  real(REALKIND), save :: HPOkapZZ = 1
+  real(REALKIND), save :: HPOepsWW = 0
+  real(REALKIND), save :: HPOaepsWW = 0
+  real(REALKIND), save :: HPOepsZZ = 0
+  real(REALKIND), save :: HPOaepsZZ = 0
+  real(REALKIND), save :: HPOepsZA = 0
+  real(REALKIND), save :: HPOaepsZA = 0
+  real(REALKIND), save :: HPOepsAA = 0
+  real(REALKIND), save :: HPOaepsAA = 0
+  complex(REALKIND), save :: HPOepsZnn(3,2) = 0
+  complex(REALKIND), save :: HPOepsZll(3,2) = 0
+  complex(REALKIND), save :: HPOepsZdd(3,2) = 0
+  complex(REALKIND), save :: HPOepsZuu(3,2) = 0
+  real(REALKIND), save :: HPOepsWqq(3) = 0
+  real(REALKIND), save :: HPOepsWln(3) = 0
+  real(REALKIND), save :: HPOphiWeL = 0
+  real(REALKIND), save :: HPOphiWmL = 0
+  real(REALKIND), save :: HPOphiWlL = 0
+  real(REALKIND), save :: HPOphiWqL = 0
+  real(REALKIND), save :: HPOcpWeL, HPOspWeL, HPOcpWmL, HPOspWmL, HPOcpWlL, HPOspWlL, HPOcpWqL, HPOspWqL
   ! 2HDM parameters
   ! thdm_a ("alpha") is the (h0, H0) mixing angle,
   ! thdmTB is the ratio of the VEVs of the two Higgs doublets
@@ -352,6 +384,7 @@ module ol_parameters_decl_/**/REALKIND
   ! Charged Higgs-fermion left/right couplings
   complex(REALKIND), save :: thdmHpud(2), thdmHpdu(2), thdmHpcs(2), thdmHpsc(2), thdmHptb(2), thdmHpbt(2)
 
+
 end module ol_parameters_decl_/**/REALKIND
 
 
@@ -366,13 +399,8 @@ module ol_loop_parameters_decl_/**/REALKIND
 ! reset the value to its default.
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND
+  use iso_fortran_env, only: output_unit
   use ol_parameters_decl_/**/REALKIND
-#ifdef USE_ONELOOP
-  use avh_olo_version, only: olo_splash_done => done
-#endif
-#ifdef USE_CUTTOOLS
-  use countdigits, only: cts_splash_todo
-#endif
   implicit none
   integer,        save :: loop_parameters_status = 0
 
@@ -384,6 +412,7 @@ module ol_loop_parameters_decl_/**/REALKIND
   ! switch on UV counterterms, R2 terms, IR dipoles
   integer,        save :: SwF = 1 ! factors to multiply diagrams with fermion loops
   integer,        save :: SwB = 1 ! factors to multiply diagrams with non-fermion loops
+  integer,        save :: DOI = 1 ! factors to multiply double-operator-insertions in HHEFT
   integer,        save :: CT_is_on = 1 ! switch on/off UV CT contributions
   integer,        save :: R2_is_on = 1 ! switch on/off R2 contributions
   integer,        save :: TP_is_on = 1 ! switch on/off tadpole-like contributions
@@ -399,7 +428,7 @@ module ol_loop_parameters_decl_/**/REALKIND
   real(REALKIND), save :: trigeff_targ = .2_/**/REALKIND   ! target efficiency of K-factor based stability trigger (should not be << 0.1)
   real(REALKIND), save :: abscorr_unst = 0.01_/**/REALKIND ! relative deviation above which a point is considered "unstable" and
                                               ! reevaluated in quad precision (if active); also logs the point in 2x modes
-  real(REALKIND), save :: ratcorr_bad  = 1    ! relative deviation of two virtual matrix elements above which
+  real(REALKIND), save :: ratcorr_bad = 1     ! relative deviation of two virtual matrix elements above which
                                               ! an unstable point is considered "bad" and possibly "killed"
                                               ! (i.e. the finite part of the virtual correcton is set to zero)
   real(REALKIND), save :: ratcorr_bad_L2 = 10 ! relative deviation of two virtual matrix elements above which
@@ -410,12 +439,16 @@ module ol_loop_parameters_decl_/**/REALKIND
   real(REALKIND),    save :: C_PV_threshold = 1.e-6 ! threshold precision to activate 3-point alternative reductions
   real(REALKIND),    save :: D_PV_threshold = 1.e-6 ! threshold precision to activate 4-point alternative reductions
   integer,           save :: dd_red_mode    = 2     ! PV or alternative 3/4-point reductions
+  integer,           save :: cll_log = 0 ! 1: create Collier log files; 2: precision monitor initmonitoring_cll()
+  integer,           save :: maxcachetrain = 13 ! number of points after which the cache is fully trained
   ! setaccuracy_cll() arguments
   real(REALKIND),    save :: cll_pvthr = 1.e-6_/**/REALKIND, cll_accthr = 1.e-4_/**/REALKIND
   real(REALKIND),    save :: cll_mode3thr = 1.e-8_/**/REALKIND
   integer,           save :: cll_tenred = 7 ! settenred_cll(): # of legs from which on component reduction is used
   real(REALKIND),    save :: ti_os_thresh = 1.e-10
 
+  integer,           save :: olo_verbose = 0 ! OneLOop verbosity level, 0..4
+  integer,           save :: olo_outunit = output_unit
   ! CutTools parameters
   real(REALKIND),    save :: opprootsvalue_unscaled = 1000
   real(REALKIND),    save :: opprootsvalue
@@ -423,12 +456,6 @@ module ol_loop_parameters_decl_/**/REALKIND
   real(REALKIND),    save :: oppthrs       = 1.e-6_/**/REALKIND
   integer,           save :: oppidig       = 0
   integer,           save :: oppscaloop    = 2
-#ifndef USE_ONELOOP
-  logical,           save :: olo_splash_done = .false.
-#endif
-#ifndef USE_CUTTOOLS
-  logical,           save :: cts_splash_todo = .true.
-#endif
 
   ! Samurai parameters
   character(4),      save :: set_imeth     = 'diag'
@@ -448,7 +475,7 @@ module ol_loop_parameters_decl_/**/REALKIND
   integer, save :: tensor_reduction_error = 0
 
   logical, save :: reset_mureg = .true.
-  logical, save :: reset_oppthrs = .true.
+  logical, save :: reset_opp = .true.
 
   integer,        save      :: nc    = 3          ! number of colours
   integer,        save      :: nf = 6, nf_up = 3, nf_down =3 ! number of quarks (total, up-type, down-type)
@@ -742,6 +769,8 @@ module ol_loop_parameters_decl_/**/REALKIND
   complex(REALKIND), save :: EWctXtt(2)
   complex(REALKIND), save :: EWctXbb(2)
   complex(REALKIND), save :: EWctXLL(2)
+  complex(REALKIND), save :: EWctPud(2)
+  complex(REALKIND), save :: EWctPdu(2)
   complex(REALKIND), save :: EWctPtb(2)
   complex(REALKIND), save :: EWctPbt(2)
   complex(REALKIND), save :: EWctPnL(2)

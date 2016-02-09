@@ -8,6 +8,7 @@
   use scale
   use dimensions
   use avh_olo
+  use ol_debug, only: olodebug_unit
   implicit none
   private
   public :: allocate_loopfun,getloop
@@ -93,6 +94,7 @@
 !
 !  A 1-loop scalar function
 !
+   use ol_generic, only: to_string
    integer :: ib
    include 'cts_dpc.h'
     , dimension(0:2) :: value
@@ -109,6 +111,9 @@
     elseif (scaloop.eq.2) then
      cm12= den(bbn1(1,ib))%m2
      call olo(value,cm12)
+     if (olo_errorcode > 0 .and. olodebug_unit >= 0) then
+       write(olodebug_unit,*) "call olo(res(0:2)," // trim(to_string(cm12)) // ")"
+     end if
      aloopfun(:,ib)= value(:) 
 !     elseif (scaloop.eq.3) then
 !      m12= dreal(den(bbn1(1,ib))%m2)
@@ -126,6 +131,7 @@
 !  B,B1 and B11 1-loop scalar functions
 !
    use tensor_operations  
+   use ol_generic, only: to_string
    integer :: ib
    include 'cts_dpr.h' 
     :: k12
@@ -154,6 +160,10 @@
      cm12= den(bbn2(1,ib))%m2
      cm22= den(bbn2(2,ib))%m2
      call olo(valb11,valb00,valb1,valb0,k12,cm12,cm22)
+     if (olo_errorcode > 0 .and. olodebug_unit >= 0) then
+       write(olodebug_unit,*) "call olo(res11(0:2),res00(0:2),res1(0:2),res0(0:2)," // &
+         & trim(to_string(k12)) // "," // trim(to_string(cm12)) // "," // trim(to_string(cm22)) // ")"
+     end if
      bloopfun(:,ib)  =  valb0(:)
      b1loopfun(:,ib) =  valb1(:)
      b11loopfun(:,ib)=  valb11(:)
@@ -176,6 +186,7 @@
 !
 !  C 1-loop scalar function
 !
+   use ol_generic, only: to_string
    use tensor_operations  
    integer :: ib
    include 'cts_dpr.h' 
@@ -208,6 +219,11 @@
      cm22= den(bbn3(2,ib))%m2
      cm32= den(bbn3(3,ib))%m2
      call olo(value,k12,k22,k32,cm12,cm22,cm32)
+     if (olo_errorcode > 0 .and. olodebug_unit >= 0) then
+       write(olodebug_unit,*) "call olo(res(0:2)," // trim(to_string(k12)) // "," // trim(to_string(k22)) // &
+         & "," // trim(to_string(k32)) // "," // trim(to_string(cm12)) // "," // trim(to_string(cm22)) // &
+         & "," // trim(to_string(cm32)) // ")"
+     end if
      cloopfun(:,ib)  =        value(:) 
 !     elseif (scaloop.eq.3) then
 !      m12= dreal(den(bbn3(1,ib))%m2)
@@ -226,6 +242,7 @@
 !
 !  D 1-loop scalar function
 !
+   use ol_generic, only: to_string
    use tensor_operations  
    integer :: ib
    include 'cts_dpr.h' 
@@ -268,6 +285,12 @@
      cm32= den(bbn4(3,ib))%m2
      cm42= den(bbn4(4,ib))%m2
      call olo(value,k12,k22,k32,k42,k122,k232,cm12,cm22,cm32,cm42)
+     if (olo_errorcode > 0 .and. olodebug_unit >= 0) then
+       write(olodebug_unit,*) 'call olo(res(0:2),' // trim(to_string(k12)) // "," // trim(to_string(k22)) // &
+         & "," // trim(to_string(k32)) // "," // trim(to_string(k42)) // "," // trim(to_string(k122)) // &
+         & "," // trim(to_string(k232)) // ","// trim(to_string(cm12)) // "," // trim(to_string(cm22)) // &
+         & "," // trim(to_string(cm32)) // "," // trim(to_string(cm42)) // ')'
+     end if
      dloopfun(:,ib)  =        value(:) 
 !     elseif (scaloop.eq.3) then
 !      m12= dreal(den(bbn4(1,ib))%m2)

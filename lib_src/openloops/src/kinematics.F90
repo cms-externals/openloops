@@ -371,7 +371,7 @@ end subroutine rambo
 
 subroutine rambo_c(sqrt_s, m_ex, n, p_rambo) bind(c,name="ol_rambo")
   use KIND_TYPES, only: REALKIND
-  use ol_debug, ol_fatal
+  use ol_debug, only: ol_fatal
   use, intrinsic :: iso_c_binding, only: c_double, c_int
   implicit none
   integer(c_int), intent(in)  :: n
@@ -584,7 +584,7 @@ end subroutine dirty_mom
 
 ! **********************************************************************
 subroutine conv_mom_scatt2in(P_scatt, m_ext2, P_in_clean, perm_inv, n)
-! Keep two incoming momenta and reverse outgoing momenta.
+! Keep incoming momenta and reverse outgoing momenta.
 ! Apply phase space cleaning and crossing.
 ! ToDo: cleaning for n_scatt /= 2
 ! **********************************************************************
@@ -609,7 +609,7 @@ subroutine conv_mom_scatt2in(P_scatt, m_ext2, P_in_clean, perm_inv, n)
   end do
   P_in(:,1:n_scatt) =   scalefactor * P_scatt(:,1:n_scatt)
   P_in(:,n_scatt+1:)  = - scalefactor * P_scatt(:,n_scatt+1:)
-  if (n_scatt == 2) then
+  if (n_scatt == 2 .and. n > 3) then
     ! Clean momenta to get full numerical precision.
     ! Do the cleaning in the original permutation where the first two momenta are incoming.
     ! Otherwise the beam alignment (zero components) might be spoiled by the cleaning.

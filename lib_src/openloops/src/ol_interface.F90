@@ -38,7 +38,8 @@ module openloops
   ! process interface
   public :: n_external, amplitudetype, phase_space_point, start, finish, tree_colbasis_dim, tree_colbasis
   public :: register_process, register_process_id
-  public :: evaluate_tree, evaluate_tree_colvect, evaluate_cc, evaluate_ccmatrix, evaluate_sc, evaluate_scpowheg
+  public :: evaluate_tree, evaluate_cc, evaluate_ccmatrix, evaluate_sc, evaluate_scpowheg
+  public :: evaluate_tree_colvect, evaluate_tree_colvect2
   public :: evaluate_full, evaluate_loop, evaluate_loop2, evaluate_ct, evaluate_pt
   ! Print parameters
   public :: ol_printparameter
@@ -258,6 +259,10 @@ module openloops
     ! Check if the process was registered before with the same permutation, polarization and amptype.
     ! If yes, return the previously assigned id
     do k = 1, last_process_id
+      if ((trim(proc) /= trim(process_handles(k)%process_name)) .or. &
+        & (trim(libname) /= trim(process_handles(k)%library_name)) ) then
+        cycle
+      end if
       if (present(perm)) then
         same_perm = all(perm == process_handles(k)%permutation)
       else
@@ -269,9 +274,7 @@ module openloops
       else
         same_pol = all(process_handles(k)%pol == 0)
       end if
-      if ((trim(proc) == trim(process_handles(k)%process_name)) .and. &
-        & (trim(libname) == trim(process_handles(k)%library_name)) .and. &
-        & same_perm .and. &
+      if (same_perm .and. &
         & same_pol .and. &
         & (amptype == process_handles(k)%amplitude_type) ) then
         register_process_lib = k
@@ -301,7 +304,6 @@ module openloops
   end function register_process_lib
 
 
-
   subroutine unregister_processes()
     ! Close all process libraries and nullify process handles.
     use ol_dlfcn, only: dlclose
@@ -312,6 +314,7 @@ module openloops
       process_handles(id)%n_particles = 0
       process_handles(id)%content = 0
       deallocate(process_handles(id)%permutation)
+      deallocate(process_handles(id)%pol)
       deallocate(process_handles(id)%masses)
       process_handles(id)%library_handle = c_null_ptr
       process_handles(id)%set_permutation => null()
@@ -355,6 +358,9 @@ module openloops
     call parameters_flush() ! make sure that pid_string is set
     register_process_string = -1
 
+    call ol_msg(3,"registering process: " // trim(process_in) )
+
+
     ! process: in -> out
     if (index(process_in, ">") > 0) then
 
@@ -363,9 +369,8 @@ module openloops
         outp = adjustl(process_in(index(process_in, "->")+2:len(process_in)))
       else
         inp = adjustl(trim(process_in(1:index(process_in, ">")-1)))
-        outp = adjustl(process_in(index(process_in, ">")+2:len(process_in)))
+        outp = adjustl(process_in(index(process_in, ">")+1:len(process_in)))
       end if
-
 
       n_in = size(process_to_extparticlelist(inp))
       n_out = size(process_to_extparticlelist(outp))
@@ -398,7 +403,7 @@ module openloops
         pol(perm(i)) = ext(i)%pol
       end do
 
-      call ol_msg(3,"registering process: " // trim(proc) // ", " // integerlist_to_string([(ext(i)%id,i=1,size(ext))]))
+      call ol_msg(3,"check process library for: " // trim(proc) // ", " // integerlist_to_string([(ext(i)%id,i=1,size(ext))]))
 
       if (amptype == 99 .or. write_shopping_list ) then ! write shopping list
         ! charge conjugate back final state particles to write shopping list
@@ -531,6 +536,7 @@ module openloops
 
   function loop_over_libraries(proc, amptype, n_in, perm, pol, process_in)
   use KIND_TYPES, only: DREALKIND
+  use ol_parameters_decl_/**/DREALKIND, only: check_collection
   ! loop over library types
     implicit none
     character(len=max_parameter_length), intent(in) :: proc
@@ -551,14 +557,14 @@ module openloops
         exit
       else if (check == 0) then ! look in next library type
         librarytype = librarytype + 1
-      else if (check == -1) then  ! not found --> check collections
+      else if (check == -1 .and. check_collection) then  ! not found --> check collections
         check = check_process(proc, 999, librarytype, n_in, perm_in=perm, pol=pol, process_string=process_in)
         if (error > 1) return
         if (check /= 1) then ! not found anywhere
           call ol_msg("register_process: process " // trim(process_in) // " not found!")
         end if
         exit
-      else if (check == -2) then ! error
+      else if (check == -2 .or. .not. check_collection) then ! return
           return
       end if
     end do
@@ -615,7 +621,7 @@ module openloops
     integer, save :: max_out_length = 35
     logical :: found
     logical :: is_already_loaded, only_loaded
-    logical :: has_pol
+    logical :: has_pol = .false.
     character(len=4) :: loops_specification
     character(len=4) :: lib_specification
     character(len=max_parameter_length) :: proc, libfilename, libhandle, libname
@@ -705,6 +711,7 @@ module openloops
         end if
       case (999) ! check libraries
         lib_specification = "lib"
+        loops_specification = ""
         if (info_files_read < 2) then
           call readAllInfoFiles(.true.)
             if (error /= 0)  then
@@ -909,6 +916,7 @@ module openloops
         if (allocated(perm)) then
           outstring = trim(outstring) //  trim(integerlist_to_string(perm,.true.))
         end if
+        outstring = trim(outstring) // " (id=" // trim(to_string(check_process)) // ")"
         outstring = trim(outstring) // trim(mapping_str)
         call ol_msg(1,outstring)
 
@@ -1063,7 +1071,7 @@ module openloops
   subroutine readAllInfoFiles(load_channel_lib)
     use ol_parameters_decl_/**/DREALKIND, only: install_path
     use iso_fortran_env, only: iostat_end
-    use ol_dirent, only: opendir, readdir, closedir
+    use ol_cwrappers, only: opendir, readdir, closedir
     implicit none
     logical, optional, intent(in) :: load_channel_lib
     integer :: readok
@@ -1710,6 +1718,7 @@ module openloops
   function ID_to_extparticle(id_in)
     use KIND_TYPES, only: DREALKIND
     use ol_generic, only: to_int, to_lowercase
+    use ol_parameters_decl_/**/DREALKIND, only: use_me_cache
   ! MadGraph naming scheme -> PDG
     implicit none
     character(len=*), intent(in) :: id_in
@@ -1719,9 +1728,14 @@ module openloops
     if (index(id_in, "(") > 0 .and. index(id_in, ")") > 0) then
       ID_to_extparticle%pol = to_int(id_in(index(id_in,"(")+1:index(id_in,")")-1))
       if (ID_to_extparticle%pol /= 0 .and. abs(ID_to_extparticle%pol) /= 1 .and. ID_to_extparticle%pol /= 2) then
-        call ol_error("polarization of external particles has to be: 0,-1,1,2")
+        call ol_error("polarization of external particles has to be: 0 (unpol.), -1 (left), 1 (right), 2 (long.)")
       end if
       id = id_in(1:index(id_in,"(")-1)
+      ! deactive me_cache for polarized amplitudes
+      if (use_me_cache == 1) then
+        use_me_cache = 0
+        call ol_msg(2,"Matrix element cache deactivated (not available for polarized amplitudes).")
+      end if
     else
       ID_to_extparticle%pol = 0
       id = id_in
@@ -1790,13 +1804,13 @@ module openloops
         ID_to_extparticle%id = 25
       case  ('h1')
         ID_to_extparticle%id = 25
-      case  ('h2')
+      case  ('h2', 'h0')
         ID_to_extparticle%id = 35
-      case  ('h3')
+      case  ('h3', 'a0')
         ID_to_extparticle%id = 36
-      case  ('h-')
+      case  ('h-', 'hpx')
         ID_to_extparticle%id = -37
-      case  ('h+')
+      case  ('h+', 'hp')
         ID_to_extparticle%id = 37
       case default
         ID_to_extparticle%id = to_int(trim(id))
@@ -2182,13 +2196,15 @@ module openloops
 
   subroutine start() bind(c,name="ol_start")
     use ol_parameters_decl_/**/DREALKIND,  only: &
-      & write_params_at_start, stability_logdir_not_created, stability_log, stability_logdir
+      & write_params_at_start, stability_logdir_not_created, stability_log, stability_logdir, &
+      & write_psp, ti_monitor
     use ol_parameters_init_/**/DREALKIND, only: parameters_write
-    use ol_dirent, only: mkdir
+    use ol_cwrappers, only: mkdir
     implicit none
     integer :: mkdirerr
     call parameters_flush()
-    if (stability_logdir_not_created .and. stability_log > 0) then
+    if (stability_logdir_not_created .and. (stability_log > 0 .or. &
+      & write_psp > 0 .or. ti_monitor > 0)) then
       stability_logdir_not_created = .false.
       mkdirerr = mkdir(stability_logdir)
     end if
@@ -2274,7 +2290,7 @@ module openloops
     implicit none
     integer(c_int), value :: id
     real(c_double), intent(in) :: pp(5*n_external(id))
-    real(c_double) :: amp(2*get_tree_colbasis_dim(id),get_nhel(id))
+    real(c_double), intent(out) :: amp(2*get_tree_colbasis_dim(id),get_nhel(id))
     integer(c_int), intent(out) :: nhel
     real(c_double) :: res
     complex(DREALKIND) :: f_amp(get_tree_colbasis_dim(id),get_nhel(id))
@@ -2289,6 +2305,40 @@ module openloops
     end do
     nhel = f_nhel
   end subroutine evaluate_tree_colvect_c
+
+
+  subroutine evaluate_tree_colvect2(id, psp, m2arr)
+    ! Helicity summed squared tree colour vector.
+    ! Apart from the missing colour factor these are the squared matrix elements
+    ! for each colour flow.
+    ! [in] id: process id as set by register_process
+    ! [in] psp: phase space point
+    ! [out] m2arr: array of squared matrix elements per colour flow
+    implicit none
+    integer, intent(in) :: id
+    real(DREALKIND), intent(in) :: psp(:,:)
+    real(DREALKIND), intent(out) :: m2arr(:)
+    integer :: nhel
+    real(DREALKIND) :: res
+    complex(DREALKIND) :: amp(get_tree_colbasis_dim(id),get_nhel(id))
+    call evaluate_tree(id, psp, res) ! fill colour vector cache
+    call process_handles(id)%tree_colvect(amp, nhel)
+    m2arr = sum(real(amp(:,1:nhel)*conjg(amp(:,1:nhel))), 2)
+  end subroutine evaluate_tree_colvect2
+
+
+  subroutine evaluate_tree_colvect2_c(id, pp, m2arr) bind(c,name="ol_evaluate_tree_colvect2")
+    implicit none
+    integer(c_int), value :: id
+    real(c_double), intent(in) :: pp(5*n_external(id))
+    real(c_double), intent(out) :: m2arr(get_tree_colbasis_dim(id))
+    integer :: nhel
+    real(c_double) :: res
+    complex(DREALKIND) :: amp(get_tree_colbasis_dim(id),get_nhel(id))
+    call evaluate_tree_c(id, pp, res) ! fill colour vector cache
+    call process_handles(int(id))%tree_colvect(amp, nhel)
+    m2arr = sum(real(amp(:,1:nhel)*conjg(amp(:,1:nhel))), 2)
+  end subroutine evaluate_tree_colvect2_c
 
 
   subroutine evaluate_cc(id, psp, tree, cc, ewcc)
@@ -2399,7 +2449,7 @@ module openloops
     implicit none
     integer(c_int), value :: id
     real(c_double), intent(in) :: pp(5*n_external(id))
-    real(c_double), intent(out) :: tree, ccij(n_external(id),n_external(id)), ewcc
+    real(c_double), intent(out) :: tree, ccij(n_external(id)*n_external(id)), ewcc
     integer :: f_id
     real(DREALKIND) :: f_pp(0:4,n_external(id))
     real(DREALKIND) :: f_tree, f_ccij(n_external(id),n_external(id)), f_ewcc
@@ -2409,7 +2459,7 @@ module openloops
     f_pp = reshape(pp, [5,process_handles(id)%n_particles])
     call evaluate_ccmatrix(f_id, f_pp(0:3,:), f_tree, f_ccij, f_ewcc)
     tree = f_tree
-    ccij = f_ccij
+    ccij = reshape(f_ccij,(/n_external(id)*n_external(id)/))
     ewcc = f_ewcc
   end subroutine evaluate_ccmatrix_c
 
@@ -2508,7 +2558,7 @@ module openloops
     implicit none
     integer(c_int), value :: id, emitter
     real(c_double), intent(in) :: pp(5*n_external(id))
-    real(c_double), intent(out) :: res, resmunu(4,4)
+    real(c_double), intent(out) :: res, resmunu(16)
     integer :: f_id, f_emitter
     real(DREALKIND) :: f_pp(0:4,n_external(id))
     real(DREALKIND) :: f_res, f_resmunu(4,4)
@@ -2519,6 +2569,7 @@ module openloops
     f_emitter = emitter
     call evaluate_scpowheg(f_id, f_pp(0:3,:), f_emitter, f_res, f_resmunu)
     res = f_res
+    resmunu = reshape(f_resmunu,(/4*4/))
   end subroutine evaluate_scpowheg_c
 
 
@@ -2559,8 +2610,7 @@ module openloops
       n_scatt = subprocessew%n_in
       call subprocessew%set_permutation(subprocessew%permutation)
       IR_is_on_bak = IR_is_on
-      IR_is_on = 0
-      call set_parameter("mureg", rMZ)
+      IR_is_on = 2
       call set_parameter("ew_renorm", 1)
       if (subprocessew%has_pol) call subprocessew%pol_init(subprocessew%pol)
       call parameters_flush()
@@ -2576,6 +2626,7 @@ module openloops
     if (IR_is_on == 3) then
       m2l1 = ir1
     end if
+    call ol_msg(5,"evaluate_full: " // trim(to_string(m2l0)) // " " // trim(to_string(m2l1(0))))
   end subroutine evaluate_full
 
 
@@ -2741,7 +2792,7 @@ module openloops
     if (error > 1) return
     subprocess = process_handles(id)
     if (.not. btest(subprocess%content, 3)) then
-      call ol_fatal('evaluate: ct routine not available for process ' // trim(to_string(id)))
+      call ol_fatal('evaluate: pt routine not available for process ' // trim(to_string(id)))
       return
     end if
     n_scatt = subprocess%n_in

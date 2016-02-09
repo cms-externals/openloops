@@ -22,7 +22,13 @@ import sys
 import ConfigParser
 import re
 
-prefix = '' # prefix for default_config_file and user_config_file
+# prefix for default_config_file and user_config_file
+prefix = globals().get('__file__', '')
+if prefix:
+    prefix = os.path.dirname(os.path.abspath(prefix)) # tools
+    prefix = os.path.dirname(prefix) # pyol
+    prefix = os.path.dirname(prefix)
+
 default_config_file = os.path.join('pyol', 'config', 'default.cfg')
 user_config_file = 'openloops.cfg'
 
@@ -130,6 +136,7 @@ def get_config(args=[]):
                  subset_of=['rambo', 'collier', 'cuttools', 'samurai'])
     parse_option(config, 'scalar_integral_libraries', converter=split_list,
                  subset_of=['qcdloop', 'oneloop'])
+    parse_option(config, 'collier_legacy', converter=parse_bool)
     parse_option(config, 'clean', converter=split_list,
                  subset_of=['procs', 'src'])
     parse_option(config, 'debug', converter=int, one_of=range(8))
@@ -145,6 +152,7 @@ def get_config(args=[]):
     parse_option(config, 'generator_files', converter=split_list)
     parse_option(config, 'force_download', converter=parse_bool)
     parse_option(config, 'process_update', converter=parse_bool)
+    parse_option(config, 'pyrunoptions', converter=split_list)
 
     if config['fortran_tool'] == 'auto':
         if config['fortran_compiler'].startswith('ifort'):

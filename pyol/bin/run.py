@@ -21,8 +21,6 @@
 
 # TODO
 # * Python version check.
-# * Accept internal channel identifier to register a process
-#   (distingish from library name).
 # * set model automatically, print message.
 
 
@@ -73,7 +71,9 @@ parser.add_argument(
     'options', metavar='OPT=VAL', nargs='*',
     help='Options to pass to directly to OpenLoops')
 
-options = [arg for arg in sys.argv[1:] if ('=' in arg and not arg.startswith('-'))]
+options = openloops.config['pyrunoptions']
+options.extend([arg for arg in sys.argv[1:]
+                 if ('=' in arg and not arg.startswith('-'))])
 args = parser.parse_args(
     [arg for arg in sys.argv[1:] if (arg.startswith('-') or '=' not in arg)])
 if not args.timing and args.n is None:
@@ -82,8 +82,6 @@ if not args.timing and args.n is None:
 # ======================== #
 # parameter initialisation #
 # ======================== #
-
-openloops.set_parameter('splash',0)
 
 for opt in options:
     try:

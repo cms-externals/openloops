@@ -1,2 +1,0 @@
-ppaaj ddxaag 1 EW=2,0 QCD=1,1 CKMORDER=0 MODEL=sm Type=lt nc=3 nf=6 MU=0 MD=0 MS=0 MC=0 LeadingColour=0
-ppaaj bbxaag condmap=ddxaag MB=0

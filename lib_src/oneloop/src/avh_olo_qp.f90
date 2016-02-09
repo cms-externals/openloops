@@ -1,39 +1,39 @@
 !
 ! Copyright (C) 2015 Andreas van Hameren. 
 !
-! This file is part of OneLOop-3.6.
+! This file is part of OneLOop-3.6.1.
 !
-! OneLOop-3.6 is free software: you can redistribute it and/or modify
+! OneLOop-3.6.1 is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
 !
-! OneLOop-3.6 is distributed in the hope that it will be useful,
+! OneLOop-3.6.1 is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
 !
 ! You should have received a copy of the GNU General Public License
-! along with OneLOop-3.6.  If not, see <http://www.gnu.org/licenses/>.
+! along with OneLOop-3.6.1.  If not, see <http://www.gnu.org/licenses/>.
 !
 
 
 module avh_olo_version
   implicit none
   private
-  public :: olo_version, done
+  public :: olo_version
   logical ,save :: done=.false.
 contains
   subroutine olo_version
   if (done) return ;done=.true.
   write(*,'(a72)') '########################################################################'
   write(*,'(a72)') '#                                                                      #'
-  write(*,'(a72)') '#                      You are using OneLOop-3.6                       #'
+  write(*,'(a72)') '#                     You are using OneLOop-3.6.1                      #'
   write(*,'(a72)') '#                                                                      #'
   write(*,'(a72)') '# for the evaluation of 1-loop scalar 1-, 2-, 3- and 4-point functions #'
   write(*,'(a72)') '#                                                                      #'
   write(*,'(a72)') '# author: Andreas van Hameren <hamerenREMOVETHIS@ifj.edu.pl>           #'
-  write(*,'(a72)') '#   date: 10-05-2015                                                   #'
+  write(*,'(a72)') '#   date: 11-12-2015                                                   #'
   write(*,'(a72)') '#                                                                      #'
   write(*,'(a72)') '# Please cite                                                          #'
   write(*,'(a72)') '#    A. van Hameren,                                                   #'
@@ -52,7 +52,8 @@ module avh_olo_units
   integer :: eunit=6
   integer :: wunit=6
   integer :: munit=6
-  integer :: punit=0 ! print all
+  integer :: punit=-1 ! print all
+  integer :: errorcode=0
 contains
   subroutine set_unit( message ,val )
 !***********************************************************************
@@ -61,17 +62,17 @@ contains
 !***********************************************************************
   character(*) ,intent(in) :: message
   integer      ,intent(in) :: val
-  if (.false.) then
-  elseif (message(1:8).eq.'printall') then ;punit=val
-  elseif (message(1:7).eq.'message' ) then ;munit=val
-  elseif (message(1:7).eq.'warning' ) then ;wunit=val
-  elseif (message(1:5).eq.'error'   ) then ;eunit=val
-  else
+  select case (trim(message))
+  case('printall') ;punit=val
+  case('message' ) ;munit=val
+  case('warning' ) ;wunit=val
+  case('error'   ) ;eunit=val
+  case default 
     eunit=val
     wunit=val
     munit=val
-    punit=0
-  endif
+    punit=-1
+  end select
   end subroutine
 end module
 
@@ -121,7 +122,8 @@ contains
   integer ,parameter :: dm=1
   integer :: lb(dm),ub(dm)
   if (.not.allocated(xx)) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop shift1_r'
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop shift1_r'
     stop
   endif
   lb=lbound(xx) ;ub=ubound(xx)
@@ -142,7 +144,8 @@ contains
   integer ,parameter :: dm=1
   integer :: lb(dm),ub(dm)
   if (.not.allocated(xx)) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop shift1_i'
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop shift1_i'
     stop
   endif
   lb=lbound(xx) ;ub=ubound(xx)
@@ -165,7 +168,8 @@ contains
   integer ,parameter :: dm=2
   integer :: lb(dm),ub(dm)
   if (.not.allocated(xx)) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop shift2_r'
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop shift2_r'
     stop
   endif
   lb=lbound(xx) ;ub=ubound(xx)
@@ -186,7 +190,8 @@ contains
   integer ,parameter :: dm=2
   integer :: lb(dm),ub(dm)
   if (.not.allocated(xx)) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop shift2_i'
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop shift2_i'
     stop
   endif
   lb=lbound(xx) ;ub=ubound(xx)
@@ -209,7 +214,8 @@ contains
   integer ,parameter :: dm=3
   integer :: lb(dm),ub(dm)
   if (.not.allocated(xx)) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop shift3_r'
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop shift3_r'
     stop
   endif
   lb=lbound(xx) ;ub=ubound(xx)
@@ -230,7 +236,8 @@ contains
   integer ,parameter :: dm=3
   integer :: lb(dm),ub(dm)
   if (.not.allocated(xx)) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop shift3_i'
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop shift3_i'
     stop
   endif
   lb=lbound(xx) ;ub=ubound(xx)
@@ -711,7 +718,8 @@ contains
 
   if (aa.eq.CZRO) then
     if (bb.eq.CZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop solabc: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop solabc: ' &
         ,'no solutions, returning 0'
       x1 = 0
       x2 = 0
@@ -756,7 +764,8 @@ contains
       ,gg,hh,rx1,rx2,ix1,ix2
   if (aa.eq.RZRO) then
     if (bb.eq.CZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop solabc: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop solabc: ' &
         ,'no solutions, returning 0'
       x1 = 0
       x2 = 0
@@ -1192,7 +1201,8 @@ contains
     allocate(thrs(1:nStp,1:1))
     allocate(ntrm(1:nStp,1:1))
     if (prcpar.ne.1) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop update_olog'
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop update_olog'
       stop
     endif
   endif
@@ -1311,7 +1321,8 @@ contains
   integer :: jj
 !
   if (xx.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop log_r: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop log_r: ' &
        ,'xx =',trim(myprint(xx)),', returning 0'
     rslt = 0
     return
@@ -1398,7 +1409,8 @@ contains
 !  integer :: nn,ii
 !
   if (xx.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop log1_r: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop log1_r: ' &
        ,'xx =',trim(myprint(xx)),', returning 0'
     rslt = 0
     return
@@ -1410,7 +1422,8 @@ contains
 !
   if (abs(yy-1).le.10*EPSN) then
     if (jj.ne.0) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop log1_r: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop log1_r: ' &
         ,'rr,jj =',trim(myprint(rr)),jj,', putting jj to 0'
     endif
     rslt = 1 - (yy-1)/2
@@ -1449,8 +1462,9 @@ contains
   imx = aimag(xx)
 !
   if (rex.eq.RZRO.and.imx.eq.RZRO) then
-!     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop log2_c: ' &
-!        ,'xx = 0, returning 0'
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop log2_c: ' &
+       ,'xx = 0, returning 0'
     rslt = 0
     return
   endif
@@ -1518,8 +1532,9 @@ contains
   imx = aimag(xx)
 !
   if (rex.eq.RZRO.and.imx.eq.RZRO) then
-!     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop log3_c: ' &
-!        ,'xx = 0, returning 0'
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop log3_c: ' &
+       ,'xx = 0, returning 0'
     rslt = 0
     return
   endif
@@ -1618,7 +1633,8 @@ contains
     allocate(thrs(1:nStp,1:1))
     allocate(ntrm(1:nStp,1:1))
     if (prcpar.ne.1) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop update_dilog'
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop update_dilog'
       stop
     endif
   endif
@@ -1819,7 +1835,8 @@ contains
 ! 
   if (yy.eq.RONE.and.odd.eq.0) then
     if (ntwo.ne.0) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog_r: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog_r: ' &
         ,'|x|,iph = ',trim(myprint(yy)),',',jj,', returning 0'
     endif
     rslt = 0
@@ -1927,7 +1944,8 @@ contains
 !
   if (j1.ne.j2) then
     if (r1.eq.r2) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
         ,'j1,j2,r1-r2',j1,j2,',',trim(myprint(r1-r2)),', returning 0'
       rslt = 0
 !      write(*,*) 'dilog2_c j1=/=j2,r1=r2' !DEBUG
@@ -1941,8 +1959,9 @@ contains
 !
   if (a1.lt.eps) then
     if (a2.lt.eps) then
-!       if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
-!         ,'r1,r2 =',trim(myprint(r1)),',',trim(myprint(r2)),', returning 0'
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
+        ,'r1,r2 =',trim(myprint(r1)),',',trim(myprint(r2)),', returning 0'
       rslt = 0
 !      write(*,*) 'dilog2_c r1<eps,r2<eps' !DEBUG
       return
@@ -1963,7 +1982,7 @@ contains
 !      write(*,*) 'dilog2_c ||1-y1|/|1-y2|-1|>0.1' !DEBUG
       return
     elseif (oo.eq.0.and.ao1.lt.eps) then
-      if (nn.ne.0.and.eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
+      if (nn.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
         ,'r1,oo,nn =',trim(myprint(r1)),',',oo,nn,', putting nn=0'
       if (ao2.lt.eps) then
         rslt = -1
@@ -1973,7 +1992,7 @@ contains
         y1=1-eps ;nn=0 ;logr1=0 ;r1=1-eps
       endif
     elseif (oo.eq.0.and.ao2.lt.eps) then
-      if (nn.ne.0.and.eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
+      if (nn.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
         ,'r2,oo,nn =',trim(myprint(r2)),',',oo,nn,', putting nn=0'
       y2=1-eps ;nn=0 ;logr2=0 ;r2=1-eps
     endif
@@ -1988,7 +2007,7 @@ contains
       if (a1.gt.RONE) ii = ii + (nn+pp(oo,sgnIm(y2)))
       if (a2.gt.RONE) ii = ii - (nn+pp(oo,sgnIm(y2)))
       ii = nn*ii
-      if (ii.ne.0.and.eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
+      if (ii.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
         ,'r1,r2,nn =',trim(myprint(r1)),',',trim(myprint(r2)),',',nn &
         ,', putting nn=0'
       rslt = -olog1(y2,0)
@@ -2061,7 +2080,8 @@ contains
 !
   if (j1.ne.j2) then
     if (r1.eq.r2) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
         ,'j1,j2,r1-r2',j1,j2,',',trim(myprint(r1-r2)),', returning 0'
       rslt = 0
 !      write(*,*) 'dilog2_r j1=/=j2,r1=r2' !DEBUG
@@ -2075,8 +2095,9 @@ contains
 !
   if (r1.lt.eps) then
     if (r2.lt.eps) then
-!       if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
-!         ,'r1,r2 =',trim(myprint(r1)),',',trim(myprint(r2)),', returning 0'
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
+        ,'r1,r2 =',trim(myprint(r1)),',',trim(myprint(r2)),', returning 0'
       rslt = 0
 !      write(*,*) 'dilog2_r r1<eps,r2<eps' !DEBUG
       return
@@ -2097,7 +2118,7 @@ contains
 !      write(*,*) 'dilog2_r ||1-y1|/|1-y2|-1|>0.1' !DEBUG
       return
     elseif (oo.eq.0.and.ro1.lt.eps) then
-      if (nn.ne.0.and.eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
+      if (nn.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
         ,'r1,oo,nn =',trim(myprint(r1)),',',oo,nn,', putting nn=0'
       if (ro2.lt.eps) then
         rslt = -1
@@ -2107,7 +2128,7 @@ contains
         y1=1-eps ;nn=0 ;logr1=0 ;r1=1-eps
       endif
     elseif (oo.eq.0.and.ro2.lt.eps) then
-      if (nn.ne.0.and.eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
+      if (nn.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
         ,'r2,oo,nn =',trim(myprint(r2)),',',oo,nn,', putting nn=0'
       y2=1-eps ;nn=0 ;logr2=0 ;r2=1-eps
     endif
@@ -2122,7 +2143,7 @@ contains
       if (r1.gt.RONE) ii = ii + (nn+2*oo)
       if (r2.gt.RONE) ii = ii - (nn+2*oo)
       ii = nn*ii
-      if (ii.ne.0.and.eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
+      if (ii.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
         ,'r1,r2,nn =',trim(myprint(r1)),',',trim(myprint(r2)),',',nn &
         ,', putting nn=0'
       rslt = -olog1(y2,0)
@@ -2296,7 +2317,8 @@ contains
     allocate(thrs(1:nStp,0:rank,1:1))
     allocate(ntrm(1:nStp,0:rank,1:1))
     if (prcpar.ne.1) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop update_bnlog'
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop update_bnlog'
       stop
     endif
   endif
@@ -2491,7 +2513,8 @@ contains
   logical :: y_lt_0
 !
   if (abs(xx).eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop bnlog_r: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop bnlog_r: ' &
       ,'argument xx=',trim(myprint(xx,8)),', returning 0'
     rslt = 0
     return
@@ -2668,9 +2691,10 @@ contains
   else
     xim = aimag(xx)
     if (xim.eq.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop qonv_c: ' &
-        ,'negative input with undefined sign for the imaginary part, ' &
-        ,'putting +ieps'
+!      errorcode = errorcode+1
+!      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop qonv_c: ' &
+!        ,'negative input with undefined sign for the imaginary part, ' &
+!        ,'putting +ieps'
       rslt%c = -xre
       rslt%p = 1
     else
@@ -2692,9 +2716,10 @@ contains
     rslt%c = xx
     rslt%p = 0
   else
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop qonv_i: ' &
-      ,'negative input with undefined sign for the imaginary part, ' &
-      ,'putting +ieps'
+!    errorcode = errorcode+1
+!    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop qonv_i: ' &
+!      ,'negative input with undefined sign for the imaginary part, ' &
+!      ,'putting +ieps'
     rslt%c = -xx
     rslt%p = 1
   endif
@@ -3604,7 +3629,8 @@ contains
    k23 = (cm2+cm3-cpp)/(sm2*sm3)
    call rfun( r23,d23, k23 )
    if (r23.eq.-CONE) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop tria4: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop tria4: ' &
        ,'threshold singularity, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -3770,7 +3796,8 @@ contains
 !
    if     (icase.eq.0) then
 ! 0 masses non-zero
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop tria0: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop tria0: ' &
        ,'all external masses equal zero, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
    elseif (icase.eq.1) then
@@ -3886,7 +3913,8 @@ contains
    aa = r34*r24 - r23
 !
    if (aa.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop trif1: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop trif1: ' &
        ,'threshold singularity, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -3976,7 +4004,8 @@ contains
    aa = r34/r24 - r23
 !
    if (aa.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop trif2: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop trif2: ' &
        ,'threshold singularity, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -4072,7 +4101,8 @@ contains
    aa = sm2/sm3 - k23 + r13*(k12 - sm2/sm1)
 !
    if (aa.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop trif3: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop trif3: ' &
        ,'threshold singularity, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -4186,7 +4216,8 @@ contains
                        else ;slam=kallen(p1,p2,p3)
      endif
      if (slam.eq.CZRO) then
-       if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop trif3HV: ' &
+       errorcode = errorcode+1
+       if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop trif3HV: ' &
          ,'threshold singularity, returning 0'
        rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
        return
@@ -4201,7 +4232,8 @@ contains
 !
    elseif (a2.gt.thrs) then ! 2 non-zero squared momenta
      if (p2.eq.p3) then
-       if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop trif3HV: ' &
+       errorcode = errorcode+1
+       if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop trif3HV: ' &
          ,'threshold singularity, returning 0'
        rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
        return
@@ -4383,7 +4415,8 @@ contains
    cm3=m3 ;cp12=p12 ;cp23=p23
 !
    if (cp12.eq.cm3) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box16: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box16: ' &
        ,'p12=m3, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -4404,7 +4437,8 @@ contains
    q34 = qonv(r34,-1)
 !
    if (r24.eq.-CONE) then 
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box16: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box16: ' &
        ,'threshold singularity, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -4465,7 +4499,8 @@ contains
    cp12=p12 ;cp23=p23
 !
    if (cp12.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box15: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box15: ' &
        ,'p12=0, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -4484,7 +4519,8 @@ contains
    r34ne0 = (abs(areal(r34))+abs(aimag(r34)).gt.small)
 !
    if (r24.eq.-CONE) then 
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box15: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box15: ' &
        ,'threshold singularity, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -4535,7 +4571,8 @@ contains
      :: sm2,sm4,r24,d24,cc
 !
    if (cp12.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box14: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box14: ' &
        ,'p12=0, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -4546,7 +4583,8 @@ contains
    call rfun( r24,d24 ,(cm2+cm4-cp23)/(sm2*sm4) )
 !
    if (r24.eq.-CONE) then 
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box14: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box14: ' &
        ,'threshold singularity, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -4587,13 +4625,15 @@ contains
      :: h1,h2
 !
    if (p12.eq.m3) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box13: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box13: ' &
        ,'p12=m3, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
    endif
    if (p23.eq.m4) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box13: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box13: ' &
        ,'p23=m4, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -4668,13 +4708,15 @@ contains
    type(qmplx_type) :: q13,q14,q24,q34,qyy
 !
    if (cp12.eq.cm3) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box12: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box12: ' &
        ,'p12=m3, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
    endif
    if (cp23.eq.cm4) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box12: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box12: ' &
        ,'p23=m4, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -4739,13 +4781,15 @@ contains
                      ,cc,log13,log24,log34
 !
    if (cp12.eq.cm3) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box11: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box11: ' &
        ,'p12=m3, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
    endif
    if (cp23.eq.cm4) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box11: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box11: ' &
        ,'p23=m4, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -4801,13 +4845,15 @@ contains
    logical :: r34zero
 !
    if (p12.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box10: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box10: ' &
        ,'p12=0, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
    endif
    if (p23.eq.m4) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box10: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box10: ' &
        ,'p23=mm, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -4883,13 +4929,15 @@ contains
    type(qmplx_type) :: q13,q23,q24,q34,qm4,qxx
 !
    if (cp12.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box09: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box09: ' &
        ,'p12=0, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
    endif
    if (cp23.eq.cm4) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box09: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box09: ' &
        ,'p23=mm, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -4950,13 +4998,15 @@ contains
      :: rmu2
 !
    if (cp12.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box08: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box08: ' &
        ,'p12=0, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
    endif
    if (cp23.eq.cm4) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box08: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box08: ' &
        ,'p23=mm, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -5016,13 +5066,15 @@ contains
                      ,z2,z1,z0,cc
 !
    if (cp12.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box07: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box07: ' &
        ,'p12=0, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
    endif
    if (cp23.eq.cm4) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box07: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box07: ' &
        ,'p23=mm, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -5075,13 +5127,15 @@ contains
      :: r13,r24,logm,log1,log2,z2,z1,z0,cc
 !
    if (cp12.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box06: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box06: ' &
        ,'p12=0, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
    endif
    if (cp23.eq.cm4) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box06: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box06: ' &
        ,'p23=mm, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -5376,7 +5430,8 @@ contains
   aa = r34*r24
 !
   if (r13.eq.CZRO.or.aa.eq.CZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf0: ' &
        ,'threshold singularity, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -5449,7 +5504,8 @@ contains
   aa = r34*r24
 !
   if (aa.eq.CZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf1: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf1: ' &
        ,'threshold singularity, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -5554,16 +5610,18 @@ contains
   r12zero = (abs(areal(r12))+abs(aimag(r12)).lt.small)
   r13zero = (abs(areal(r13))+abs(aimag(r13)).lt.small)
   r24zero = (abs(areal(r24))+abs(aimag(r24)).lt.small)
-  r34zero = (abs(areal(r34))+abs(aimag(r34)).lt.small)
+  r34zero = (abs(areal(r34))+abs(aimag(r34)).lt.small*8)
 !
   if (r12zero.and.r24zero) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf2: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf2: ' &
        ,'m4=p4 and m3=p12, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
   endif
   if (r13zero.and.r34zero) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf2: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf2: ' &
        ,'m4=p23 and m3=p2, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -5574,7 +5632,8 @@ contains
   aa = r34*r24 - r23
 !
   if (aa.eq.CZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf2: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf2: ' &
        ,'threshold singularity, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -5692,12 +5751,14 @@ contains
 !
   if (r13zero) then
     if     (r23zero) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf33: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf33: ' &
        ,'m4=p4 and m3=p12, returning 0'
       rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
       return
     elseif (r34zero) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf33: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf33: ' &
        ,'m2=p1 and m3=p12, returning 0'
       rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
       return
@@ -5711,7 +5772,8 @@ contains
   aa = r34/r24 - r23
 !
   if (aa.eq.CZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf33: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf33: ' &
        ,'threshold singularity, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -5799,7 +5861,8 @@ contains
   aa = k34/r24 + r13*k12 - k14*r13/r24 - k23
 !
   if (aa.eq.CZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf4: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf4: ' &
        ,'threshold singularity, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -5897,7 +5960,8 @@ contains
      endif
    enddo
    if (ap(5).eq.RZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxc: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxc: ' &
        ,' |s| too small, putting it by hand'
      ap(5) = hh
      pp(5) = acmplx(sign(hh,areal(pp_in(5))))
@@ -5905,7 +5969,8 @@ contains
      pp(5) = pp_in(5)
    endif
    if (ap(6).eq.RZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxc: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxc: ' &
        ,' |t| too small, putting it by hand'
      ap(6) = hh
      pp(6) = acmplx(sign(hh,areal(pp_in(6))))
@@ -5968,7 +6033,8 @@ contains
      elseif(areal((pp(4)-pp(5)-pp(3))**2-4*pp(5)*pp(3)).gt.RZRO)then ;icase=4 !34, 2 cyclic permutations
      elseif(areal((pp(4)-pp(1)-pp(6))**2-4*pp(1)*pp(6)).gt.RZRO)then ;icase=2 !41, 3 cyclic permutations
      else
-       if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxc: ' &
+       errorcode = errorcode+1
+       if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxc: ' &
          ,'no positive lambda, returning 0'
        return
      endif
@@ -5993,7 +6059,8 @@ contains
      def = mm(ll(2,icase)) - pp(ll(6,icase))
      call solabc( x1,x2 ,sdnt ,g,j,b ,0 )
      if (aimag(sdnt).ne.RZRO) then
-       if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxc: ' &
+       errorcode = errorcode+1
+       if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxc: ' &
          ,'no real solution for alpha, returning 0'
        return
      endif
@@ -6227,11 +6294,13 @@ contains
    y1 = (dd+y1i)/ee
    y2 = (dd+y2i)/ee
    if (aimag(y1).eq.RZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop s3fun: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop s3fun: ' &
        ,'y1 has zero imaginary part'
    endif
    if (aimag(y2).eq.RZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop s3fun: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop s3fun: ' &
        ,'y2 has zero imaginary part'
    endif
    fy1y2 = r0fun( y1,y2 )
@@ -6278,7 +6347,8 @@ contains
 !
    else!if (aa=bb=cc=0)
 !
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop s3fun: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop s3fun: ' &
        ,'cc equal zero, returning 0'
      rslt = 0
 !
@@ -6409,7 +6479,8 @@ contains
      x1 = bb*y1 + cc
      xx = aa/x1
      if (aimag(xx).eq.RZRO) then
-       if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop plnr: ' &
+       errorcode = errorcode+1
+       if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop plnr: ' &
          ,'aa/x1 has zero imaginary part'
      endif
      q1 = qonv(xx)
@@ -6418,7 +6489,8 @@ contains
      x2 = bb*y2 + cc
      xx = aa/x2
      if (aimag(xx).eq.RZRO) then
-       if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop plnr: ' &
+       errorcode = errorcode+1
+       if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop plnr: ' &
          ,'aa/x2 has zero imaginary part'
      endif
      q2 = qonv(xx)
@@ -6667,6 +6739,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop a0: '//warnonshell
   if (initz) call init
+  errorcode = 0
 !
   mulocal = muscale 
 !
@@ -6677,7 +6750,7 @@ contains
   if (nonzerothrs) then
     hh = onshellthrs
     if (am.lt.hh) am = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(am,mulocal2)
     if (RZRO.lt.am.and.am.lt.hh) write(wunit,*) warning
   endif
@@ -6685,13 +6758,22 @@ contains
   ss = mm
   call tadp( rslt ,ss ,am ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' mm:',trim(myprint(mm))
     write(punit,*) 'a0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'a0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'a0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' mm:',trim(myprint(mm))
+    write(eunit,*) 'a0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'a0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'a0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -6713,6 +6795,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop a0: '//warnonshell
   if (initz) call init
+  errorcode = 0
 !
   mulocal = rmu     
 !
@@ -6723,7 +6806,7 @@ contains
   if (nonzerothrs) then
     hh = onshellthrs
     if (am.lt.hh) am = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(am,mulocal2)
     if (RZRO.lt.am.and.am.lt.hh) write(wunit,*) warning
   endif
@@ -6731,13 +6814,22 @@ contains
   ss = mm
   call tadp( rslt ,ss ,am ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' mm:',trim(myprint(mm))
     write(punit,*) 'a0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'a0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'a0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' mm:',trim(myprint(mm))
+    write(eunit,*) 'a0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'a0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'a0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -6757,6 +6849,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop a0: '//warnonshell
   if (initz) call init
+  errorcode = 0
 !
   mulocal = muscale 
 !
@@ -6767,7 +6860,7 @@ contains
   if (nonzerothrs) then
     hh = onshellthrs
     if (am.lt.hh) am = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(am,mulocal2)
     if (RZRO.lt.am.and.am.lt.hh) write(wunit,*) warning
   endif
@@ -6775,13 +6868,22 @@ contains
   ss = mm
   call tadp( rslt ,ss ,am ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' mm:',trim(myprint(mm))
     write(punit,*) 'a0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'a0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'a0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' mm:',trim(myprint(mm))
+    write(eunit,*) 'a0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'a0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'a0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -6803,6 +6905,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop a0: '//warnonshell
   if (initz) call init
+  errorcode = 0
 !
   mulocal = rmu     
 !
@@ -6813,7 +6916,7 @@ contains
   if (nonzerothrs) then
     hh = onshellthrs
     if (am.lt.hh) am = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(am,mulocal2)
     if (RZRO.lt.am.and.am.lt.hh) write(wunit,*) warning
   endif
@@ -6821,13 +6924,22 @@ contains
   ss = mm
   call tadp( rslt ,ss ,am ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' mm:',trim(myprint(mm))
     write(punit,*) 'a0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'a0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'a0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' mm:',trim(myprint(mm))
+    write(eunit,*) 'a0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'a0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'a0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -6850,6 +6962,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop An: '//warnonshell
   if (initz) call init
+  errorcode = 0
 !
   mulocal = muscale 
 !
@@ -6860,7 +6973,7 @@ contains
   if (nonzerothrs) then
     hh = onshellthrs
     if (am.lt.hh) am = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(am,mulocal2)
     if (RZRO.lt.am.and.am.lt.hh) write(wunit,*) warning
   endif
@@ -6868,7 +6981,7 @@ contains
   ss = mm
   call tadpn( rslt ,rank ,ss ,am ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' mm:',trim(myprint(mm))
@@ -6876,6 +6989,17 @@ contains
     write(punit,*) 'A(2,',trim(myprint(ii)),'):',trim(myprint(rslt(2,ii)))
     write(punit,*) 'A(1,',trim(myprint(ii)),'):',trim(myprint(rslt(1,ii)))
     write(punit,*) 'A(0,',trim(myprint(ii)),'):',trim(myprint(rslt(0,ii)))
+    enddo
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' mm:',trim(myprint(mm))
+    do ii=0,rank/2
+    write(eunit,*) 'A(2,',trim(myprint(ii)),'):',trim(myprint(rslt(2,ii)))
+    write(eunit,*) 'A(1,',trim(myprint(ii)),'):',trim(myprint(rslt(1,ii)))
+    write(eunit,*) 'A(0,',trim(myprint(ii)),'):',trim(myprint(rslt(0,ii)))
     enddo
   endif
   end subroutine
@@ -6900,6 +7024,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop An: '//warnonshell
   if (initz) call init
+  errorcode = 0
 !
   mulocal = rmu     
 !
@@ -6910,7 +7035,7 @@ contains
   if (nonzerothrs) then
     hh = onshellthrs
     if (am.lt.hh) am = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(am,mulocal2)
     if (RZRO.lt.am.and.am.lt.hh) write(wunit,*) warning
   endif
@@ -6918,7 +7043,7 @@ contains
   ss = mm
   call tadpn( rslt ,rank ,ss ,am ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' mm:',trim(myprint(mm))
@@ -6926,6 +7051,17 @@ contains
     write(punit,*) 'A(2,',trim(myprint(ii)),'):',trim(myprint(rslt(2,ii)))
     write(punit,*) 'A(1,',trim(myprint(ii)),'):',trim(myprint(rslt(1,ii)))
     write(punit,*) 'A(0,',trim(myprint(ii)),'):',trim(myprint(rslt(0,ii)))
+    enddo
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' mm:',trim(myprint(mm))
+    do ii=0,rank/2
+    write(eunit,*) 'A(2,',trim(myprint(ii)),'):',trim(myprint(rslt(2,ii)))
+    write(eunit,*) 'A(1,',trim(myprint(ii)),'):',trim(myprint(rslt(1,ii)))
+    write(eunit,*) 'A(0,',trim(myprint(ii)),'):',trim(myprint(rslt(0,ii)))
     enddo
   endif
   end subroutine
@@ -6948,6 +7084,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop An: '//warnonshell
   if (initz) call init
+  errorcode = 0
 !
   mulocal = muscale 
 !
@@ -6958,7 +7095,7 @@ contains
   if (nonzerothrs) then
     hh = onshellthrs
     if (am.lt.hh) am = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(am,mulocal2)
     if (RZRO.lt.am.and.am.lt.hh) write(wunit,*) warning
   endif
@@ -6966,7 +7103,7 @@ contains
   ss = mm
   call tadpn( rslt ,rank ,ss ,am ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' mm:',trim(myprint(mm))
@@ -6974,6 +7111,17 @@ contains
     write(punit,*) 'A(2,',trim(myprint(ii)),'):',trim(myprint(rslt(2,ii)))
     write(punit,*) 'A(1,',trim(myprint(ii)),'):',trim(myprint(rslt(1,ii)))
     write(punit,*) 'A(0,',trim(myprint(ii)),'):',trim(myprint(rslt(0,ii)))
+    enddo
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' mm:',trim(myprint(mm))
+    do ii=0,rank/2
+    write(eunit,*) 'A(2,',trim(myprint(ii)),'):',trim(myprint(rslt(2,ii)))
+    write(eunit,*) 'A(1,',trim(myprint(ii)),'):',trim(myprint(rslt(1,ii)))
+    write(eunit,*) 'A(0,',trim(myprint(ii)),'):',trim(myprint(rslt(0,ii)))
     enddo
   endif
   end subroutine
@@ -6998,6 +7146,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop An: '//warnonshell
   if (initz) call init
+  errorcode = 0
 !
   mulocal = rmu     
 !
@@ -7008,7 +7157,7 @@ contains
   if (nonzerothrs) then
     hh = onshellthrs
     if (am.lt.hh) am = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(am,mulocal2)
     if (RZRO.lt.am.and.am.lt.hh) write(wunit,*) warning
   endif
@@ -7016,7 +7165,7 @@ contains
   ss = mm
   call tadpn( rslt ,rank ,ss ,am ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' mm:',trim(myprint(mm))
@@ -7024,6 +7173,17 @@ contains
     write(punit,*) 'A(2,',trim(myprint(ii)),'):',trim(myprint(rslt(2,ii)))
     write(punit,*) 'A(1,',trim(myprint(ii)),'):',trim(myprint(rslt(1,ii)))
     write(punit,*) 'A(0,',trim(myprint(ii)),'):',trim(myprint(rslt(0,ii)))
+    enddo
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' mm:',trim(myprint(mm))
+    do ii=0,rank/2
+    write(eunit,*) 'A(2,',trim(myprint(ii)),'):',trim(myprint(rslt(2,ii)))
+    write(eunit,*) 'A(1,',trim(myprint(ii)),'):',trim(myprint(rslt(1,ii)))
+    write(eunit,*) 'A(0,',trim(myprint(ii)),'):',trim(myprint(rslt(0,ii)))
     enddo
   endif
   end subroutine
@@ -7065,13 +7225,15 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop b0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
 !
   app = areal(ss)
   if (aimag(ss).ne.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'ss has non-zero imaginary part, putting it to zero.'
     ss = acmplx( app )
   endif
@@ -7080,7 +7242,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -7089,7 +7252,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -7104,7 +7268,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -7113,7 +7277,7 @@ contains
 !
   call bub0( rslt ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -7122,6 +7286,17 @@ contains
     write(punit,*) 'b0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'b0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'b0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -7145,13 +7320,15 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop b0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
 !
   app = areal(ss)
   if (aimag(ss).ne.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'ss has non-zero imaginary part, putting it to zero.'
     ss = acmplx( app )
   endif
@@ -7160,7 +7337,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -7169,7 +7347,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -7184,7 +7363,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -7193,7 +7372,7 @@ contains
 !
   call bub0( rslt ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -7202,6 +7381,17 @@ contains
     write(punit,*) 'b0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'b0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'b0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -7223,6 +7413,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop b0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -7232,7 +7423,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -7241,7 +7433,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -7256,7 +7449,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -7265,7 +7458,7 @@ contains
 !
   call bub0( rslt ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -7274,6 +7467,17 @@ contains
     write(punit,*) 'b0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'b0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'b0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -7297,6 +7501,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop b0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -7306,7 +7511,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -7315,7 +7521,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -7330,7 +7537,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -7339,7 +7546,7 @@ contains
 !
   call bub0( rslt ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -7348,6 +7555,17 @@ contains
     write(punit,*) 'b0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'b0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'b0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -7369,6 +7587,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop b0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -7387,7 +7606,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -7396,7 +7615,7 @@ contains
 !
   call bub0( rslt ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -7405,6 +7624,17 @@ contains
     write(punit,*) 'b0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'b0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'b0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -7428,6 +7658,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop b0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -7446,7 +7677,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -7455,7 +7686,7 @@ contains
 !
   call bub0( rslt ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -7464,6 +7695,17 @@ contains
     write(punit,*) 'b0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'b0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'b0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -7489,13 +7731,15 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop db0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
 !
   app = areal(ss)
   if (aimag(ss).ne.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
       ,'ss has non-zero imaginary part, putting it to zero.'
     ss = acmplx( app )
   endif
@@ -7504,7 +7748,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -7513,7 +7758,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -7535,7 +7781,7 @@ contains
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
     if (ssr2.lt.hh) ssr2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,am2))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -7552,7 +7798,7 @@ contains
     call dbub0( rslt(0) ,ss,r1,r2 ,app,am1,am2 )
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) ' pp:',trim(myprint(pp))
     write(punit,*) ' m1:',trim(myprint(m1))
@@ -7560,6 +7806,16 @@ contains
     write(punit,*) 'db0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'db0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'db0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'db0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'db0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'db0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -7584,13 +7840,15 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop db0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
 !
   app = areal(ss)
   if (aimag(ss).ne.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
       ,'ss has non-zero imaginary part, putting it to zero.'
     ss = acmplx( app )
   endif
@@ -7599,7 +7857,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -7608,7 +7867,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -7630,7 +7890,7 @@ contains
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
     if (ssr2.lt.hh) ssr2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,am2))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -7647,7 +7907,7 @@ contains
     call dbub0( rslt(0) ,ss,r1,r2 ,app,am1,am2 )
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) ' pp:',trim(myprint(pp))
     write(punit,*) ' m1:',trim(myprint(m1))
@@ -7655,6 +7915,16 @@ contains
     write(punit,*) 'db0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'db0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'db0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'db0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'db0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'db0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -7677,6 +7947,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop db0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -7686,7 +7957,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -7695,7 +7967,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -7717,7 +7990,7 @@ contains
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
     if (ssr2.lt.hh) ssr2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,am2))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -7734,7 +8007,7 @@ contains
     call dbub0( rslt(0) ,ss,r1,r2 ,app,am1,am2 )
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) ' pp:',trim(myprint(pp))
     write(punit,*) ' m1:',trim(myprint(m1))
@@ -7742,6 +8015,16 @@ contains
     write(punit,*) 'db0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'db0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'db0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'db0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'db0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'db0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -7766,6 +8049,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop db0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -7775,7 +8059,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -7784,7 +8069,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -7806,7 +8092,7 @@ contains
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
     if (ssr2.lt.hh) ssr2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,am2))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -7823,7 +8109,7 @@ contains
     call dbub0( rslt(0) ,ss,r1,r2 ,app,am1,am2 )
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) ' pp:',trim(myprint(pp))
     write(punit,*) ' m1:',trim(myprint(m1))
@@ -7831,6 +8117,16 @@ contains
     write(punit,*) 'db0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'db0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'db0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'db0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'db0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'db0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -7853,6 +8149,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop db0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -7878,7 +8175,7 @@ contains
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
     if (ssr2.lt.hh) ssr2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,am2))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -7895,7 +8192,7 @@ contains
     call dbub0( rslt(0) ,ss,r1,r2 ,app,am1,am2 )
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) ' pp:',trim(myprint(pp))
     write(punit,*) ' m1:',trim(myprint(m1))
@@ -7903,6 +8200,16 @@ contains
     write(punit,*) 'db0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'db0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'db0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'db0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'db0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'db0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -7927,6 +8234,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop db0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -7952,7 +8260,7 @@ contains
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
     if (ssr2.lt.hh) ssr2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,am2))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -7969,7 +8277,7 @@ contains
     call dbub0( rslt(0) ,ss,r1,r2 ,app,am1,am2 )
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) ' pp:',trim(myprint(pp))
     write(punit,*) ' m1:',trim(myprint(m1))
@@ -7977,6 +8285,16 @@ contains
     write(punit,*) 'db0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'db0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'db0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'db0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'db0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'db0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -8019,13 +8337,15 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop b11: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
 !
   app = areal(ss)
   if (aimag(ss).ne.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'ss has non-zero imaginary part, putting it to zero.'
     ss = acmplx( app )
   endif
@@ -8034,7 +8354,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -8043,7 +8364,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -8058,7 +8380,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -8067,7 +8389,7 @@ contains
 !
   call bub11( b11,b00,b1,b0 ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -8085,6 +8407,26 @@ contains
     write(punit,*) ' b0(2):',trim(myprint(b0(2) ))
     write(punit,*) ' b0(1):',trim(myprint(b0(1) ))
     write(punit,*) ' b0(0):',trim(myprint(b0(0) ))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b11(2):',trim(myprint(b11(2)))
+    write(eunit,*) 'b11(1):',trim(myprint(b11(1)))
+    write(eunit,*) 'b11(0):',trim(myprint(b11(0)))
+    write(eunit,*) 'b00(2):',trim(myprint(b00(2)))
+    write(eunit,*) 'b00(1):',trim(myprint(b00(1)))
+    write(eunit,*) 'b00(0):',trim(myprint(b00(0)))
+    write(eunit,*) ' b1(2):',trim(myprint(b1(2) ))
+    write(eunit,*) ' b1(1):',trim(myprint(b1(1) ))
+    write(eunit,*) ' b1(0):',trim(myprint(b1(0) ))
+    write(eunit,*) ' b0(2):',trim(myprint(b0(2) ))
+    write(eunit,*) ' b0(1):',trim(myprint(b0(1) ))
+    write(eunit,*) ' b0(0):',trim(myprint(b0(0) ))
   endif
   end subroutine
 
@@ -8108,13 +8450,15 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop b11: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
 !
   app = areal(ss)
   if (aimag(ss).ne.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'ss has non-zero imaginary part, putting it to zero.'
     ss = acmplx( app )
   endif
@@ -8123,7 +8467,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -8132,7 +8477,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -8147,7 +8493,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -8156,7 +8502,7 @@ contains
 !
   call bub11( b11,b00,b1,b0 ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -8174,6 +8520,26 @@ contains
     write(punit,*) ' b0(2):',trim(myprint(b0(2) ))
     write(punit,*) ' b0(1):',trim(myprint(b0(1) ))
     write(punit,*) ' b0(0):',trim(myprint(b0(0) ))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b11(2):',trim(myprint(b11(2)))
+    write(eunit,*) 'b11(1):',trim(myprint(b11(1)))
+    write(eunit,*) 'b11(0):',trim(myprint(b11(0)))
+    write(eunit,*) 'b00(2):',trim(myprint(b00(2)))
+    write(eunit,*) 'b00(1):',trim(myprint(b00(1)))
+    write(eunit,*) 'b00(0):',trim(myprint(b00(0)))
+    write(eunit,*) ' b1(2):',trim(myprint(b1(2) ))
+    write(eunit,*) ' b1(1):',trim(myprint(b1(1) ))
+    write(eunit,*) ' b1(0):',trim(myprint(b1(0) ))
+    write(eunit,*) ' b0(2):',trim(myprint(b0(2) ))
+    write(eunit,*) ' b0(1):',trim(myprint(b0(1) ))
+    write(eunit,*) ' b0(0):',trim(myprint(b0(0) ))
   endif
   end subroutine
 
@@ -8195,6 +8561,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop b11: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -8204,7 +8571,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -8213,7 +8581,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -8228,7 +8597,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -8237,7 +8606,7 @@ contains
 !
   call bub11( b11,b00,b1,b0 ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -8255,6 +8624,26 @@ contains
     write(punit,*) ' b0(2):',trim(myprint(b0(2) ))
     write(punit,*) ' b0(1):',trim(myprint(b0(1) ))
     write(punit,*) ' b0(0):',trim(myprint(b0(0) ))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b11(2):',trim(myprint(b11(2)))
+    write(eunit,*) 'b11(1):',trim(myprint(b11(1)))
+    write(eunit,*) 'b11(0):',trim(myprint(b11(0)))
+    write(eunit,*) 'b00(2):',trim(myprint(b00(2)))
+    write(eunit,*) 'b00(1):',trim(myprint(b00(1)))
+    write(eunit,*) 'b00(0):',trim(myprint(b00(0)))
+    write(eunit,*) ' b1(2):',trim(myprint(b1(2) ))
+    write(eunit,*) ' b1(1):',trim(myprint(b1(1) ))
+    write(eunit,*) ' b1(0):',trim(myprint(b1(0) ))
+    write(eunit,*) ' b0(2):',trim(myprint(b0(2) ))
+    write(eunit,*) ' b0(1):',trim(myprint(b0(1) ))
+    write(eunit,*) ' b0(0):',trim(myprint(b0(0) ))
   endif
   end subroutine
 
@@ -8278,6 +8667,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop b11: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -8287,7 +8677,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -8296,7 +8687,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -8311,7 +8703,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -8320,7 +8712,7 @@ contains
 !
   call bub11( b11,b00,b1,b0 ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -8338,6 +8730,26 @@ contains
     write(punit,*) ' b0(2):',trim(myprint(b0(2) ))
     write(punit,*) ' b0(1):',trim(myprint(b0(1) ))
     write(punit,*) ' b0(0):',trim(myprint(b0(0) ))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b11(2):',trim(myprint(b11(2)))
+    write(eunit,*) 'b11(1):',trim(myprint(b11(1)))
+    write(eunit,*) 'b11(0):',trim(myprint(b11(0)))
+    write(eunit,*) 'b00(2):',trim(myprint(b00(2)))
+    write(eunit,*) 'b00(1):',trim(myprint(b00(1)))
+    write(eunit,*) 'b00(0):',trim(myprint(b00(0)))
+    write(eunit,*) ' b1(2):',trim(myprint(b1(2) ))
+    write(eunit,*) ' b1(1):',trim(myprint(b1(1) ))
+    write(eunit,*) ' b1(0):',trim(myprint(b1(0) ))
+    write(eunit,*) ' b0(2):',trim(myprint(b0(2) ))
+    write(eunit,*) ' b0(1):',trim(myprint(b0(1) ))
+    write(eunit,*) ' b0(0):',trim(myprint(b0(0) ))
   endif
   end subroutine
 
@@ -8359,6 +8771,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop b11: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -8377,7 +8790,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -8386,7 +8799,7 @@ contains
 !
   call bub11( b11,b00,b1,b0 ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -8404,6 +8817,26 @@ contains
     write(punit,*) ' b0(2):',trim(myprint(b0(2) ))
     write(punit,*) ' b0(1):',trim(myprint(b0(1) ))
     write(punit,*) ' b0(0):',trim(myprint(b0(0) ))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b11(2):',trim(myprint(b11(2)))
+    write(eunit,*) 'b11(1):',trim(myprint(b11(1)))
+    write(eunit,*) 'b11(0):',trim(myprint(b11(0)))
+    write(eunit,*) 'b00(2):',trim(myprint(b00(2)))
+    write(eunit,*) 'b00(1):',trim(myprint(b00(1)))
+    write(eunit,*) 'b00(0):',trim(myprint(b00(0)))
+    write(eunit,*) ' b1(2):',trim(myprint(b1(2) ))
+    write(eunit,*) ' b1(1):',trim(myprint(b1(1) ))
+    write(eunit,*) ' b1(0):',trim(myprint(b1(0) ))
+    write(eunit,*) ' b0(2):',trim(myprint(b0(2) ))
+    write(eunit,*) ' b0(1):',trim(myprint(b0(1) ))
+    write(eunit,*) ' b0(0):',trim(myprint(b0(0) ))
   endif
   end subroutine
 
@@ -8427,6 +8860,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop b11: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -8445,7 +8879,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -8454,7 +8888,7 @@ contains
 !
   call bub11( b11,b00,b1,b0 ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -8472,6 +8906,26 @@ contains
     write(punit,*) ' b0(2):',trim(myprint(b0(2) ))
     write(punit,*) ' b0(1):',trim(myprint(b0(1) ))
     write(punit,*) ' b0(0):',trim(myprint(b0(0) ))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b11(2):',trim(myprint(b11(2)))
+    write(eunit,*) 'b11(1):',trim(myprint(b11(1)))
+    write(eunit,*) 'b11(0):',trim(myprint(b11(0)))
+    write(eunit,*) 'b00(2):',trim(myprint(b00(2)))
+    write(eunit,*) 'b00(1):',trim(myprint(b00(1)))
+    write(eunit,*) 'b00(0):',trim(myprint(b00(0)))
+    write(eunit,*) ' b1(2):',trim(myprint(b1(2) ))
+    write(eunit,*) ' b1(1):',trim(myprint(b1(1) ))
+    write(eunit,*) ' b1(0):',trim(myprint(b1(0) ))
+    write(eunit,*) ' b0(2):',trim(myprint(b0(2) ))
+    write(eunit,*) ' b0(1):',trim(myprint(b0(1) ))
+    write(eunit,*) ' b0(0):',trim(myprint(b0(0) ))
   endif
   end subroutine
 
@@ -8495,13 +8949,15 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop bn: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
 !
   app = areal(ss)
   if (aimag(ss).ne.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'ss has non-zero imaginary part, putting it to zero.'
     ss = acmplx( app )
   endif
@@ -8510,7 +8966,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -8519,7 +8976,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -8534,7 +8992,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -8560,11 +9018,12 @@ contains
                  ,rslt(:,3),rslt(:,2),rslt(:,1),rslt(:,0) &
                  ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
   else
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'rank=',rank,' not implemented'
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) 'pp:',trim(myprint(pp))
@@ -8602,6 +9061,47 @@ contains
     write(punit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
     write(punit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
     write(punit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
+    endif;endif;endif;endif;endif
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) 'pp:',trim(myprint(pp))
+    write(eunit,*) 'm1:',trim(myprint(m1))
+    write(eunit,*) 'm2:',trim(myprint(m2))
+    if (rank.ge.0) then
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2,0) ))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1,0) ))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0,0) ))
+    if (rank.ge.1) then
+    write(eunit,*) 'b1(2):',trim(myprint(rslt(2,1) ))
+    write(eunit,*) 'b1(1):',trim(myprint(rslt(1,1) ))
+    write(eunit,*) 'b1(0):',trim(myprint(rslt(0,1) ))
+    if (rank.ge.2) then
+    write(eunit,*) 'b00(2):',trim(myprint(rslt(2,2)))
+    write(eunit,*) 'b00(1):',trim(myprint(rslt(1,2)))
+    write(eunit,*) 'b00(0):',trim(myprint(rslt(0,2)))
+    write(eunit,*) 'b11(2):',trim(myprint(rslt(2,3)))
+    write(eunit,*) 'b11(1):',trim(myprint(rslt(1,3)))
+    write(eunit,*) 'b11(0):',trim(myprint(rslt(0,3)))
+    if (rank.ge.3) then
+    write(eunit,*) 'b001(2):',trim(myprint(rslt(2,4)))
+    write(eunit,*) 'b001(1):',trim(myprint(rslt(1,4)))
+    write(eunit,*) 'b001(0):',trim(myprint(rslt(0,4)))
+    write(eunit,*) 'b111(2):',trim(myprint(rslt(2,5)))
+    write(eunit,*) 'b111(1):',trim(myprint(rslt(1,5)))
+    write(eunit,*) 'b111(0):',trim(myprint(rslt(0,5)))
+    if (rank.ge.4) then
+    write(eunit,*) 'b0000(2):',trim(myprint(rslt(2,6)))
+    write(eunit,*) 'b0000(1):',trim(myprint(rslt(1,6)))
+    write(eunit,*) 'b0000(0):',trim(myprint(rslt(0,6)))
+    write(eunit,*) 'b0011(2):',trim(myprint(rslt(2,7)))
+    write(eunit,*) 'b0011(1):',trim(myprint(rslt(1,7)))
+    write(eunit,*) 'b0011(0):',trim(myprint(rslt(0,7)))
+    write(eunit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
+    write(eunit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
+    write(eunit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
     endif;endif;endif;endif;endif
   endif
   end subroutine
@@ -8627,13 +9127,15 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop bn: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
 !
   app = areal(ss)
   if (aimag(ss).ne.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'ss has non-zero imaginary part, putting it to zero.'
     ss = acmplx( app )
   endif
@@ -8642,7 +9144,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -8651,7 +9154,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -8666,7 +9170,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -8692,11 +9196,12 @@ contains
                  ,rslt(:,3),rslt(:,2),rslt(:,1),rslt(:,0) &
                  ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
   else
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'rank=',rank,' not implemented'
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) 'pp:',trim(myprint(pp))
@@ -8736,6 +9241,47 @@ contains
     write(punit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
     endif;endif;endif;endif;endif
   endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) 'pp:',trim(myprint(pp))
+    write(eunit,*) 'm1:',trim(myprint(m1))
+    write(eunit,*) 'm2:',trim(myprint(m2))
+    if (rank.ge.0) then
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2,0) ))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1,0) ))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0,0) ))
+    if (rank.ge.1) then
+    write(eunit,*) 'b1(2):',trim(myprint(rslt(2,1) ))
+    write(eunit,*) 'b1(1):',trim(myprint(rslt(1,1) ))
+    write(eunit,*) 'b1(0):',trim(myprint(rslt(0,1) ))
+    if (rank.ge.2) then
+    write(eunit,*) 'b00(2):',trim(myprint(rslt(2,2)))
+    write(eunit,*) 'b00(1):',trim(myprint(rslt(1,2)))
+    write(eunit,*) 'b00(0):',trim(myprint(rslt(0,2)))
+    write(eunit,*) 'b11(2):',trim(myprint(rslt(2,3)))
+    write(eunit,*) 'b11(1):',trim(myprint(rslt(1,3)))
+    write(eunit,*) 'b11(0):',trim(myprint(rslt(0,3)))
+    if (rank.ge.3) then
+    write(eunit,*) 'b001(2):',trim(myprint(rslt(2,4)))
+    write(eunit,*) 'b001(1):',trim(myprint(rslt(1,4)))
+    write(eunit,*) 'b001(0):',trim(myprint(rslt(0,4)))
+    write(eunit,*) 'b111(2):',trim(myprint(rslt(2,5)))
+    write(eunit,*) 'b111(1):',trim(myprint(rslt(1,5)))
+    write(eunit,*) 'b111(0):',trim(myprint(rslt(0,5)))
+    if (rank.ge.4) then
+    write(eunit,*) 'b0000(2):',trim(myprint(rslt(2,6)))
+    write(eunit,*) 'b0000(1):',trim(myprint(rslt(1,6)))
+    write(eunit,*) 'b0000(0):',trim(myprint(rslt(0,6)))
+    write(eunit,*) 'b0011(2):',trim(myprint(rslt(2,7)))
+    write(eunit,*) 'b0011(1):',trim(myprint(rslt(1,7)))
+    write(eunit,*) 'b0011(0):',trim(myprint(rslt(0,7)))
+    write(eunit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
+    write(eunit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
+    write(eunit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
+    endif;endif;endif;endif;endif
+  endif
   end subroutine
 
   subroutine bnrc( rslt ,rank ,pp,m1,m2 )
@@ -8757,6 +9303,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop bn: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -8766,7 +9313,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -8775,7 +9323,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -8790,7 +9339,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -8816,11 +9365,12 @@ contains
                  ,rslt(:,3),rslt(:,2),rslt(:,1),rslt(:,0) &
                  ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
   else
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'rank=',rank,' not implemented'
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) 'pp:',trim(myprint(pp))
@@ -8858,6 +9408,47 @@ contains
     write(punit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
     write(punit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
     write(punit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
+    endif;endif;endif;endif;endif
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) 'pp:',trim(myprint(pp))
+    write(eunit,*) 'm1:',trim(myprint(m1))
+    write(eunit,*) 'm2:',trim(myprint(m2))
+    if (rank.ge.0) then
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2,0) ))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1,0) ))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0,0) ))
+    if (rank.ge.1) then
+    write(eunit,*) 'b1(2):',trim(myprint(rslt(2,1) ))
+    write(eunit,*) 'b1(1):',trim(myprint(rslt(1,1) ))
+    write(eunit,*) 'b1(0):',trim(myprint(rslt(0,1) ))
+    if (rank.ge.2) then
+    write(eunit,*) 'b00(2):',trim(myprint(rslt(2,2)))
+    write(eunit,*) 'b00(1):',trim(myprint(rslt(1,2)))
+    write(eunit,*) 'b00(0):',trim(myprint(rslt(0,2)))
+    write(eunit,*) 'b11(2):',trim(myprint(rslt(2,3)))
+    write(eunit,*) 'b11(1):',trim(myprint(rslt(1,3)))
+    write(eunit,*) 'b11(0):',trim(myprint(rslt(0,3)))
+    if (rank.ge.3) then
+    write(eunit,*) 'b001(2):',trim(myprint(rslt(2,4)))
+    write(eunit,*) 'b001(1):',trim(myprint(rslt(1,4)))
+    write(eunit,*) 'b001(0):',trim(myprint(rslt(0,4)))
+    write(eunit,*) 'b111(2):',trim(myprint(rslt(2,5)))
+    write(eunit,*) 'b111(1):',trim(myprint(rslt(1,5)))
+    write(eunit,*) 'b111(0):',trim(myprint(rslt(0,5)))
+    if (rank.ge.4) then
+    write(eunit,*) 'b0000(2):',trim(myprint(rslt(2,6)))
+    write(eunit,*) 'b0000(1):',trim(myprint(rslt(1,6)))
+    write(eunit,*) 'b0000(0):',trim(myprint(rslt(0,6)))
+    write(eunit,*) 'b0011(2):',trim(myprint(rslt(2,7)))
+    write(eunit,*) 'b0011(1):',trim(myprint(rslt(1,7)))
+    write(eunit,*) 'b0011(0):',trim(myprint(rslt(0,7)))
+    write(eunit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
+    write(eunit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
+    write(eunit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
     endif;endif;endif;endif;endif
   endif
   end subroutine
@@ -8883,6 +9474,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop bn: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -8892,7 +9484,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -8901,7 +9494,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -8916,7 +9510,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -8942,11 +9536,12 @@ contains
                  ,rslt(:,3),rslt(:,2),rslt(:,1),rslt(:,0) &
                  ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
   else
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'rank=',rank,' not implemented'
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) 'pp:',trim(myprint(pp))
@@ -8986,6 +9581,47 @@ contains
     write(punit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
     endif;endif;endif;endif;endif
   endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) 'pp:',trim(myprint(pp))
+    write(eunit,*) 'm1:',trim(myprint(m1))
+    write(eunit,*) 'm2:',trim(myprint(m2))
+    if (rank.ge.0) then
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2,0) ))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1,0) ))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0,0) ))
+    if (rank.ge.1) then
+    write(eunit,*) 'b1(2):',trim(myprint(rslt(2,1) ))
+    write(eunit,*) 'b1(1):',trim(myprint(rslt(1,1) ))
+    write(eunit,*) 'b1(0):',trim(myprint(rslt(0,1) ))
+    if (rank.ge.2) then
+    write(eunit,*) 'b00(2):',trim(myprint(rslt(2,2)))
+    write(eunit,*) 'b00(1):',trim(myprint(rslt(1,2)))
+    write(eunit,*) 'b00(0):',trim(myprint(rslt(0,2)))
+    write(eunit,*) 'b11(2):',trim(myprint(rslt(2,3)))
+    write(eunit,*) 'b11(1):',trim(myprint(rslt(1,3)))
+    write(eunit,*) 'b11(0):',trim(myprint(rslt(0,3)))
+    if (rank.ge.3) then
+    write(eunit,*) 'b001(2):',trim(myprint(rslt(2,4)))
+    write(eunit,*) 'b001(1):',trim(myprint(rslt(1,4)))
+    write(eunit,*) 'b001(0):',trim(myprint(rslt(0,4)))
+    write(eunit,*) 'b111(2):',trim(myprint(rslt(2,5)))
+    write(eunit,*) 'b111(1):',trim(myprint(rslt(1,5)))
+    write(eunit,*) 'b111(0):',trim(myprint(rslt(0,5)))
+    if (rank.ge.4) then
+    write(eunit,*) 'b0000(2):',trim(myprint(rslt(2,6)))
+    write(eunit,*) 'b0000(1):',trim(myprint(rslt(1,6)))
+    write(eunit,*) 'b0000(0):',trim(myprint(rslt(0,6)))
+    write(eunit,*) 'b0011(2):',trim(myprint(rslt(2,7)))
+    write(eunit,*) 'b0011(1):',trim(myprint(rslt(1,7)))
+    write(eunit,*) 'b0011(0):',trim(myprint(rslt(0,7)))
+    write(eunit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
+    write(eunit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
+    write(eunit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
+    endif;endif;endif;endif;endif
+  endif
   end subroutine
 
   subroutine bnrr( rslt ,rank ,pp,m1,m2 )
@@ -9007,6 +9643,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop bn: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -9025,7 +9662,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -9051,11 +9688,12 @@ contains
                  ,rslt(:,3),rslt(:,2),rslt(:,1),rslt(:,0) &
                  ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
   else
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'rank=',rank,' not implemented'
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) 'pp:',trim(myprint(pp))
@@ -9093,6 +9731,47 @@ contains
     write(punit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
     write(punit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
     write(punit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
+    endif;endif;endif;endif;endif
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) 'pp:',trim(myprint(pp))
+    write(eunit,*) 'm1:',trim(myprint(m1))
+    write(eunit,*) 'm2:',trim(myprint(m2))
+    if (rank.ge.0) then
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2,0) ))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1,0) ))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0,0) ))
+    if (rank.ge.1) then
+    write(eunit,*) 'b1(2):',trim(myprint(rslt(2,1) ))
+    write(eunit,*) 'b1(1):',trim(myprint(rslt(1,1) ))
+    write(eunit,*) 'b1(0):',trim(myprint(rslt(0,1) ))
+    if (rank.ge.2) then
+    write(eunit,*) 'b00(2):',trim(myprint(rslt(2,2)))
+    write(eunit,*) 'b00(1):',trim(myprint(rslt(1,2)))
+    write(eunit,*) 'b00(0):',trim(myprint(rslt(0,2)))
+    write(eunit,*) 'b11(2):',trim(myprint(rslt(2,3)))
+    write(eunit,*) 'b11(1):',trim(myprint(rslt(1,3)))
+    write(eunit,*) 'b11(0):',trim(myprint(rslt(0,3)))
+    if (rank.ge.3) then
+    write(eunit,*) 'b001(2):',trim(myprint(rslt(2,4)))
+    write(eunit,*) 'b001(1):',trim(myprint(rslt(1,4)))
+    write(eunit,*) 'b001(0):',trim(myprint(rslt(0,4)))
+    write(eunit,*) 'b111(2):',trim(myprint(rslt(2,5)))
+    write(eunit,*) 'b111(1):',trim(myprint(rslt(1,5)))
+    write(eunit,*) 'b111(0):',trim(myprint(rslt(0,5)))
+    if (rank.ge.4) then
+    write(eunit,*) 'b0000(2):',trim(myprint(rslt(2,6)))
+    write(eunit,*) 'b0000(1):',trim(myprint(rslt(1,6)))
+    write(eunit,*) 'b0000(0):',trim(myprint(rslt(0,6)))
+    write(eunit,*) 'b0011(2):',trim(myprint(rslt(2,7)))
+    write(eunit,*) 'b0011(1):',trim(myprint(rslt(1,7)))
+    write(eunit,*) 'b0011(0):',trim(myprint(rslt(0,7)))
+    write(eunit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
+    write(eunit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
+    write(eunit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
     endif;endif;endif;endif;endif
   endif
   end subroutine
@@ -9118,6 +9797,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop bn: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -9136,7 +9816,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -9162,11 +9842,12 @@ contains
                  ,rslt(:,3),rslt(:,2),rslt(:,1),rslt(:,0) &
                  ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
   else
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'rank=',rank,' not implemented'
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) 'pp:',trim(myprint(pp))
@@ -9204,6 +9885,47 @@ contains
     write(punit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
     write(punit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
     write(punit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
+    endif;endif;endif;endif;endif
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) 'pp:',trim(myprint(pp))
+    write(eunit,*) 'm1:',trim(myprint(m1))
+    write(eunit,*) 'm2:',trim(myprint(m2))
+    if (rank.ge.0) then
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2,0) ))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1,0) ))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0,0) ))
+    if (rank.ge.1) then
+    write(eunit,*) 'b1(2):',trim(myprint(rslt(2,1) ))
+    write(eunit,*) 'b1(1):',trim(myprint(rslt(1,1) ))
+    write(eunit,*) 'b1(0):',trim(myprint(rslt(0,1) ))
+    if (rank.ge.2) then
+    write(eunit,*) 'b00(2):',trim(myprint(rslt(2,2)))
+    write(eunit,*) 'b00(1):',trim(myprint(rslt(1,2)))
+    write(eunit,*) 'b00(0):',trim(myprint(rslt(0,2)))
+    write(eunit,*) 'b11(2):',trim(myprint(rslt(2,3)))
+    write(eunit,*) 'b11(1):',trim(myprint(rslt(1,3)))
+    write(eunit,*) 'b11(0):',trim(myprint(rslt(0,3)))
+    if (rank.ge.3) then
+    write(eunit,*) 'b001(2):',trim(myprint(rslt(2,4)))
+    write(eunit,*) 'b001(1):',trim(myprint(rslt(1,4)))
+    write(eunit,*) 'b001(0):',trim(myprint(rslt(0,4)))
+    write(eunit,*) 'b111(2):',trim(myprint(rslt(2,5)))
+    write(eunit,*) 'b111(1):',trim(myprint(rslt(1,5)))
+    write(eunit,*) 'b111(0):',trim(myprint(rslt(0,5)))
+    if (rank.ge.4) then
+    write(eunit,*) 'b0000(2):',trim(myprint(rslt(2,6)))
+    write(eunit,*) 'b0000(1):',trim(myprint(rslt(1,6)))
+    write(eunit,*) 'b0000(0):',trim(myprint(rslt(0,6)))
+    write(eunit,*) 'b0011(2):',trim(myprint(rslt(2,7)))
+    write(eunit,*) 'b0011(1):',trim(myprint(rslt(1,7)))
+    write(eunit,*) 'b0011(0):',trim(myprint(rslt(0,7)))
+    write(eunit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
+    write(eunit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
+    write(eunit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
     endif;endif;endif;endif;endif
   endif
   end subroutine
@@ -9253,6 +9975,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop c0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -9264,7 +9987,8 @@ contains
   do ii=1,3
     ap(ii) = areal(pp(ii))
     if (aimag(pp(ii)).ne.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
         ,'momentum with non-zero imaginary part, putting it to zero.'
       pp(ii) = acmplx( ap(ii) )
     endif
@@ -9276,7 +10000,8 @@ contains
     am(ii) = areal(mm(ii))
     hh     = aimag(mm(ii))
     if (hh.gt.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
         ,'mass-squared has positive imaginary part, switching its sign.'
       mm(ii) = acmplx( am(ii) ,-hh )
     endif
@@ -9289,7 +10014,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -9305,7 +10031,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,3
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -9332,7 +10058,7 @@ contains
     if (s1r2.lt.hh) s1r2 = 0
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r3.lt.hh) s3r3 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s3r3.and.s3r3.lt.hh) write(wunit,*) warning
@@ -9375,7 +10101,7 @@ contains
 ! exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -9387,6 +10113,20 @@ contains
     write(punit,*) 'c0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'c0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'c0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) 'c0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'c0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'c0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -9417,6 +10157,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop c0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -9428,7 +10169,8 @@ contains
   do ii=1,3
     ap(ii) = areal(pp(ii))
     if (aimag(pp(ii)).ne.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
         ,'momentum with non-zero imaginary part, putting it to zero.'
       pp(ii) = acmplx( ap(ii) )
     endif
@@ -9440,7 +10182,8 @@ contains
     am(ii) = areal(mm(ii))
     hh     = aimag(mm(ii))
     if (hh.gt.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
         ,'mass-squared has positive imaginary part, switching its sign.'
       mm(ii) = acmplx( am(ii) ,-hh )
     endif
@@ -9453,7 +10196,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -9469,7 +10213,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,3
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -9496,7 +10240,7 @@ contains
     if (s1r2.lt.hh) s1r2 = 0
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r3.lt.hh) s3r3 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s3r3.and.s3r3.lt.hh) write(wunit,*) warning
@@ -9539,7 +10283,7 @@ contains
 ! exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -9551,6 +10295,20 @@ contains
     write(punit,*) 'c0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'c0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'c0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) 'c0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'c0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'c0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -9579,6 +10337,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop c0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -9596,7 +10355,8 @@ contains
     am(ii) = areal(mm(ii))
     hh     = aimag(mm(ii))
     if (hh.gt.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
         ,'mass-squared has positive imaginary part, switching its sign.'
       mm(ii) = acmplx( am(ii) ,-hh )
     endif
@@ -9609,7 +10369,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -9625,7 +10386,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,3
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -9652,7 +10413,7 @@ contains
     if (s1r2.lt.hh) s1r2 = 0
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r3.lt.hh) s3r3 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s3r3.and.s3r3.lt.hh) write(wunit,*) warning
@@ -9695,7 +10456,7 @@ contains
 ! exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -9707,6 +10468,20 @@ contains
     write(punit,*) 'c0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'c0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'c0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) 'c0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'c0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'c0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -9737,6 +10512,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop c0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -9754,7 +10530,8 @@ contains
     am(ii) = areal(mm(ii))
     hh     = aimag(mm(ii))
     if (hh.gt.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
         ,'mass-squared has positive imaginary part, switching its sign.'
       mm(ii) = acmplx( am(ii) ,-hh )
     endif
@@ -9767,7 +10544,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -9783,7 +10561,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,3
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -9810,7 +10588,7 @@ contains
     if (s1r2.lt.hh) s1r2 = 0
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r3.lt.hh) s3r3 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s3r3.and.s3r3.lt.hh) write(wunit,*) warning
@@ -9853,7 +10631,7 @@ contains
 ! exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -9865,6 +10643,20 @@ contains
     write(punit,*) 'c0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'c0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'c0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) 'c0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'c0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'c0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -9893,6 +10685,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop c0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -9916,7 +10709,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -9932,7 +10726,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,3
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -9959,7 +10753,7 @@ contains
     if (s1r2.lt.hh) s1r2 = 0
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r3.lt.hh) s3r3 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s3r3.and.s3r3.lt.hh) write(wunit,*) warning
@@ -10002,7 +10796,7 @@ contains
 ! exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -10014,6 +10808,20 @@ contains
     write(punit,*) 'c0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'c0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'c0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) 'c0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'c0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'c0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -10044,6 +10852,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop c0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -10067,7 +10876,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -10083,7 +10893,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,3
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -10110,7 +10920,7 @@ contains
     if (s1r2.lt.hh) s1r2 = 0
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r3.lt.hh) s3r3 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s3r3.and.s3r3.lt.hh) write(wunit,*) warning
@@ -10153,7 +10963,7 @@ contains
 ! exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -10165,6 +10975,20 @@ contains
     write(punit,*) 'c0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'c0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'c0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) 'c0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'c0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'c0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -10221,6 +11045,7 @@ contains
   character(25+99) ,parameter :: warning=&
                  'WARNING from OneLOop d0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -10236,7 +11061,8 @@ contains
   do ii=1,6
     ap(ii) = areal(pp(ii))
     if (aimag(pp(ii)).ne.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
         ,'momentum with non-zero imaginary part, putting it to zero.'
       pp(ii) = acmplx( ap(ii) ,0 )
     endif
@@ -10248,7 +11074,8 @@ contains
     am(ii) = areal(mm(ii))
     hh = aimag(mm(ii))
     if (hh.gt.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
         ,'mass-squared has positive imaginary part, switching its sign.'
       mm(ii) = acmplx( am(ii) ,-hh )
     endif
@@ -10268,7 +11095,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -10284,7 +11112,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,4
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -10295,7 +11123,7 @@ contains
   jj = 1
   min56 = min(ap(5),ap(6))
   if (min56.lt.hh) then
-    if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+    if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
       ,'input does not seem to represent hard kinematics, '&
       ,'trying to permutate'
     min13=min(ap(1),ap(3))
@@ -10303,7 +11131,7 @@ contains
     if     (min13.gt.min24.and.min13.gt.min56) then ;jj=2
     elseif (min24.gt.min13.and.min24.gt.min56) then ;jj=3
     else
-      if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+      if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
         ,'no permutation helps, errors might follow'
     endif
   endif
@@ -10335,7 +11163,7 @@ contains
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r4.lt.hh) s3r4 = 0
     if (s4r4.lt.hh) s4r4 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r2.and.s2r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
@@ -10445,7 +11273,7 @@ contains
 !exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -10461,6 +11289,24 @@ contains
     write(punit,*) 'd0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'd0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'd0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' p4:',trim(myprint(p4))
+    write(eunit,*) 'p12:',trim(myprint(p12))
+    write(eunit,*) 'p23:',trim(myprint(p23))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) ' m4:',trim(myprint(m4))
+    write(eunit,*) 'd0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'd0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'd0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -10496,6 +11342,7 @@ contains
   character(25+99) ,parameter :: warning=&
                  'WARNING from OneLOop d0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -10511,7 +11358,8 @@ contains
   do ii=1,6
     ap(ii) = areal(pp(ii))
     if (aimag(pp(ii)).ne.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
         ,'momentum with non-zero imaginary part, putting it to zero.'
       pp(ii) = acmplx( ap(ii) ,0 )
     endif
@@ -10523,7 +11371,8 @@ contains
     am(ii) = areal(mm(ii))
     hh = aimag(mm(ii))
     if (hh.gt.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
         ,'mass-squared has positive imaginary part, switching its sign.'
       mm(ii) = acmplx( am(ii) ,-hh )
     endif
@@ -10543,7 +11392,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -10559,7 +11409,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,4
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -10570,7 +11420,7 @@ contains
   jj = 1
   min56 = min(ap(5),ap(6))
   if (min56.lt.hh) then
-    if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+    if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
       ,'input does not seem to represent hard kinematics, '&
       ,'trying to permutate'
     min13=min(ap(1),ap(3))
@@ -10578,7 +11428,7 @@ contains
     if     (min13.gt.min24.and.min13.gt.min56) then ;jj=2
     elseif (min24.gt.min13.and.min24.gt.min56) then ;jj=3
     else
-      if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+      if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
         ,'no permutation helps, errors might follow'
     endif
   endif
@@ -10610,7 +11460,7 @@ contains
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r4.lt.hh) s3r4 = 0
     if (s4r4.lt.hh) s4r4 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r2.and.s2r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
@@ -10720,7 +11570,7 @@ contains
 !exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -10736,6 +11586,24 @@ contains
     write(punit,*) 'd0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'd0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'd0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' p4:',trim(myprint(p4))
+    write(eunit,*) 'p12:',trim(myprint(p12))
+    write(eunit,*) 'p23:',trim(myprint(p23))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) ' m4:',trim(myprint(m4))
+    write(eunit,*) 'd0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'd0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'd0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -10769,6 +11637,7 @@ contains
   character(25+99) ,parameter :: warning=&
                  'WARNING from OneLOop d0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -10790,7 +11659,8 @@ contains
     am(ii) = areal(mm(ii))
     hh = aimag(mm(ii))
     if (hh.gt.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
         ,'mass-squared has positive imaginary part, switching its sign.'
       mm(ii) = acmplx( am(ii) ,-hh )
     endif
@@ -10810,7 +11680,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -10826,7 +11697,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,4
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -10837,7 +11708,7 @@ contains
   jj = 1
   min56 = min(ap(5),ap(6))
   if (min56.lt.hh) then
-    if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+    if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
       ,'input does not seem to represent hard kinematics, '&
       ,'trying to permutate'
     min13=min(ap(1),ap(3))
@@ -10845,7 +11716,7 @@ contains
     if     (min13.gt.min24.and.min13.gt.min56) then ;jj=2
     elseif (min24.gt.min13.and.min24.gt.min56) then ;jj=3
     else
-      if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+      if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
         ,'no permutation helps, errors might follow'
     endif
   endif
@@ -10877,7 +11748,7 @@ contains
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r4.lt.hh) s3r4 = 0
     if (s4r4.lt.hh) s4r4 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r2.and.s2r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
@@ -10987,7 +11858,7 @@ contains
 !exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -11003,6 +11874,24 @@ contains
     write(punit,*) 'd0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'd0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'd0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' p4:',trim(myprint(p4))
+    write(eunit,*) 'p12:',trim(myprint(p12))
+    write(eunit,*) 'p23:',trim(myprint(p23))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) ' m4:',trim(myprint(m4))
+    write(eunit,*) 'd0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'd0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'd0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -11038,6 +11927,7 @@ contains
   character(25+99) ,parameter :: warning=&
                  'WARNING from OneLOop d0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -11059,7 +11949,8 @@ contains
     am(ii) = areal(mm(ii))
     hh = aimag(mm(ii))
     if (hh.gt.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
         ,'mass-squared has positive imaginary part, switching its sign.'
       mm(ii) = acmplx( am(ii) ,-hh )
     endif
@@ -11079,7 +11970,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -11095,7 +11987,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,4
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -11106,7 +11998,7 @@ contains
   jj = 1
   min56 = min(ap(5),ap(6))
   if (min56.lt.hh) then
-    if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+    if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
       ,'input does not seem to represent hard kinematics, '&
       ,'trying to permutate'
     min13=min(ap(1),ap(3))
@@ -11114,7 +12006,7 @@ contains
     if     (min13.gt.min24.and.min13.gt.min56) then ;jj=2
     elseif (min24.gt.min13.and.min24.gt.min56) then ;jj=3
     else
-      if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+      if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
         ,'no permutation helps, errors might follow'
     endif
   endif
@@ -11146,7 +12038,7 @@ contains
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r4.lt.hh) s3r4 = 0
     if (s4r4.lt.hh) s4r4 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r2.and.s2r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
@@ -11256,7 +12148,7 @@ contains
 !exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -11272,6 +12164,24 @@ contains
     write(punit,*) 'd0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'd0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'd0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' p4:',trim(myprint(p4))
+    write(eunit,*) 'p12:',trim(myprint(p12))
+    write(eunit,*) 'p23:',trim(myprint(p23))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) ' m4:',trim(myprint(m4))
+    write(eunit,*) 'd0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'd0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'd0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -11305,6 +12215,7 @@ contains
   character(25+99) ,parameter :: warning=&
                  'WARNING from OneLOop d0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -11339,7 +12250,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -11355,7 +12267,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,4
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -11366,7 +12278,7 @@ contains
   jj = 1
   min56 = min(ap(5),ap(6))
   if (min56.lt.hh) then
-    if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+    if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
       ,'input does not seem to represent hard kinematics, '&
       ,'trying to permutate'
     min13=min(ap(1),ap(3))
@@ -11374,7 +12286,7 @@ contains
     if     (min13.gt.min24.and.min13.gt.min56) then ;jj=2
     elseif (min24.gt.min13.and.min24.gt.min56) then ;jj=3
     else
-      if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+      if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
         ,'no permutation helps, errors might follow'
     endif
   endif
@@ -11406,7 +12318,7 @@ contains
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r4.lt.hh) s3r4 = 0
     if (s4r4.lt.hh) s4r4 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r2.and.s2r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
@@ -11516,7 +12428,7 @@ contains
 !exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -11532,6 +12444,24 @@ contains
     write(punit,*) 'd0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'd0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'd0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' p4:',trim(myprint(p4))
+    write(eunit,*) 'p12:',trim(myprint(p12))
+    write(eunit,*) 'p23:',trim(myprint(p23))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) ' m4:',trim(myprint(m4))
+    write(eunit,*) 'd0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'd0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'd0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -11567,6 +12497,7 @@ contains
   character(25+99) ,parameter :: warning=&
                  'WARNING from OneLOop d0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -11601,7 +12532,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -11617,7 +12549,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,4
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -11628,7 +12560,7 @@ contains
   jj = 1
   min56 = min(ap(5),ap(6))
   if (min56.lt.hh) then
-    if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+    if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
       ,'input does not seem to represent hard kinematics, '&
       ,'trying to permutate'
     min13=min(ap(1),ap(3))
@@ -11636,7 +12568,7 @@ contains
     if     (min13.gt.min24.and.min13.gt.min56) then ;jj=2
     elseif (min24.gt.min13.and.min24.gt.min56) then ;jj=3
     else
-      if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+      if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
         ,'no permutation helps, errors might follow'
     endif
   endif
@@ -11668,7 +12600,7 @@ contains
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r4.lt.hh) s3r4 = 0
     if (s4r4.lt.hh) s4r4 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r2.and.s2r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
@@ -11778,7 +12710,7 @@ contains
 !exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -11794,6 +12726,24 @@ contains
     write(punit,*) 'd0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'd0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'd0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' p4:',trim(myprint(p4))
+    write(eunit,*) 'p12:',trim(myprint(p12))
+    write(eunit,*) 'p23:',trim(myprint(p23))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) ' m4:',trim(myprint(m4))
+    write(eunit,*) 'd0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'd0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'd0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -11845,7 +12795,8 @@ contains
   integer ,parameter :: dm=1
   integer :: lb(dm),ub(dm)
   if (.not.allocated(xx)) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop shift1_r'
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop shift1_r'
     stop
   endif
   lb=lbound(xx) ;ub=ubound(xx)
@@ -11866,7 +12817,8 @@ contains
   integer ,parameter :: dm=1
   integer :: lb(dm),ub(dm)
   if (.not.allocated(xx)) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop shift1_i'
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop shift1_i'
     stop
   endif
   lb=lbound(xx) ;ub=ubound(xx)
@@ -11889,7 +12841,8 @@ contains
   integer ,parameter :: dm=2
   integer :: lb(dm),ub(dm)
   if (.not.allocated(xx)) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop shift2_r'
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop shift2_r'
     stop
   endif
   lb=lbound(xx) ;ub=ubound(xx)
@@ -11910,7 +12863,8 @@ contains
   integer ,parameter :: dm=2
   integer :: lb(dm),ub(dm)
   if (.not.allocated(xx)) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop shift2_i'
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop shift2_i'
     stop
   endif
   lb=lbound(xx) ;ub=ubound(xx)
@@ -11933,7 +12887,8 @@ contains
   integer ,parameter :: dm=3
   integer :: lb(dm),ub(dm)
   if (.not.allocated(xx)) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop shift3_r'
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop shift3_r'
     stop
   endif
   lb=lbound(xx) ;ub=ubound(xx)
@@ -11954,7 +12909,8 @@ contains
   integer ,parameter :: dm=3
   integer :: lb(dm),ub(dm)
   if (.not.allocated(xx)) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop shift3_i'
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop shift3_i'
     stop
   endif
   lb=lbound(xx) ;ub=ubound(xx)
@@ -12435,7 +13391,8 @@ contains
 
   if (aa.eq.CZRO) then
     if (bb.eq.CZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop solabc: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop solabc: ' &
         ,'no solutions, returning 0'
       x1 = 0
       x2 = 0
@@ -12480,7 +13437,8 @@ contains
       ,gg,hh,rx1,rx2,ix1,ix2
   if (aa.eq.RZRO) then
     if (bb.eq.CZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop solabc: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop solabc: ' &
         ,'no solutions, returning 0'
       x1 = 0
       x2 = 0
@@ -12916,7 +13874,8 @@ contains
     allocate(thrs(1:nStp,1:1))
     allocate(ntrm(1:nStp,1:1))
     if (prcpar.ne.1) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop update_olog'
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop update_olog'
       stop
     endif
   endif
@@ -13035,7 +13994,8 @@ contains
   integer :: jj
 !
   if (xx.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop log_r: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop log_r: ' &
        ,'xx =',trim(myprint(xx)),', returning 0'
     rslt = 0
     return
@@ -13122,7 +14082,8 @@ contains
 !  integer :: nn,ii
 !
   if (xx.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop log1_r: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop log1_r: ' &
        ,'xx =',trim(myprint(xx)),', returning 0'
     rslt = 0
     return
@@ -13134,7 +14095,8 @@ contains
 !
   if (abs(yy-1).le.10*EPSN) then
     if (jj.ne.0) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop log1_r: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop log1_r: ' &
         ,'rr,jj =',trim(myprint(rr)),jj,', putting jj to 0'
     endif
     rslt = 1 - (yy-1)/2
@@ -13173,7 +14135,8 @@ contains
   imx = aimag(xx)
 !
   if (rex.eq.RZRO.and.imx.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop log2_c: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop log2_c: ' &
        ,'xx = 0, returning 0'
     rslt = 0
     return
@@ -13242,7 +14205,8 @@ contains
   imx = aimag(xx)
 !
   if (rex.eq.RZRO.and.imx.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop log3_c: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop log3_c: ' &
        ,'xx = 0, returning 0'
     rslt = 0
     return
@@ -13342,7 +14306,8 @@ contains
     allocate(thrs(1:nStp,1:1))
     allocate(ntrm(1:nStp,1:1))
     if (prcpar.ne.1) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop update_dilog'
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop update_dilog'
       stop
     endif
   endif
@@ -13543,7 +14508,8 @@ contains
 ! 
   if (yy.eq.RONE.and.odd.eq.0) then
     if (ntwo.ne.0) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog_r: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog_r: ' &
         ,'|x|,iph = ',trim(myprint(yy)),',',jj,', returning 0'
     endif
     rslt = 0
@@ -13651,7 +14617,8 @@ contains
 !
   if (j1.ne.j2) then
     if (r1.eq.r2) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
         ,'j1,j2,r1-r2',j1,j2,',',trim(myprint(r1-r2)),', returning 0'
       rslt = 0
 !      write(*,*) 'dilog2_c j1=/=j2,r1=r2' !DEBUG
@@ -13665,8 +14632,9 @@ contains
 !
   if (a1.lt.eps) then
     if (a2.lt.eps) then
-!       if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
-!         ,'r1,r2 =',trim(myprint(r1)),',',trim(myprint(r2)),', returning 0'
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
+        ,'r1,r2 =',trim(myprint(r1)),',',trim(myprint(r2)),', returning 0'
       rslt = 0
 !      write(*,*) 'dilog2_c r1<eps,r2<eps' !DEBUG
       return
@@ -13687,7 +14655,7 @@ contains
 !      write(*,*) 'dilog2_c ||1-y1|/|1-y2|-1|>0.1' !DEBUG
       return
     elseif (oo.eq.0.and.ao1.lt.eps) then
-      if (nn.ne.0.and.eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
+      if (nn.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
         ,'r1,oo,nn =',trim(myprint(r1)),',',oo,nn,', putting nn=0'
       if (ao2.lt.eps) then
         rslt = -1
@@ -13697,7 +14665,7 @@ contains
         y1=1-eps ;nn=0 ;logr1=0 ;r1=1-eps
       endif
     elseif (oo.eq.0.and.ao2.lt.eps) then
-      if (nn.ne.0.and.eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
+      if (nn.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
         ,'r2,oo,nn =',trim(myprint(r2)),',',oo,nn,', putting nn=0'
       y2=1-eps ;nn=0 ;logr2=0 ;r2=1-eps
     endif
@@ -13712,7 +14680,7 @@ contains
       if (a1.gt.RONE) ii = ii + (nn+pp(oo,sgnIm(y2)))
       if (a2.gt.RONE) ii = ii - (nn+pp(oo,sgnIm(y2)))
       ii = nn*ii
-      if (ii.ne.0.and.eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
+      if (ii.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
         ,'r1,r2,nn =',trim(myprint(r1)),',',trim(myprint(r2)),',',nn &
         ,', putting nn=0'
       rslt = -olog1(y2,0)
@@ -13785,7 +14753,8 @@ contains
 !
   if (j1.ne.j2) then
     if (r1.eq.r2) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
         ,'j1,j2,r1-r2',j1,j2,',',trim(myprint(r1-r2)),', returning 0'
       rslt = 0
 !      write(*,*) 'dilog2_r j1=/=j2,r1=r2' !DEBUG
@@ -13799,8 +14768,9 @@ contains
 !
   if (r1.lt.eps) then
     if (r2.lt.eps) then
-!       if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
-!         ,'r1,r2 =',trim(myprint(r1)),',',trim(myprint(r2)),', returning 0'
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
+        ,'r1,r2 =',trim(myprint(r1)),',',trim(myprint(r2)),', returning 0'
       rslt = 0
 !      write(*,*) 'dilog2_r r1<eps,r2<eps' !DEBUG
       return
@@ -13821,7 +14791,7 @@ contains
 !      write(*,*) 'dilog2_r ||1-y1|/|1-y2|-1|>0.1' !DEBUG
       return
     elseif (oo.eq.0.and.ro1.lt.eps) then
-      if (nn.ne.0.and.eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
+      if (nn.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
         ,'r1,oo,nn =',trim(myprint(r1)),',',oo,nn,', putting nn=0'
       if (ro2.lt.eps) then
         rslt = -1
@@ -13831,7 +14801,7 @@ contains
         y1=1-eps ;nn=0 ;logr1=0 ;r1=1-eps
       endif
     elseif (oo.eq.0.and.ro2.lt.eps) then
-      if (nn.ne.0.and.eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
+      if (nn.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
         ,'r2,oo,nn =',trim(myprint(r2)),',',oo,nn,', putting nn=0'
       y2=1-eps ;nn=0 ;logr2=0 ;r2=1-eps
     endif
@@ -13846,7 +14816,7 @@ contains
       if (r1.gt.RONE) ii = ii + (nn+2*oo)
       if (r2.gt.RONE) ii = ii - (nn+2*oo)
       ii = nn*ii
-      if (ii.ne.0.and.eunit.gt.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
+      if (ii.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
         ,'r1,r2,nn =',trim(myprint(r1)),',',trim(myprint(r2)),',',nn &
         ,', putting nn=0'
       rslt = -olog1(y2,0)
@@ -14020,7 +14990,8 @@ contains
     allocate(thrs(1:nStp,0:rank,1:1))
     allocate(ntrm(1:nStp,0:rank,1:1))
     if (prcpar.ne.1) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop update_bnlog'
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop update_bnlog'
       stop
     endif
   endif
@@ -14215,7 +15186,8 @@ contains
   logical :: y_lt_0
 !
   if (abs(xx).eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop bnlog_r: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop bnlog_r: ' &
       ,'argument xx=',trim(myprint(xx,8)),', returning 0'
     rslt = 0
     return
@@ -14392,9 +15364,10 @@ contains
   else
     xim = aimag(xx)
     if (xim.eq.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop qonv_c: ' &
-        ,'negative input with undefined sign for the imaginary part, ' &
-        ,'putting +ieps'
+!      errorcode = errorcode+1
+!      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop qonv_c: ' &
+!        ,'negative input with undefined sign for the imaginary part, ' &
+!        ,'putting +ieps'
       rslt%c = -xre
       rslt%p = 1
     else
@@ -14416,9 +15389,10 @@ contains
     rslt%c = xx
     rslt%p = 0
   else
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop qonv_i: ' &
-      ,'negative input with undefined sign for the imaginary part, ' &
-      ,'putting +ieps'
+!    errorcode = errorcode+1
+!    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop qonv_i: ' &
+!      ,'negative input with undefined sign for the imaginary part, ' &
+!      ,'putting +ieps'
     rslt%c = -xx
     rslt%p = 1
   endif
@@ -15328,7 +16302,8 @@ contains
    k23 = (cm2+cm3-cpp)/(sm2*sm3)
    call rfun( r23,d23, k23 )
    if (r23.eq.-CONE) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop tria4: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop tria4: ' &
        ,'threshold singularity, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -15494,7 +16469,8 @@ contains
 !
    if     (icase.eq.0) then
 ! 0 masses non-zero
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop tria0: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop tria0: ' &
        ,'all external masses equal zero, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
    elseif (icase.eq.1) then
@@ -15610,7 +16586,8 @@ contains
    aa = r34*r24 - r23
 !
    if (aa.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop trif1: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop trif1: ' &
        ,'threshold singularity, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -15700,7 +16677,8 @@ contains
    aa = r34/r24 - r23
 !
    if (aa.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop trif2: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop trif2: ' &
        ,'threshold singularity, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -15796,7 +16774,8 @@ contains
    aa = sm2/sm3 - k23 + r13*(k12 - sm2/sm1)
 !
    if (aa.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop trif3: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop trif3: ' &
        ,'threshold singularity, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -15910,7 +16889,8 @@ contains
                        else ;slam=kallen(p1,p2,p3)
      endif
      if (slam.eq.CZRO) then
-       if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop trif3HV: ' &
+       errorcode = errorcode+1
+       if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop trif3HV: ' &
          ,'threshold singularity, returning 0'
        rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
        return
@@ -15925,7 +16905,8 @@ contains
 !
    elseif (a2.gt.thrs) then ! 2 non-zero squared momenta
      if (p2.eq.p3) then
-       if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop trif3HV: ' &
+       errorcode = errorcode+1
+       if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop trif3HV: ' &
          ,'threshold singularity, returning 0'
        rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
        return
@@ -16107,7 +17088,8 @@ contains
    cm3=m3 ;cp12=p12 ;cp23=p23
 !
    if (cp12.eq.cm3) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box16: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box16: ' &
        ,'p12=m3, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -16128,7 +17110,8 @@ contains
    q34 = qonv(r34,-1)
 !
    if (r24.eq.-CONE) then 
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box16: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box16: ' &
        ,'threshold singularity, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -16189,7 +17172,8 @@ contains
    cp12=p12 ;cp23=p23
 !
    if (cp12.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box15: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box15: ' &
        ,'p12=0, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -16208,7 +17192,8 @@ contains
    r34ne0 = (abs(areal(r34))+abs(aimag(r34)).gt.small)
 !
    if (r24.eq.-CONE) then 
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box15: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box15: ' &
        ,'threshold singularity, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -16259,7 +17244,8 @@ contains
      :: sm2,sm4,r24,d24,cc
 !
    if (cp12.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box14: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box14: ' &
        ,'p12=0, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -16270,7 +17256,8 @@ contains
    call rfun( r24,d24 ,(cm2+cm4-cp23)/(sm2*sm4) )
 !
    if (r24.eq.-CONE) then 
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box14: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box14: ' &
        ,'threshold singularity, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -16311,13 +17298,15 @@ contains
      :: h1,h2
 !
    if (p12.eq.m3) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box13: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box13: ' &
        ,'p12=m3, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
    endif
    if (p23.eq.m4) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box13: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box13: ' &
        ,'p23=m4, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -16392,13 +17381,15 @@ contains
    type(qmplx_type) :: q13,q14,q24,q34,qyy
 !
    if (cp12.eq.cm3) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box12: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box12: ' &
        ,'p12=m3, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
    endif
    if (cp23.eq.cm4) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box12: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box12: ' &
        ,'p23=m4, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -16463,13 +17454,15 @@ contains
                      ,cc,log13,log24,log34
 !
    if (cp12.eq.cm3) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box11: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box11: ' &
        ,'p12=m3, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
    endif
    if (cp23.eq.cm4) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box11: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box11: ' &
        ,'p23=m4, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -16525,13 +17518,15 @@ contains
    logical :: r34zero
 !
    if (p12.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box10: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box10: ' &
        ,'p12=0, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
    endif
    if (p23.eq.m4) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box10: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box10: ' &
        ,'p23=mm, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -16607,13 +17602,15 @@ contains
    type(qmplx_type) :: q13,q23,q24,q34,qm4,qxx
 !
    if (cp12.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box09: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box09: ' &
        ,'p12=0, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
    endif
    if (cp23.eq.cm4) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box09: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box09: ' &
        ,'p23=mm, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -16674,13 +17671,15 @@ contains
      :: rmu2
 !
    if (cp12.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box08: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box08: ' &
        ,'p12=0, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
    endif
    if (cp23.eq.cm4) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box08: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box08: ' &
        ,'p23=mm, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -16740,13 +17739,15 @@ contains
                      ,z2,z1,z0,cc
 !
    if (cp12.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box07: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box07: ' &
        ,'p12=0, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
    endif
    if (cp23.eq.cm4) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box07: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box07: ' &
        ,'p23=mm, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -16799,13 +17800,15 @@ contains
      :: r13,r24,logm,log1,log2,z2,z1,z0,cc
 !
    if (cp12.eq.CZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box06: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box06: ' &
        ,'p12=0, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
    endif
    if (cp23.eq.cm4) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop box06: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop box06: ' &
        ,'p23=mm, returning 0'
      rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
      return
@@ -17100,7 +18103,8 @@ contains
   aa = r34*r24
 !
   if (r13.eq.CZRO.or.aa.eq.CZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf0: ' &
        ,'threshold singularity, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -17173,7 +18177,8 @@ contains
   aa = r34*r24
 !
   if (aa.eq.CZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf1: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf1: ' &
        ,'threshold singularity, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -17278,16 +18283,18 @@ contains
   r12zero = (abs(areal(r12))+abs(aimag(r12)).lt.small)
   r13zero = (abs(areal(r13))+abs(aimag(r13)).lt.small)
   r24zero = (abs(areal(r24))+abs(aimag(r24)).lt.small)
-  r34zero = (abs(areal(r34))+abs(aimag(r34)).lt.small)
+  r34zero = (abs(areal(r34))+abs(aimag(r34)).lt.small*8)
 !
   if (r12zero.and.r24zero) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf2: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf2: ' &
        ,'m4=p4 and m3=p12, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
   endif
   if (r13zero.and.r34zero) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf2: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf2: ' &
        ,'m4=p23 and m3=p2, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -17298,7 +18305,8 @@ contains
   aa = r34*r24 - r23
 !
   if (aa.eq.CZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf2: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf2: ' &
        ,'threshold singularity, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -17416,12 +18424,14 @@ contains
 !
   if (r13zero) then
     if     (r23zero) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf33: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf33: ' &
        ,'m4=p4 and m3=p12, returning 0'
       rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
       return
     elseif (r34zero) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf33: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf33: ' &
        ,'m2=p1 and m3=p12, returning 0'
       rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
       return
@@ -17435,7 +18445,8 @@ contains
   aa = r34/r24 - r23
 !
   if (aa.eq.CZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf33: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf33: ' &
        ,'threshold singularity, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -17523,7 +18534,8 @@ contains
   aa = k34/r24 + r13*k12 - k14*r13/r24 - k23
 !
   if (aa.eq.CZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxf4: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxf4: ' &
        ,'threshold singularity, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -17621,7 +18633,8 @@ contains
      endif
    enddo
    if (ap(5).eq.RZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxc: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxc: ' &
        ,' |s| too small, putting it by hand'
      ap(5) = hh
      pp(5) = acmplx(sign(hh,areal(pp_in(5))))
@@ -17629,7 +18642,8 @@ contains
      pp(5) = pp_in(5)
    endif
    if (ap(6).eq.RZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxc: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxc: ' &
        ,' |t| too small, putting it by hand'
      ap(6) = hh
      pp(6) = acmplx(sign(hh,areal(pp_in(6))))
@@ -17692,7 +18706,8 @@ contains
      elseif(areal((pp(4)-pp(5)-pp(3))**2-4*pp(5)*pp(3)).gt.RZRO)then ;icase=4 !34, 2 cyclic permutations
      elseif(areal((pp(4)-pp(1)-pp(6))**2-4*pp(1)*pp(6)).gt.RZRO)then ;icase=2 !41, 3 cyclic permutations
      else
-       if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxc: ' &
+       errorcode = errorcode+1
+       if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxc: ' &
          ,'no positive lambda, returning 0'
        return
      endif
@@ -17717,7 +18732,8 @@ contains
      def = mm(ll(2,icase)) - pp(ll(6,icase))
      call solabc( x1,x2 ,sdnt ,g,j,b ,0 )
      if (aimag(sdnt).ne.RZRO) then
-       if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop boxc: ' &
+       errorcode = errorcode+1
+       if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop boxc: ' &
          ,'no real solution for alpha, returning 0'
        return
      endif
@@ -17951,11 +18967,13 @@ contains
    y1 = (dd+y1i)/ee
    y2 = (dd+y2i)/ee
    if (aimag(y1).eq.RZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop s3fun: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop s3fun: ' &
        ,'y1 has zero imaginary part'
    endif
    if (aimag(y2).eq.RZRO) then
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop s3fun: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop s3fun: ' &
        ,'y2 has zero imaginary part'
    endif
    fy1y2 = r0fun( y1,y2 )
@@ -18002,7 +19020,8 @@ contains
 !
    else!if (aa=bb=cc=0)
 !
-     if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop s3fun: ' &
+     errorcode = errorcode+1
+     if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop s3fun: ' &
        ,'cc equal zero, returning 0'
      rslt = 0
 !
@@ -18133,7 +19152,8 @@ contains
      x1 = bb*y1 + cc
      xx = aa/x1
      if (aimag(xx).eq.RZRO) then
-       if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop plnr: ' &
+       errorcode = errorcode+1
+       if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop plnr: ' &
          ,'aa/x1 has zero imaginary part'
      endif
      q1 = qonv(xx)
@@ -18142,7 +19162,8 @@ contains
      x2 = bb*y2 + cc
      xx = aa/x2
      if (aimag(xx).eq.RZRO) then
-       if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop plnr: ' &
+       errorcode = errorcode+1
+       if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop plnr: ' &
          ,'aa/x2 has zero imaginary part'
      endif
      q2 = qonv(xx)
@@ -18391,6 +19412,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop a0: '//warnonshell
   if (initz) call init
+  errorcode = 0
 !
   mulocal = muscale 
 !
@@ -18401,7 +19423,7 @@ contains
   if (nonzerothrs) then
     hh = onshellthrs
     if (am.lt.hh) am = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(am,mulocal2)
     if (RZRO.lt.am.and.am.lt.hh) write(wunit,*) warning
   endif
@@ -18409,13 +19431,22 @@ contains
   ss = mm
   call tadp( rslt ,ss ,am ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' mm:',trim(myprint(mm))
     write(punit,*) 'a0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'a0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'a0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' mm:',trim(myprint(mm))
+    write(eunit,*) 'a0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'a0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'a0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -18437,6 +19468,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop a0: '//warnonshell
   if (initz) call init
+  errorcode = 0
 !
   mulocal = rmu     
 !
@@ -18447,7 +19479,7 @@ contains
   if (nonzerothrs) then
     hh = onshellthrs
     if (am.lt.hh) am = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(am,mulocal2)
     if (RZRO.lt.am.and.am.lt.hh) write(wunit,*) warning
   endif
@@ -18455,13 +19487,22 @@ contains
   ss = mm
   call tadp( rslt ,ss ,am ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' mm:',trim(myprint(mm))
     write(punit,*) 'a0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'a0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'a0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' mm:',trim(myprint(mm))
+    write(eunit,*) 'a0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'a0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'a0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -18481,6 +19522,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop a0: '//warnonshell
   if (initz) call init
+  errorcode = 0
 !
   mulocal = muscale 
 !
@@ -18491,7 +19533,7 @@ contains
   if (nonzerothrs) then
     hh = onshellthrs
     if (am.lt.hh) am = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(am,mulocal2)
     if (RZRO.lt.am.and.am.lt.hh) write(wunit,*) warning
   endif
@@ -18499,13 +19541,22 @@ contains
   ss = mm
   call tadp( rslt ,ss ,am ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' mm:',trim(myprint(mm))
     write(punit,*) 'a0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'a0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'a0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' mm:',trim(myprint(mm))
+    write(eunit,*) 'a0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'a0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'a0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -18527,6 +19578,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop a0: '//warnonshell
   if (initz) call init
+  errorcode = 0
 !
   mulocal = rmu     
 !
@@ -18537,7 +19589,7 @@ contains
   if (nonzerothrs) then
     hh = onshellthrs
     if (am.lt.hh) am = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(am,mulocal2)
     if (RZRO.lt.am.and.am.lt.hh) write(wunit,*) warning
   endif
@@ -18545,13 +19597,22 @@ contains
   ss = mm
   call tadp( rslt ,ss ,am ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' mm:',trim(myprint(mm))
     write(punit,*) 'a0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'a0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'a0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' mm:',trim(myprint(mm))
+    write(eunit,*) 'a0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'a0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'a0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -18574,6 +19635,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop An: '//warnonshell
   if (initz) call init
+  errorcode = 0
 !
   mulocal = muscale 
 !
@@ -18584,7 +19646,7 @@ contains
   if (nonzerothrs) then
     hh = onshellthrs
     if (am.lt.hh) am = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(am,mulocal2)
     if (RZRO.lt.am.and.am.lt.hh) write(wunit,*) warning
   endif
@@ -18592,7 +19654,7 @@ contains
   ss = mm
   call tadpn( rslt ,rank ,ss ,am ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' mm:',trim(myprint(mm))
@@ -18600,6 +19662,17 @@ contains
     write(punit,*) 'A(2,',trim(myprint(ii)),'):',trim(myprint(rslt(2,ii)))
     write(punit,*) 'A(1,',trim(myprint(ii)),'):',trim(myprint(rslt(1,ii)))
     write(punit,*) 'A(0,',trim(myprint(ii)),'):',trim(myprint(rslt(0,ii)))
+    enddo
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' mm:',trim(myprint(mm))
+    do ii=0,rank/2
+    write(eunit,*) 'A(2,',trim(myprint(ii)),'):',trim(myprint(rslt(2,ii)))
+    write(eunit,*) 'A(1,',trim(myprint(ii)),'):',trim(myprint(rslt(1,ii)))
+    write(eunit,*) 'A(0,',trim(myprint(ii)),'):',trim(myprint(rslt(0,ii)))
     enddo
   endif
   end subroutine
@@ -18624,6 +19697,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop An: '//warnonshell
   if (initz) call init
+  errorcode = 0
 !
   mulocal = rmu     
 !
@@ -18634,7 +19708,7 @@ contains
   if (nonzerothrs) then
     hh = onshellthrs
     if (am.lt.hh) am = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(am,mulocal2)
     if (RZRO.lt.am.and.am.lt.hh) write(wunit,*) warning
   endif
@@ -18642,7 +19716,7 @@ contains
   ss = mm
   call tadpn( rslt ,rank ,ss ,am ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' mm:',trim(myprint(mm))
@@ -18650,6 +19724,17 @@ contains
     write(punit,*) 'A(2,',trim(myprint(ii)),'):',trim(myprint(rslt(2,ii)))
     write(punit,*) 'A(1,',trim(myprint(ii)),'):',trim(myprint(rslt(1,ii)))
     write(punit,*) 'A(0,',trim(myprint(ii)),'):',trim(myprint(rslt(0,ii)))
+    enddo
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' mm:',trim(myprint(mm))
+    do ii=0,rank/2
+    write(eunit,*) 'A(2,',trim(myprint(ii)),'):',trim(myprint(rslt(2,ii)))
+    write(eunit,*) 'A(1,',trim(myprint(ii)),'):',trim(myprint(rslt(1,ii)))
+    write(eunit,*) 'A(0,',trim(myprint(ii)),'):',trim(myprint(rslt(0,ii)))
     enddo
   endif
   end subroutine
@@ -18672,6 +19757,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop An: '//warnonshell
   if (initz) call init
+  errorcode = 0
 !
   mulocal = muscale 
 !
@@ -18682,7 +19768,7 @@ contains
   if (nonzerothrs) then
     hh = onshellthrs
     if (am.lt.hh) am = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(am,mulocal2)
     if (RZRO.lt.am.and.am.lt.hh) write(wunit,*) warning
   endif
@@ -18690,7 +19776,7 @@ contains
   ss = mm
   call tadpn( rslt ,rank ,ss ,am ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' mm:',trim(myprint(mm))
@@ -18698,6 +19784,17 @@ contains
     write(punit,*) 'A(2,',trim(myprint(ii)),'):',trim(myprint(rslt(2,ii)))
     write(punit,*) 'A(1,',trim(myprint(ii)),'):',trim(myprint(rslt(1,ii)))
     write(punit,*) 'A(0,',trim(myprint(ii)),'):',trim(myprint(rslt(0,ii)))
+    enddo
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' mm:',trim(myprint(mm))
+    do ii=0,rank/2
+    write(eunit,*) 'A(2,',trim(myprint(ii)),'):',trim(myprint(rslt(2,ii)))
+    write(eunit,*) 'A(1,',trim(myprint(ii)),'):',trim(myprint(rslt(1,ii)))
+    write(eunit,*) 'A(0,',trim(myprint(ii)),'):',trim(myprint(rslt(0,ii)))
     enddo
   endif
   end subroutine
@@ -18722,6 +19819,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop An: '//warnonshell
   if (initz) call init
+  errorcode = 0
 !
   mulocal = rmu     
 !
@@ -18732,7 +19830,7 @@ contains
   if (nonzerothrs) then
     hh = onshellthrs
     if (am.lt.hh) am = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(am,mulocal2)
     if (RZRO.lt.am.and.am.lt.hh) write(wunit,*) warning
   endif
@@ -18740,7 +19838,7 @@ contains
   ss = mm
   call tadpn( rslt ,rank ,ss ,am ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' mm:',trim(myprint(mm))
@@ -18748,6 +19846,17 @@ contains
     write(punit,*) 'A(2,',trim(myprint(ii)),'):',trim(myprint(rslt(2,ii)))
     write(punit,*) 'A(1,',trim(myprint(ii)),'):',trim(myprint(rslt(1,ii)))
     write(punit,*) 'A(0,',trim(myprint(ii)),'):',trim(myprint(rslt(0,ii)))
+    enddo
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' mm:',trim(myprint(mm))
+    do ii=0,rank/2
+    write(eunit,*) 'A(2,',trim(myprint(ii)),'):',trim(myprint(rslt(2,ii)))
+    write(eunit,*) 'A(1,',trim(myprint(ii)),'):',trim(myprint(rslt(1,ii)))
+    write(eunit,*) 'A(0,',trim(myprint(ii)),'):',trim(myprint(rslt(0,ii)))
     enddo
   endif
   end subroutine
@@ -18789,13 +19898,15 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop b0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
 !
   app = areal(ss)
   if (aimag(ss).ne.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'ss has non-zero imaginary part, putting it to zero.'
     ss = acmplx( app )
   endif
@@ -18804,7 +19915,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -18813,7 +19925,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -18828,7 +19941,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -18837,7 +19950,7 @@ contains
 !
   call bub0( rslt ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -18846,6 +19959,17 @@ contains
     write(punit,*) 'b0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'b0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'b0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -18869,13 +19993,15 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop b0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
 !
   app = areal(ss)
   if (aimag(ss).ne.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'ss has non-zero imaginary part, putting it to zero.'
     ss = acmplx( app )
   endif
@@ -18884,7 +20010,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -18893,7 +20020,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -18908,7 +20036,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -18917,7 +20045,7 @@ contains
 !
   call bub0( rslt ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -18926,6 +20054,17 @@ contains
     write(punit,*) 'b0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'b0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'b0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -18947,6 +20086,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop b0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -18956,7 +20096,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -18965,7 +20106,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -18980,7 +20122,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -18989,7 +20131,7 @@ contains
 !
   call bub0( rslt ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -18998,6 +20140,17 @@ contains
     write(punit,*) 'b0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'b0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'b0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -19021,6 +20174,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop b0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -19030,7 +20184,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -19039,7 +20194,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -19054,7 +20210,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -19063,7 +20219,7 @@ contains
 !
   call bub0( rslt ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -19072,6 +20228,17 @@ contains
     write(punit,*) 'b0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'b0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'b0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -19093,6 +20260,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop b0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -19111,7 +20279,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -19120,7 +20288,7 @@ contains
 !
   call bub0( rslt ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -19129,6 +20297,17 @@ contains
     write(punit,*) 'b0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'b0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'b0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -19152,6 +20331,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop b0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -19170,7 +20350,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -19179,7 +20359,7 @@ contains
 !
   call bub0( rslt ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -19188,6 +20368,17 @@ contains
     write(punit,*) 'b0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'b0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'b0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -19213,13 +20404,15 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop db0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
 !
   app = areal(ss)
   if (aimag(ss).ne.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
       ,'ss has non-zero imaginary part, putting it to zero.'
     ss = acmplx( app )
   endif
@@ -19228,7 +20421,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -19237,7 +20431,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -19259,7 +20454,7 @@ contains
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
     if (ssr2.lt.hh) ssr2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,am2))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -19276,7 +20471,7 @@ contains
     call dbub0( rslt(0) ,ss,r1,r2 ,app,am1,am2 )
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) ' pp:',trim(myprint(pp))
     write(punit,*) ' m1:',trim(myprint(m1))
@@ -19284,6 +20479,16 @@ contains
     write(punit,*) 'db0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'db0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'db0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'db0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'db0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'db0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -19308,13 +20513,15 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop db0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
 !
   app = areal(ss)
   if (aimag(ss).ne.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
       ,'ss has non-zero imaginary part, putting it to zero.'
     ss = acmplx( app )
   endif
@@ -19323,7 +20530,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -19332,7 +20540,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -19354,7 +20563,7 @@ contains
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
     if (ssr2.lt.hh) ssr2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,am2))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -19371,7 +20580,7 @@ contains
     call dbub0( rslt(0) ,ss,r1,r2 ,app,am1,am2 )
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) ' pp:',trim(myprint(pp))
     write(punit,*) ' m1:',trim(myprint(m1))
@@ -19379,6 +20588,16 @@ contains
     write(punit,*) 'db0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'db0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'db0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'db0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'db0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'db0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -19401,6 +20620,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop db0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -19410,7 +20630,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -19419,7 +20640,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -19441,7 +20663,7 @@ contains
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
     if (ssr2.lt.hh) ssr2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,am2))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -19458,7 +20680,7 @@ contains
     call dbub0( rslt(0) ,ss,r1,r2 ,app,am1,am2 )
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) ' pp:',trim(myprint(pp))
     write(punit,*) ' m1:',trim(myprint(m1))
@@ -19466,6 +20688,16 @@ contains
     write(punit,*) 'db0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'db0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'db0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'db0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'db0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'db0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -19490,6 +20722,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop db0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -19499,7 +20732,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop db0: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -19508,7 +20742,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b0: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -19530,7 +20765,7 @@ contains
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
     if (ssr2.lt.hh) ssr2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,am2))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -19547,7 +20782,7 @@ contains
     call dbub0( rslt(0) ,ss,r1,r2 ,app,am1,am2 )
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) ' pp:',trim(myprint(pp))
     write(punit,*) ' m1:',trim(myprint(m1))
@@ -19555,6 +20790,16 @@ contains
     write(punit,*) 'db0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'db0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'db0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'db0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'db0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'db0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -19577,6 +20822,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop db0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -19602,7 +20848,7 @@ contains
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
     if (ssr2.lt.hh) ssr2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,am2))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -19619,7 +20865,7 @@ contains
     call dbub0( rslt(0) ,ss,r1,r2 ,app,am1,am2 )
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) ' pp:',trim(myprint(pp))
     write(punit,*) ' m1:',trim(myprint(m1))
@@ -19627,6 +20873,16 @@ contains
     write(punit,*) 'db0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'db0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'db0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'db0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'db0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'db0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -19651,6 +20907,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop db0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -19676,7 +20933,7 @@ contains
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
     if (ssr2.lt.hh) ssr2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,am2))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -19693,7 +20950,7 @@ contains
     call dbub0( rslt(0) ,ss,r1,r2 ,app,am1,am2 )
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) ' pp:',trim(myprint(pp))
     write(punit,*) ' m1:',trim(myprint(m1))
@@ -19701,6 +20958,16 @@ contains
     write(punit,*) 'db0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'db0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'db0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'db0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'db0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'db0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -19743,13 +21010,15 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop b11: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
 !
   app = areal(ss)
   if (aimag(ss).ne.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'ss has non-zero imaginary part, putting it to zero.'
     ss = acmplx( app )
   endif
@@ -19758,7 +21027,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -19767,7 +21037,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -19782,7 +21053,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -19791,7 +21062,7 @@ contains
 !
   call bub11( b11,b00,b1,b0 ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -19809,6 +21080,26 @@ contains
     write(punit,*) ' b0(2):',trim(myprint(b0(2) ))
     write(punit,*) ' b0(1):',trim(myprint(b0(1) ))
     write(punit,*) ' b0(0):',trim(myprint(b0(0) ))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b11(2):',trim(myprint(b11(2)))
+    write(eunit,*) 'b11(1):',trim(myprint(b11(1)))
+    write(eunit,*) 'b11(0):',trim(myprint(b11(0)))
+    write(eunit,*) 'b00(2):',trim(myprint(b00(2)))
+    write(eunit,*) 'b00(1):',trim(myprint(b00(1)))
+    write(eunit,*) 'b00(0):',trim(myprint(b00(0)))
+    write(eunit,*) ' b1(2):',trim(myprint(b1(2) ))
+    write(eunit,*) ' b1(1):',trim(myprint(b1(1) ))
+    write(eunit,*) ' b1(0):',trim(myprint(b1(0) ))
+    write(eunit,*) ' b0(2):',trim(myprint(b0(2) ))
+    write(eunit,*) ' b0(1):',trim(myprint(b0(1) ))
+    write(eunit,*) ' b0(0):',trim(myprint(b0(0) ))
   endif
   end subroutine
 
@@ -19832,13 +21123,15 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop b11: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
 !
   app = areal(ss)
   if (aimag(ss).ne.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'ss has non-zero imaginary part, putting it to zero.'
     ss = acmplx( app )
   endif
@@ -19847,7 +21140,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -19856,7 +21150,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -19871,7 +21166,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -19880,7 +21175,7 @@ contains
 !
   call bub11( b11,b00,b1,b0 ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -19898,6 +21193,26 @@ contains
     write(punit,*) ' b0(2):',trim(myprint(b0(2) ))
     write(punit,*) ' b0(1):',trim(myprint(b0(1) ))
     write(punit,*) ' b0(0):',trim(myprint(b0(0) ))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b11(2):',trim(myprint(b11(2)))
+    write(eunit,*) 'b11(1):',trim(myprint(b11(1)))
+    write(eunit,*) 'b11(0):',trim(myprint(b11(0)))
+    write(eunit,*) 'b00(2):',trim(myprint(b00(2)))
+    write(eunit,*) 'b00(1):',trim(myprint(b00(1)))
+    write(eunit,*) 'b00(0):',trim(myprint(b00(0)))
+    write(eunit,*) ' b1(2):',trim(myprint(b1(2) ))
+    write(eunit,*) ' b1(1):',trim(myprint(b1(1) ))
+    write(eunit,*) ' b1(0):',trim(myprint(b1(0) ))
+    write(eunit,*) ' b0(2):',trim(myprint(b0(2) ))
+    write(eunit,*) ' b0(1):',trim(myprint(b0(1) ))
+    write(eunit,*) ' b0(0):',trim(myprint(b0(0) ))
   endif
   end subroutine
 
@@ -19919,6 +21234,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop b11: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -19928,7 +21244,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -19937,7 +21254,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -19952,7 +21270,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -19961,7 +21279,7 @@ contains
 !
   call bub11( b11,b00,b1,b0 ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -19979,6 +21297,26 @@ contains
     write(punit,*) ' b0(2):',trim(myprint(b0(2) ))
     write(punit,*) ' b0(1):',trim(myprint(b0(1) ))
     write(punit,*) ' b0(0):',trim(myprint(b0(0) ))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b11(2):',trim(myprint(b11(2)))
+    write(eunit,*) 'b11(1):',trim(myprint(b11(1)))
+    write(eunit,*) 'b11(0):',trim(myprint(b11(0)))
+    write(eunit,*) 'b00(2):',trim(myprint(b00(2)))
+    write(eunit,*) 'b00(1):',trim(myprint(b00(1)))
+    write(eunit,*) 'b00(0):',trim(myprint(b00(0)))
+    write(eunit,*) ' b1(2):',trim(myprint(b1(2) ))
+    write(eunit,*) ' b1(1):',trim(myprint(b1(1) ))
+    write(eunit,*) ' b1(0):',trim(myprint(b1(0) ))
+    write(eunit,*) ' b0(2):',trim(myprint(b0(2) ))
+    write(eunit,*) ' b0(1):',trim(myprint(b0(1) ))
+    write(eunit,*) ' b0(0):',trim(myprint(b0(0) ))
   endif
   end subroutine
 
@@ -20002,6 +21340,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop b11: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -20011,7 +21350,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -20020,7 +21360,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop b11: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -20035,7 +21376,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -20044,7 +21385,7 @@ contains
 !
   call bub11( b11,b00,b1,b0 ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -20062,6 +21403,26 @@ contains
     write(punit,*) ' b0(2):',trim(myprint(b0(2) ))
     write(punit,*) ' b0(1):',trim(myprint(b0(1) ))
     write(punit,*) ' b0(0):',trim(myprint(b0(0) ))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b11(2):',trim(myprint(b11(2)))
+    write(eunit,*) 'b11(1):',trim(myprint(b11(1)))
+    write(eunit,*) 'b11(0):',trim(myprint(b11(0)))
+    write(eunit,*) 'b00(2):',trim(myprint(b00(2)))
+    write(eunit,*) 'b00(1):',trim(myprint(b00(1)))
+    write(eunit,*) 'b00(0):',trim(myprint(b00(0)))
+    write(eunit,*) ' b1(2):',trim(myprint(b1(2) ))
+    write(eunit,*) ' b1(1):',trim(myprint(b1(1) ))
+    write(eunit,*) ' b1(0):',trim(myprint(b1(0) ))
+    write(eunit,*) ' b0(2):',trim(myprint(b0(2) ))
+    write(eunit,*) ' b0(1):',trim(myprint(b0(1) ))
+    write(eunit,*) ' b0(0):',trim(myprint(b0(0) ))
   endif
   end subroutine
 
@@ -20083,6 +21444,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop b11: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -20101,7 +21463,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -20110,7 +21472,7 @@ contains
 !
   call bub11( b11,b00,b1,b0 ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -20128,6 +21490,26 @@ contains
     write(punit,*) ' b0(2):',trim(myprint(b0(2) ))
     write(punit,*) ' b0(1):',trim(myprint(b0(1) ))
     write(punit,*) ' b0(0):',trim(myprint(b0(0) ))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b11(2):',trim(myprint(b11(2)))
+    write(eunit,*) 'b11(1):',trim(myprint(b11(1)))
+    write(eunit,*) 'b11(0):',trim(myprint(b11(0)))
+    write(eunit,*) 'b00(2):',trim(myprint(b00(2)))
+    write(eunit,*) 'b00(1):',trim(myprint(b00(1)))
+    write(eunit,*) 'b00(0):',trim(myprint(b00(0)))
+    write(eunit,*) ' b1(2):',trim(myprint(b1(2) ))
+    write(eunit,*) ' b1(1):',trim(myprint(b1(1) ))
+    write(eunit,*) ' b1(0):',trim(myprint(b1(0) ))
+    write(eunit,*) ' b0(2):',trim(myprint(b0(2) ))
+    write(eunit,*) ' b0(1):',trim(myprint(b0(1) ))
+    write(eunit,*) ' b0(0):',trim(myprint(b0(0) ))
   endif
   end subroutine
 
@@ -20151,6 +21533,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop b11: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -20169,7 +21552,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -20178,7 +21561,7 @@ contains
 !
   call bub11( b11,b00,b1,b0 ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' pp:',trim(myprint(pp))
@@ -20196,6 +21579,26 @@ contains
     write(punit,*) ' b0(2):',trim(myprint(b0(2) ))
     write(punit,*) ' b0(1):',trim(myprint(b0(1) ))
     write(punit,*) ' b0(0):',trim(myprint(b0(0) ))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' pp:',trim(myprint(pp))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) 'b11(2):',trim(myprint(b11(2)))
+    write(eunit,*) 'b11(1):',trim(myprint(b11(1)))
+    write(eunit,*) 'b11(0):',trim(myprint(b11(0)))
+    write(eunit,*) 'b00(2):',trim(myprint(b00(2)))
+    write(eunit,*) 'b00(1):',trim(myprint(b00(1)))
+    write(eunit,*) 'b00(0):',trim(myprint(b00(0)))
+    write(eunit,*) ' b1(2):',trim(myprint(b1(2) ))
+    write(eunit,*) ' b1(1):',trim(myprint(b1(1) ))
+    write(eunit,*) ' b1(0):',trim(myprint(b1(0) ))
+    write(eunit,*) ' b0(2):',trim(myprint(b0(2) ))
+    write(eunit,*) ' b0(1):',trim(myprint(b0(1) ))
+    write(eunit,*) ' b0(0):',trim(myprint(b0(0) ))
   endif
   end subroutine
 
@@ -20219,13 +21622,15 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop bn: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
 !
   app = areal(ss)
   if (aimag(ss).ne.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'ss has non-zero imaginary part, putting it to zero.'
     ss = acmplx( app )
   endif
@@ -20234,7 +21639,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -20243,7 +21649,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -20258,7 +21665,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -20284,11 +21691,12 @@ contains
                  ,rslt(:,3),rslt(:,2),rslt(:,1),rslt(:,0) &
                  ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
   else
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'rank=',rank,' not implemented'
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) 'pp:',trim(myprint(pp))
@@ -20326,6 +21734,47 @@ contains
     write(punit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
     write(punit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
     write(punit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
+    endif;endif;endif;endif;endif
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) 'pp:',trim(myprint(pp))
+    write(eunit,*) 'm1:',trim(myprint(m1))
+    write(eunit,*) 'm2:',trim(myprint(m2))
+    if (rank.ge.0) then
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2,0) ))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1,0) ))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0,0) ))
+    if (rank.ge.1) then
+    write(eunit,*) 'b1(2):',trim(myprint(rslt(2,1) ))
+    write(eunit,*) 'b1(1):',trim(myprint(rslt(1,1) ))
+    write(eunit,*) 'b1(0):',trim(myprint(rslt(0,1) ))
+    if (rank.ge.2) then
+    write(eunit,*) 'b00(2):',trim(myprint(rslt(2,2)))
+    write(eunit,*) 'b00(1):',trim(myprint(rslt(1,2)))
+    write(eunit,*) 'b00(0):',trim(myprint(rslt(0,2)))
+    write(eunit,*) 'b11(2):',trim(myprint(rslt(2,3)))
+    write(eunit,*) 'b11(1):',trim(myprint(rslt(1,3)))
+    write(eunit,*) 'b11(0):',trim(myprint(rslt(0,3)))
+    if (rank.ge.3) then
+    write(eunit,*) 'b001(2):',trim(myprint(rslt(2,4)))
+    write(eunit,*) 'b001(1):',trim(myprint(rslt(1,4)))
+    write(eunit,*) 'b001(0):',trim(myprint(rslt(0,4)))
+    write(eunit,*) 'b111(2):',trim(myprint(rslt(2,5)))
+    write(eunit,*) 'b111(1):',trim(myprint(rslt(1,5)))
+    write(eunit,*) 'b111(0):',trim(myprint(rslt(0,5)))
+    if (rank.ge.4) then
+    write(eunit,*) 'b0000(2):',trim(myprint(rslt(2,6)))
+    write(eunit,*) 'b0000(1):',trim(myprint(rslt(1,6)))
+    write(eunit,*) 'b0000(0):',trim(myprint(rslt(0,6)))
+    write(eunit,*) 'b0011(2):',trim(myprint(rslt(2,7)))
+    write(eunit,*) 'b0011(1):',trim(myprint(rslt(1,7)))
+    write(eunit,*) 'b0011(0):',trim(myprint(rslt(0,7)))
+    write(eunit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
+    write(eunit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
+    write(eunit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
     endif;endif;endif;endif;endif
   endif
   end subroutine
@@ -20351,13 +21800,15 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop bn: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
 !
   app = areal(ss)
   if (aimag(ss).ne.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'ss has non-zero imaginary part, putting it to zero.'
     ss = acmplx( app )
   endif
@@ -20366,7 +21817,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -20375,7 +21827,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -20390,7 +21843,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -20416,11 +21869,12 @@ contains
                  ,rslt(:,3),rslt(:,2),rslt(:,1),rslt(:,0) &
                  ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
   else
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'rank=',rank,' not implemented'
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) 'pp:',trim(myprint(pp))
@@ -20460,6 +21914,47 @@ contains
     write(punit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
     endif;endif;endif;endif;endif
   endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) 'pp:',trim(myprint(pp))
+    write(eunit,*) 'm1:',trim(myprint(m1))
+    write(eunit,*) 'm2:',trim(myprint(m2))
+    if (rank.ge.0) then
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2,0) ))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1,0) ))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0,0) ))
+    if (rank.ge.1) then
+    write(eunit,*) 'b1(2):',trim(myprint(rslt(2,1) ))
+    write(eunit,*) 'b1(1):',trim(myprint(rslt(1,1) ))
+    write(eunit,*) 'b1(0):',trim(myprint(rslt(0,1) ))
+    if (rank.ge.2) then
+    write(eunit,*) 'b00(2):',trim(myprint(rslt(2,2)))
+    write(eunit,*) 'b00(1):',trim(myprint(rslt(1,2)))
+    write(eunit,*) 'b00(0):',trim(myprint(rslt(0,2)))
+    write(eunit,*) 'b11(2):',trim(myprint(rslt(2,3)))
+    write(eunit,*) 'b11(1):',trim(myprint(rslt(1,3)))
+    write(eunit,*) 'b11(0):',trim(myprint(rslt(0,3)))
+    if (rank.ge.3) then
+    write(eunit,*) 'b001(2):',trim(myprint(rslt(2,4)))
+    write(eunit,*) 'b001(1):',trim(myprint(rslt(1,4)))
+    write(eunit,*) 'b001(0):',trim(myprint(rslt(0,4)))
+    write(eunit,*) 'b111(2):',trim(myprint(rslt(2,5)))
+    write(eunit,*) 'b111(1):',trim(myprint(rslt(1,5)))
+    write(eunit,*) 'b111(0):',trim(myprint(rslt(0,5)))
+    if (rank.ge.4) then
+    write(eunit,*) 'b0000(2):',trim(myprint(rslt(2,6)))
+    write(eunit,*) 'b0000(1):',trim(myprint(rslt(1,6)))
+    write(eunit,*) 'b0000(0):',trim(myprint(rslt(0,6)))
+    write(eunit,*) 'b0011(2):',trim(myprint(rslt(2,7)))
+    write(eunit,*) 'b0011(1):',trim(myprint(rslt(1,7)))
+    write(eunit,*) 'b0011(0):',trim(myprint(rslt(0,7)))
+    write(eunit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
+    write(eunit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
+    write(eunit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
+    endif;endif;endif;endif;endif
+  endif
   end subroutine
 
   subroutine bnrc( rslt ,rank ,pp,m1,m2 )
@@ -20481,6 +21976,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop bn: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -20490,7 +21986,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -20499,7 +21996,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -20514,7 +22012,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -20540,11 +22038,12 @@ contains
                  ,rslt(:,3),rslt(:,2),rslt(:,1),rslt(:,0) &
                  ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
   else
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'rank=',rank,' not implemented'
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) 'pp:',trim(myprint(pp))
@@ -20582,6 +22081,47 @@ contains
     write(punit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
     write(punit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
     write(punit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
+    endif;endif;endif;endif;endif
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) 'pp:',trim(myprint(pp))
+    write(eunit,*) 'm1:',trim(myprint(m1))
+    write(eunit,*) 'm2:',trim(myprint(m2))
+    if (rank.ge.0) then
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2,0) ))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1,0) ))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0,0) ))
+    if (rank.ge.1) then
+    write(eunit,*) 'b1(2):',trim(myprint(rslt(2,1) ))
+    write(eunit,*) 'b1(1):',trim(myprint(rslt(1,1) ))
+    write(eunit,*) 'b1(0):',trim(myprint(rslt(0,1) ))
+    if (rank.ge.2) then
+    write(eunit,*) 'b00(2):',trim(myprint(rslt(2,2)))
+    write(eunit,*) 'b00(1):',trim(myprint(rslt(1,2)))
+    write(eunit,*) 'b00(0):',trim(myprint(rslt(0,2)))
+    write(eunit,*) 'b11(2):',trim(myprint(rslt(2,3)))
+    write(eunit,*) 'b11(1):',trim(myprint(rslt(1,3)))
+    write(eunit,*) 'b11(0):',trim(myprint(rslt(0,3)))
+    if (rank.ge.3) then
+    write(eunit,*) 'b001(2):',trim(myprint(rslt(2,4)))
+    write(eunit,*) 'b001(1):',trim(myprint(rslt(1,4)))
+    write(eunit,*) 'b001(0):',trim(myprint(rslt(0,4)))
+    write(eunit,*) 'b111(2):',trim(myprint(rslt(2,5)))
+    write(eunit,*) 'b111(1):',trim(myprint(rslt(1,5)))
+    write(eunit,*) 'b111(0):',trim(myprint(rslt(0,5)))
+    if (rank.ge.4) then
+    write(eunit,*) 'b0000(2):',trim(myprint(rslt(2,6)))
+    write(eunit,*) 'b0000(1):',trim(myprint(rslt(1,6)))
+    write(eunit,*) 'b0000(0):',trim(myprint(rslt(0,6)))
+    write(eunit,*) 'b0011(2):',trim(myprint(rslt(2,7)))
+    write(eunit,*) 'b0011(1):',trim(myprint(rslt(1,7)))
+    write(eunit,*) 'b0011(0):',trim(myprint(rslt(0,7)))
+    write(eunit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
+    write(eunit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
+    write(eunit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
     endif;endif;endif;endif;endif
   endif
   end subroutine
@@ -20607,6 +22147,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop bn: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -20616,7 +22157,8 @@ contains
   am1 = areal(r1)
   hh  = aimag(r1)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'r1 has positive imaginary part, switching its sign.'
     r1 = acmplx( am1 ,-hh )
   endif
@@ -20625,7 +22167,8 @@ contains
   am2 = areal(r2)
   hh  = aimag(r2)
   if (hh.gt.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'r2 has positive imaginary part, switching its sign.'
     r2 = acmplx( am2 ,-hh )
   endif
@@ -20640,7 +22183,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -20666,11 +22209,12 @@ contains
                  ,rslt(:,3),rslt(:,2),rslt(:,1),rslt(:,0) &
                  ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
   else
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'rank=',rank,' not implemented'
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) 'pp:',trim(myprint(pp))
@@ -20710,6 +22254,47 @@ contains
     write(punit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
     endif;endif;endif;endif;endif
   endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) 'pp:',trim(myprint(pp))
+    write(eunit,*) 'm1:',trim(myprint(m1))
+    write(eunit,*) 'm2:',trim(myprint(m2))
+    if (rank.ge.0) then
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2,0) ))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1,0) ))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0,0) ))
+    if (rank.ge.1) then
+    write(eunit,*) 'b1(2):',trim(myprint(rslt(2,1) ))
+    write(eunit,*) 'b1(1):',trim(myprint(rslt(1,1) ))
+    write(eunit,*) 'b1(0):',trim(myprint(rslt(0,1) ))
+    if (rank.ge.2) then
+    write(eunit,*) 'b00(2):',trim(myprint(rslt(2,2)))
+    write(eunit,*) 'b00(1):',trim(myprint(rslt(1,2)))
+    write(eunit,*) 'b00(0):',trim(myprint(rslt(0,2)))
+    write(eunit,*) 'b11(2):',trim(myprint(rslt(2,3)))
+    write(eunit,*) 'b11(1):',trim(myprint(rslt(1,3)))
+    write(eunit,*) 'b11(0):',trim(myprint(rslt(0,3)))
+    if (rank.ge.3) then
+    write(eunit,*) 'b001(2):',trim(myprint(rslt(2,4)))
+    write(eunit,*) 'b001(1):',trim(myprint(rslt(1,4)))
+    write(eunit,*) 'b001(0):',trim(myprint(rslt(0,4)))
+    write(eunit,*) 'b111(2):',trim(myprint(rslt(2,5)))
+    write(eunit,*) 'b111(1):',trim(myprint(rslt(1,5)))
+    write(eunit,*) 'b111(0):',trim(myprint(rslt(0,5)))
+    if (rank.ge.4) then
+    write(eunit,*) 'b0000(2):',trim(myprint(rslt(2,6)))
+    write(eunit,*) 'b0000(1):',trim(myprint(rslt(1,6)))
+    write(eunit,*) 'b0000(0):',trim(myprint(rslt(0,6)))
+    write(eunit,*) 'b0011(2):',trim(myprint(rslt(2,7)))
+    write(eunit,*) 'b0011(1):',trim(myprint(rslt(1,7)))
+    write(eunit,*) 'b0011(0):',trim(myprint(rslt(0,7)))
+    write(eunit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
+    write(eunit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
+    write(eunit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
+    endif;endif;endif;endif;endif
+  endif
   end subroutine
 
   subroutine bnrr( rslt ,rank ,pp,m1,m2 )
@@ -20731,6 +22316,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop bn: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -20749,7 +22335,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -20775,11 +22361,12 @@ contains
                  ,rslt(:,3),rslt(:,2),rslt(:,1),rslt(:,0) &
                  ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
   else
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'rank=',rank,' not implemented'
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) 'pp:',trim(myprint(pp))
@@ -20817,6 +22404,47 @@ contains
     write(punit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
     write(punit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
     write(punit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
+    endif;endif;endif;endif;endif
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) 'pp:',trim(myprint(pp))
+    write(eunit,*) 'm1:',trim(myprint(m1))
+    write(eunit,*) 'm2:',trim(myprint(m2))
+    if (rank.ge.0) then
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2,0) ))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1,0) ))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0,0) ))
+    if (rank.ge.1) then
+    write(eunit,*) 'b1(2):',trim(myprint(rslt(2,1) ))
+    write(eunit,*) 'b1(1):',trim(myprint(rslt(1,1) ))
+    write(eunit,*) 'b1(0):',trim(myprint(rslt(0,1) ))
+    if (rank.ge.2) then
+    write(eunit,*) 'b00(2):',trim(myprint(rslt(2,2)))
+    write(eunit,*) 'b00(1):',trim(myprint(rslt(1,2)))
+    write(eunit,*) 'b00(0):',trim(myprint(rslt(0,2)))
+    write(eunit,*) 'b11(2):',trim(myprint(rslt(2,3)))
+    write(eunit,*) 'b11(1):',trim(myprint(rslt(1,3)))
+    write(eunit,*) 'b11(0):',trim(myprint(rslt(0,3)))
+    if (rank.ge.3) then
+    write(eunit,*) 'b001(2):',trim(myprint(rslt(2,4)))
+    write(eunit,*) 'b001(1):',trim(myprint(rslt(1,4)))
+    write(eunit,*) 'b001(0):',trim(myprint(rslt(0,4)))
+    write(eunit,*) 'b111(2):',trim(myprint(rslt(2,5)))
+    write(eunit,*) 'b111(1):',trim(myprint(rslt(1,5)))
+    write(eunit,*) 'b111(0):',trim(myprint(rslt(0,5)))
+    if (rank.ge.4) then
+    write(eunit,*) 'b0000(2):',trim(myprint(rslt(2,6)))
+    write(eunit,*) 'b0000(1):',trim(myprint(rslt(1,6)))
+    write(eunit,*) 'b0000(0):',trim(myprint(rslt(0,6)))
+    write(eunit,*) 'b0011(2):',trim(myprint(rslt(2,7)))
+    write(eunit,*) 'b0011(1):',trim(myprint(rslt(1,7)))
+    write(eunit,*) 'b0011(0):',trim(myprint(rslt(0,7)))
+    write(eunit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
+    write(eunit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
+    write(eunit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
     endif;endif;endif;endif;endif
   endif
   end subroutine
@@ -20842,6 +22470,7 @@ contains
   character(26+99) ,parameter :: warning=&
                      'WARNING from OneLOop bn: '//warnonshell
   if (initz) call init
+  errorcode = 0
   ss = pp
   r1 = m1
   r2 = m2
@@ -20860,7 +22489,7 @@ contains
     if (app.lt.hh) app = 0
     if (am1.lt.hh) am1 = 0
     if (am2.lt.hh) am2 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     hh = onshellthrs*max(app,max(am1,max(am2,mulocal2)))
     if (RZRO.lt.app.and.app.lt.hh) write(wunit,*) warning
     if (RZRO.lt.am1.and.am1.lt.hh) write(wunit,*) warning
@@ -20886,11 +22515,12 @@ contains
                  ,rslt(:,3),rslt(:,2),rslt(:,1),rslt(:,0) &
                  ,ss,r1,r2 ,app,am1,am2 ,mulocal2 )
   else
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop Bn: ' &
       ,'rank=',rank,' not implemented'
   endif
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) 'pp:',trim(myprint(pp))
@@ -20928,6 +22558,47 @@ contains
     write(punit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
     write(punit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
     write(punit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
+    endif;endif;endif;endif;endif
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) 'pp:',trim(myprint(pp))
+    write(eunit,*) 'm1:',trim(myprint(m1))
+    write(eunit,*) 'm2:',trim(myprint(m2))
+    if (rank.ge.0) then
+    write(eunit,*) 'b0(2):',trim(myprint(rslt(2,0) ))
+    write(eunit,*) 'b0(1):',trim(myprint(rslt(1,0) ))
+    write(eunit,*) 'b0(0):',trim(myprint(rslt(0,0) ))
+    if (rank.ge.1) then
+    write(eunit,*) 'b1(2):',trim(myprint(rslt(2,1) ))
+    write(eunit,*) 'b1(1):',trim(myprint(rslt(1,1) ))
+    write(eunit,*) 'b1(0):',trim(myprint(rslt(0,1) ))
+    if (rank.ge.2) then
+    write(eunit,*) 'b00(2):',trim(myprint(rslt(2,2)))
+    write(eunit,*) 'b00(1):',trim(myprint(rslt(1,2)))
+    write(eunit,*) 'b00(0):',trim(myprint(rslt(0,2)))
+    write(eunit,*) 'b11(2):',trim(myprint(rslt(2,3)))
+    write(eunit,*) 'b11(1):',trim(myprint(rslt(1,3)))
+    write(eunit,*) 'b11(0):',trim(myprint(rslt(0,3)))
+    if (rank.ge.3) then
+    write(eunit,*) 'b001(2):',trim(myprint(rslt(2,4)))
+    write(eunit,*) 'b001(1):',trim(myprint(rslt(1,4)))
+    write(eunit,*) 'b001(0):',trim(myprint(rslt(0,4)))
+    write(eunit,*) 'b111(2):',trim(myprint(rslt(2,5)))
+    write(eunit,*) 'b111(1):',trim(myprint(rslt(1,5)))
+    write(eunit,*) 'b111(0):',trim(myprint(rslt(0,5)))
+    if (rank.ge.4) then
+    write(eunit,*) 'b0000(2):',trim(myprint(rslt(2,6)))
+    write(eunit,*) 'b0000(1):',trim(myprint(rslt(1,6)))
+    write(eunit,*) 'b0000(0):',trim(myprint(rslt(0,6)))
+    write(eunit,*) 'b0011(2):',trim(myprint(rslt(2,7)))
+    write(eunit,*) 'b0011(1):',trim(myprint(rslt(1,7)))
+    write(eunit,*) 'b0011(0):',trim(myprint(rslt(0,7)))
+    write(eunit,*) 'b1111(2):',trim(myprint(rslt(2,8)))
+    write(eunit,*) 'b1111(1):',trim(myprint(rslt(1,8)))
+    write(eunit,*) 'b1111(0):',trim(myprint(rslt(0,8)))
     endif;endif;endif;endif;endif
   endif
   end subroutine
@@ -20977,6 +22648,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop c0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -20988,7 +22660,8 @@ contains
   do ii=1,3
     ap(ii) = areal(pp(ii))
     if (aimag(pp(ii)).ne.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
         ,'momentum with non-zero imaginary part, putting it to zero.'
       pp(ii) = acmplx( ap(ii) )
     endif
@@ -21000,7 +22673,8 @@ contains
     am(ii) = areal(mm(ii))
     hh     = aimag(mm(ii))
     if (hh.gt.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
         ,'mass-squared has positive imaginary part, switching its sign.'
       mm(ii) = acmplx( am(ii) ,-hh )
     endif
@@ -21013,7 +22687,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -21029,7 +22704,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,3
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -21056,7 +22731,7 @@ contains
     if (s1r2.lt.hh) s1r2 = 0
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r3.lt.hh) s3r3 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s3r3.and.s3r3.lt.hh) write(wunit,*) warning
@@ -21099,7 +22774,7 @@ contains
 ! exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -21111,6 +22786,20 @@ contains
     write(punit,*) 'c0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'c0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'c0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) 'c0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'c0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'c0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -21141,6 +22830,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop c0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -21152,7 +22842,8 @@ contains
   do ii=1,3
     ap(ii) = areal(pp(ii))
     if (aimag(pp(ii)).ne.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
         ,'momentum with non-zero imaginary part, putting it to zero.'
       pp(ii) = acmplx( ap(ii) )
     endif
@@ -21164,7 +22855,8 @@ contains
     am(ii) = areal(mm(ii))
     hh     = aimag(mm(ii))
     if (hh.gt.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
         ,'mass-squared has positive imaginary part, switching its sign.'
       mm(ii) = acmplx( am(ii) ,-hh )
     endif
@@ -21177,7 +22869,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -21193,7 +22886,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,3
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -21220,7 +22913,7 @@ contains
     if (s1r2.lt.hh) s1r2 = 0
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r3.lt.hh) s3r3 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s3r3.and.s3r3.lt.hh) write(wunit,*) warning
@@ -21263,7 +22956,7 @@ contains
 ! exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -21275,6 +22968,20 @@ contains
     write(punit,*) 'c0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'c0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'c0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) 'c0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'c0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'c0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -21303,6 +23010,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop c0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -21320,7 +23028,8 @@ contains
     am(ii) = areal(mm(ii))
     hh     = aimag(mm(ii))
     if (hh.gt.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
         ,'mass-squared has positive imaginary part, switching its sign.'
       mm(ii) = acmplx( am(ii) ,-hh )
     endif
@@ -21333,7 +23042,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -21349,7 +23059,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,3
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -21376,7 +23086,7 @@ contains
     if (s1r2.lt.hh) s1r2 = 0
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r3.lt.hh) s3r3 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s3r3.and.s3r3.lt.hh) write(wunit,*) warning
@@ -21419,7 +23129,7 @@ contains
 ! exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -21431,6 +23141,20 @@ contains
     write(punit,*) 'c0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'c0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'c0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) 'c0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'c0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'c0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -21461,6 +23185,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop c0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -21478,7 +23203,8 @@ contains
     am(ii) = areal(mm(ii))
     hh     = aimag(mm(ii))
     if (hh.gt.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
         ,'mass-squared has positive imaginary part, switching its sign.'
       mm(ii) = acmplx( am(ii) ,-hh )
     endif
@@ -21491,7 +23217,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -21507,7 +23234,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,3
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -21534,7 +23261,7 @@ contains
     if (s1r2.lt.hh) s1r2 = 0
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r3.lt.hh) s3r3 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s3r3.and.s3r3.lt.hh) write(wunit,*) warning
@@ -21577,7 +23304,7 @@ contains
 ! exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -21589,6 +23316,20 @@ contains
     write(punit,*) 'c0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'c0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'c0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) 'c0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'c0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'c0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -21617,6 +23358,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop c0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -21640,7 +23382,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -21656,7 +23399,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,3
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -21683,7 +23426,7 @@ contains
     if (s1r2.lt.hh) s1r2 = 0
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r3.lt.hh) s3r3 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s3r3.and.s3r3.lt.hh) write(wunit,*) warning
@@ -21726,7 +23469,7 @@ contains
 ! exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -21738,6 +23481,20 @@ contains
     write(punit,*) 'c0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'c0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'c0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) 'c0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'c0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'c0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -21768,6 +23525,7 @@ contains
   character(25+99) ,parameter :: warning=&
                      'WARNING from OneLOop c0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -21791,7 +23549,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop c0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -21807,7 +23566,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,3
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -21834,7 +23593,7 @@ contains
     if (s1r2.lt.hh) s1r2 = 0
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r3.lt.hh) s3r3 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s3r3.and.s3r3.lt.hh) write(wunit,*) warning
@@ -21877,7 +23636,7 @@ contains
 ! exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -21889,6 +23648,20 @@ contains
     write(punit,*) 'c0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'c0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'c0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) 'c0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'c0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'c0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -21945,6 +23718,7 @@ contains
   character(25+99) ,parameter :: warning=&
                  'WARNING from OneLOop d0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -21960,7 +23734,8 @@ contains
   do ii=1,6
     ap(ii) = areal(pp(ii))
     if (aimag(pp(ii)).ne.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
         ,'momentum with non-zero imaginary part, putting it to zero.'
       pp(ii) = acmplx( ap(ii) ,0 )
     endif
@@ -21972,7 +23747,8 @@ contains
     am(ii) = areal(mm(ii))
     hh = aimag(mm(ii))
     if (hh.gt.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
         ,'mass-squared has positive imaginary part, switching its sign.'
       mm(ii) = acmplx( am(ii) ,-hh )
     endif
@@ -21992,7 +23768,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -22008,7 +23785,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,4
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -22019,7 +23796,7 @@ contains
   jj = 1
   min56 = min(ap(5),ap(6))
   if (min56.lt.hh) then
-    if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+    if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
       ,'input does not seem to represent hard kinematics, '&
       ,'trying to permutate'
     min13=min(ap(1),ap(3))
@@ -22027,7 +23804,7 @@ contains
     if     (min13.gt.min24.and.min13.gt.min56) then ;jj=2
     elseif (min24.gt.min13.and.min24.gt.min56) then ;jj=3
     else
-      if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+      if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
         ,'no permutation helps, errors might follow'
     endif
   endif
@@ -22059,7 +23836,7 @@ contains
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r4.lt.hh) s3r4 = 0
     if (s4r4.lt.hh) s4r4 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r2.and.s2r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
@@ -22169,7 +23946,7 @@ contains
 !exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -22185,6 +23962,24 @@ contains
     write(punit,*) 'd0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'd0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'd0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' p4:',trim(myprint(p4))
+    write(eunit,*) 'p12:',trim(myprint(p12))
+    write(eunit,*) 'p23:',trim(myprint(p23))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) ' m4:',trim(myprint(m4))
+    write(eunit,*) 'd0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'd0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'd0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -22220,6 +24015,7 @@ contains
   character(25+99) ,parameter :: warning=&
                  'WARNING from OneLOop d0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -22235,7 +24031,8 @@ contains
   do ii=1,6
     ap(ii) = areal(pp(ii))
     if (aimag(pp(ii)).ne.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
         ,'momentum with non-zero imaginary part, putting it to zero.'
       pp(ii) = acmplx( ap(ii) ,0 )
     endif
@@ -22247,7 +24044,8 @@ contains
     am(ii) = areal(mm(ii))
     hh = aimag(mm(ii))
     if (hh.gt.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
         ,'mass-squared has positive imaginary part, switching its sign.'
       mm(ii) = acmplx( am(ii) ,-hh )
     endif
@@ -22267,7 +24065,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -22283,7 +24082,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,4
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -22294,7 +24093,7 @@ contains
   jj = 1
   min56 = min(ap(5),ap(6))
   if (min56.lt.hh) then
-    if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+    if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
       ,'input does not seem to represent hard kinematics, '&
       ,'trying to permutate'
     min13=min(ap(1),ap(3))
@@ -22302,7 +24101,7 @@ contains
     if     (min13.gt.min24.and.min13.gt.min56) then ;jj=2
     elseif (min24.gt.min13.and.min24.gt.min56) then ;jj=3
     else
-      if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+      if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
         ,'no permutation helps, errors might follow'
     endif
   endif
@@ -22334,7 +24133,7 @@ contains
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r4.lt.hh) s3r4 = 0
     if (s4r4.lt.hh) s4r4 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r2.and.s2r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
@@ -22444,7 +24243,7 @@ contains
 !exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -22460,6 +24259,24 @@ contains
     write(punit,*) 'd0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'd0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'd0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' p4:',trim(myprint(p4))
+    write(eunit,*) 'p12:',trim(myprint(p12))
+    write(eunit,*) 'p23:',trim(myprint(p23))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) ' m4:',trim(myprint(m4))
+    write(eunit,*) 'd0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'd0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'd0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -22493,6 +24310,7 @@ contains
   character(25+99) ,parameter :: warning=&
                  'WARNING from OneLOop d0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -22514,7 +24332,8 @@ contains
     am(ii) = areal(mm(ii))
     hh = aimag(mm(ii))
     if (hh.gt.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
         ,'mass-squared has positive imaginary part, switching its sign.'
       mm(ii) = acmplx( am(ii) ,-hh )
     endif
@@ -22534,7 +24353,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -22550,7 +24370,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,4
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -22561,7 +24381,7 @@ contains
   jj = 1
   min56 = min(ap(5),ap(6))
   if (min56.lt.hh) then
-    if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+    if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
       ,'input does not seem to represent hard kinematics, '&
       ,'trying to permutate'
     min13=min(ap(1),ap(3))
@@ -22569,7 +24389,7 @@ contains
     if     (min13.gt.min24.and.min13.gt.min56) then ;jj=2
     elseif (min24.gt.min13.and.min24.gt.min56) then ;jj=3
     else
-      if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+      if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
         ,'no permutation helps, errors might follow'
     endif
   endif
@@ -22601,7 +24421,7 @@ contains
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r4.lt.hh) s3r4 = 0
     if (s4r4.lt.hh) s4r4 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r2.and.s2r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
@@ -22711,7 +24531,7 @@ contains
 !exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -22727,6 +24547,24 @@ contains
     write(punit,*) 'd0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'd0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'd0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' p4:',trim(myprint(p4))
+    write(eunit,*) 'p12:',trim(myprint(p12))
+    write(eunit,*) 'p23:',trim(myprint(p23))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) ' m4:',trim(myprint(m4))
+    write(eunit,*) 'd0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'd0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'd0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -22762,6 +24600,7 @@ contains
   character(25+99) ,parameter :: warning=&
                  'WARNING from OneLOop d0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -22783,7 +24622,8 @@ contains
     am(ii) = areal(mm(ii))
     hh = aimag(mm(ii))
     if (hh.gt.RZRO) then
-      if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+      errorcode = errorcode+1
+      if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
         ,'mass-squared has positive imaginary part, switching its sign.'
       mm(ii) = acmplx( am(ii) ,-hh )
     endif
@@ -22803,7 +24643,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -22819,7 +24660,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,4
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -22830,7 +24671,7 @@ contains
   jj = 1
   min56 = min(ap(5),ap(6))
   if (min56.lt.hh) then
-    if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+    if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
       ,'input does not seem to represent hard kinematics, '&
       ,'trying to permutate'
     min13=min(ap(1),ap(3))
@@ -22838,7 +24679,7 @@ contains
     if     (min13.gt.min24.and.min13.gt.min56) then ;jj=2
     elseif (min24.gt.min13.and.min24.gt.min56) then ;jj=3
     else
-      if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+      if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
         ,'no permutation helps, errors might follow'
     endif
   endif
@@ -22870,7 +24711,7 @@ contains
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r4.lt.hh) s3r4 = 0
     if (s4r4.lt.hh) s4r4 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r2.and.s2r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
@@ -22980,7 +24821,7 @@ contains
 !exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -22996,6 +24837,24 @@ contains
     write(punit,*) 'd0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'd0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'd0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' p4:',trim(myprint(p4))
+    write(eunit,*) 'p12:',trim(myprint(p12))
+    write(eunit,*) 'p23:',trim(myprint(p23))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) ' m4:',trim(myprint(m4))
+    write(eunit,*) 'd0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'd0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'd0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -23029,6 +24888,7 @@ contains
   character(25+99) ,parameter :: warning=&
                  'WARNING from OneLOop d0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -23063,7 +24923,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -23079,7 +24940,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,4
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -23090,7 +24951,7 @@ contains
   jj = 1
   min56 = min(ap(5),ap(6))
   if (min56.lt.hh) then
-    if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+    if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
       ,'input does not seem to represent hard kinematics, '&
       ,'trying to permutate'
     min13=min(ap(1),ap(3))
@@ -23098,7 +24959,7 @@ contains
     if     (min13.gt.min24.and.min13.gt.min56) then ;jj=2
     elseif (min24.gt.min13.and.min24.gt.min56) then ;jj=3
     else
-      if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+      if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
         ,'no permutation helps, errors might follow'
     endif
   endif
@@ -23130,7 +24991,7 @@ contains
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r4.lt.hh) s3r4 = 0
     if (s4r4.lt.hh) s4r4 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r2.and.s2r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
@@ -23240,7 +25101,7 @@ contains
 !exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -23256,6 +25117,24 @@ contains
     write(punit,*) 'd0(2):',trim(myprint(rslt(2)))
     write(punit,*) 'd0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'd0(0):',trim(myprint(rslt(0)))
+  endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' p4:',trim(myprint(p4))
+    write(eunit,*) 'p12:',trim(myprint(p12))
+    write(eunit,*) 'p23:',trim(myprint(p23))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) ' m4:',trim(myprint(m4))
+    write(eunit,*) 'd0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'd0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'd0(0):',trim(myprint(rslt(0)))
   endif
   end subroutine
 
@@ -23291,6 +25170,7 @@ contains
   character(25+99) ,parameter :: warning=&
                  'WARNING from OneLOop d0: '//warnonshell
   if (initz) call init
+  errorcode = 0
   pp(1) = p1
   pp(2) = p2
   pp(3) = p3
@@ -23325,7 +25205,8 @@ contains
   mulocal2 = mulocal*mulocal
 !
   if (smax.eq.RZRO) then
-    if (eunit.gt.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
+    errorcode = errorcode+1
+    if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop d0: ' &
       ,'all input equal zero, returning 0'
     rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
     return
@@ -23341,7 +25222,7 @@ contains
     enddo
   else
     hh = onshellthrs*smax
-    if (wunit.gt.0) then
+    if (wunit.ge.0) then
     do ii=1,4
       if (RZRO.lt.ap(ii).and.ap(ii).lt.hh) write(wunit,*) warning
       if (RZRO.lt.am(ii).and.am(ii).lt.hh) write(wunit,*) warning
@@ -23352,7 +25233,7 @@ contains
   jj = 1
   min56 = min(ap(5),ap(6))
   if (min56.lt.hh) then
-    if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+    if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
       ,'input does not seem to represent hard kinematics, '&
       ,'trying to permutate'
     min13=min(ap(1),ap(3))
@@ -23360,7 +25241,7 @@ contains
     if     (min13.gt.min24.and.min13.gt.min56) then ;jj=2
     elseif (min24.gt.min13.and.min24.gt.min56) then ;jj=3
     else
-      if (wunit.gt.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
+      if (wunit.ge.0) write(wunit,*) 'WARNING from OneLOop d0: ' &
         ,'no permutation helps, errors might follow'
     endif
   endif
@@ -23392,7 +25273,7 @@ contains
     if (s2r3.lt.hh) s2r3 = 0
     if (s3r4.lt.hh) s3r4 = 0
     if (s4r4.lt.hh) s4r4 = 0
-  elseif (wunit.gt.0) then
+  elseif (wunit.ge.0) then
     if (RZRO.lt.s1r2.and.s1r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r2.and.s2r2.lt.hh) write(wunit,*) warning
     if (RZRO.lt.s2r3.and.s2r3.lt.hh) write(wunit,*) warning
@@ -23502,7 +25383,7 @@ contains
 !exp(eps*gamma_EULER) -> GAMMA(1-2*eps)/GAMMA(1-eps)^2/GAMMA(1+eps)
   rslt(0) = rslt(0) + 2*PISQo24*rslt(2)
 !
-  if (punit.gt.0) then
+  if (punit.ge.0) then
     if (nonzerothrs) write(punit,*) 'onshell:',trim(myprint(onshellthrs))
     write(punit,*) 'muscale:',trim(myprint(mulocal))
     write(punit,*) ' p1:',trim(myprint(p1))
@@ -23519,12 +25400,32 @@ contains
     write(punit,*) 'd0(1):',trim(myprint(rslt(1)))
     write(punit,*) 'd0(0):',trim(myprint(rslt(0)))
   endif
+  if (eunit.ge.0.and.errorcode.gt.0) then
+    write(eunit,*) 'Input that triggered the error(s):'
+    if (nonzerothrs) write(eunit,*) 'onshell:',trim(myprint(onshellthrs))
+    write(eunit,*) 'muscale:',trim(myprint(mulocal))
+    write(eunit,*) ' p1:',trim(myprint(p1))
+    write(eunit,*) ' p2:',trim(myprint(p2))
+    write(eunit,*) ' p3:',trim(myprint(p3))
+    write(eunit,*) ' p4:',trim(myprint(p4))
+    write(eunit,*) 'p12:',trim(myprint(p12))
+    write(eunit,*) 'p23:',trim(myprint(p23))
+    write(eunit,*) ' m1:',trim(myprint(m1))
+    write(eunit,*) ' m2:',trim(myprint(m2))
+    write(eunit,*) ' m3:',trim(myprint(m3))
+    write(eunit,*) ' m4:',trim(myprint(m4))
+    write(eunit,*) 'd0(2):',trim(myprint(rslt(2)))
+    write(eunit,*) 'd0(1):',trim(myprint(rslt(1)))
+    write(eunit,*) 'd0(0):',trim(myprint(rslt(0)))
+  endif
   end subroutine
 
 end module
 
 
 module avh_olo
+
+  use avh_olo_units, only: olo_errorcode=>errorcode
 
   use avh_olo_dp ,only: &
      olo_dp_kind=>olo_kind &

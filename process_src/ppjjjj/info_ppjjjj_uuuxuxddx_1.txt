@@ -1,8 +1,0 @@
-ppjjjj uuuxuxddx 1 EW=0,0 QCD=4,1 CKMORDER=0 MODEL=sm Type=lt nc=3 nf=6 MU=0 MD=0 MS=0 MC=0 LeadingColour=0
-ppjjjj uuuxuxbbx condmap=uuuxuxddx MB=0
-ppjjjj uuxbbbxbx condmap=uuuxuxddx[5,6,1,2,3,4] MB=0
-ppjjjj uuxdddxdx map=uuuxuxddx[5,6,1,2,3,4]
-ppjjjj dddxdxssx map=uuuxuxddx
-ppjjjj ccxdddxdx map=uuuxuxddx[5,6,1,2,3,4]
-ppjjjj cccxcxddx map=uuuxuxddx
-ppjjjj uuuxuxccx map=uuuxuxddx
