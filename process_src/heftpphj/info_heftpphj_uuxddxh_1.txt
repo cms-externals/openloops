@@ -1,0 +1,6 @@
+heftpphj uuxddxh 1 EW=1,0 QCD=4,0 CKMORDER=0 MODEL=heft Type=t nc=3 nf=5 MU=0 MD=0 MS=0 MC=0 LeadingColour=0 POLSEL=1
+heftpphj ddxbbxh condmap=uuxddxh MB=0
+heftpphj uuxbbxh condmap=uuxddxh MB=0
+heftpphj ddxssxh map=uuxddxh
+heftpphj uuxccxh map=uuxddxh
+heftpphj ccxddxh map=uuxddxh
