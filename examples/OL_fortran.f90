@@ -20,6 +20,7 @@ program main
 
   ! Increase verbosity level to list loaded libraries
   call set_parameter("verbose", 1)
+  call set_parameter("preset", 3)
 
   ! register one-loop amplitude for process d dbar -> Z u ubar
   ! The "ppzjj" process library must be installed before via
