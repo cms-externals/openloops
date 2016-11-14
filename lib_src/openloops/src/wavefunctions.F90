@@ -71,7 +71,6 @@ subroutine wf_V(P, M, POL, J_V)
 !          = outgoing vector boson wave function (light-cone representation)
 ! **********************************************************************
   use KIND_TYPES
-  use ol_global_decl, only: MaxParticles
   use ol_external_decl_/**/REALKIND, only: P_ex, Ward_array
   use ol_parameters_decl_/**/DREALKIND, only: Ward_tree, Ward_loop
   use ol_kinematics_/**/REALKIND, only: Std2LC_Rep
@@ -82,7 +81,7 @@ subroutine wf_V(P, M, POL, J_V)
   integer :: i
 
   if (Ward_tree /= 0 .or. Ward_loop /= 0) then
-    do i = 1, MaxParticles
+    do i = 1, size(P_ex,2)
       ! identify the particle number to associate the Ward_array(i)
       if ((P(0) >= 0 .and. all(P == P_ex(:,i))) .or. (P(0) < 0 .and. all(-P == P_ex(:,i)))) exit
     end do
@@ -118,7 +117,6 @@ subroutine pol_wf_V(P, M, POL, J_V, POLSEL)
 !          = outgoing vector boson wave function (light-cone representation)
 ! **********************************************************************
   use KIND_TYPES
-  use ol_global_decl, only: MaxParticles
   use ol_external_decl_/**/REALKIND, only: P_ex, Ward_array
   use ol_parameters_decl_/**/DREALKIND, only: Ward_tree, Ward_loop
   use ol_kinematics_/**/REALKIND, only: Std2LC_Rep
@@ -130,7 +128,7 @@ subroutine pol_wf_V(P, M, POL, J_V, POLSEL)
   integer :: i
 
   if (Ward_tree /= 0 .or. Ward_loop /= 0) then
-    do i = 1, MaxParticles
+    do i = 1, size(P_ex,2)
       ! identify the particle number to associate the Ward_array(i)
       if ((P(0) >= 0 .and. all(P == P_ex(:,i))) .or. (P(0) < 0 .and. all(-P == P_ex(:,i)))) exit
     end do
@@ -253,7 +251,6 @@ end subroutine wf_interface_V
 
 subroutine wf_gf_V(P,POL,J_V)
   use KIND_TYPES
-  use ol_global_decl, only: MaxParticles
   use ol_external_decl_/**/REALKIND, only: gf_array, inverse_crossing
   use ol_parameters_decl_/**/REALKIND, only: CI
   use ol_momenta_decl_/**/REALKIND, only: Q
@@ -262,16 +259,16 @@ subroutine wf_gf_V(P,POL,J_V)
   real(REALKIND),    intent(in)  :: P(0:3)
   integer,           intent(in)  :: POL
   complex(REALKIND), intent(out) :: J_V(4) ! Light-cone repr
-  real(REALKIND)    :: Pmod, Pgfmod, cos_theta, sin_theta, Pgf(0:3), J_Lor(0:3), P_check(0:3,MaxParticles) ! Lorentz repr
+  real(REALKIND)    :: Pmod, Pgfmod, cos_theta, sin_theta, Pgf(0:3), J_Lor(0:3), P_check(0:3,size(P)) ! Lorentz repr
   integer           :: i, part_i
 
-  do i = 1, MaxParticles
+  do i = 1, size(P_check)
   call LC2Std_Rep(Q(1:4,2**(i-1)), P_check(:,inverse_crossing(i)))
   end do
 
   part_i = 0
 
-  do i = 1, MaxParticles
+  do i = 1, size(P_check)
     if ( all(abs(P) - abs(P_check(:,i)) < 1d-10 ) ) then
       part_i = i ! identify the particle number to associate the gf_array(i)
       exit
@@ -526,21 +523,19 @@ subroutine wfIN_V(P, M, POL, EPS, POLSEL)
   if (P2_T == 0) then ! momentum along beam direction
 
     SIN_THETA = 0
+    COS_PHI = 1
+    SIN_PHI = 0
     if (P(3) > 0) then
       COS_THETA     = 1
       ONEPCOS_THETA = 2
       ONEMCOS_THETA = 0
-      COS_PHI = 1
-      SIN_PHI = 0
     else if (P(3) <= 0) then
       COS_THETA     = -1
       ONEPCOS_THETA =  0
       ONEMCOS_THETA =  2
-      COS_PHI = -1
-      SIN_PHI =  0
     end if
-    EPHI_PLUS  = COS_PHI ! cmplx(COS_PHI,  SIN_PHI, cp)
-    EPHI_MINUS = COS_PHI ! cmplx(COS_PHI, -SIN_PHI, cp)
+    EPHI_PLUS  = COS_PHI   ! COS_PHI+CI*SIN_PHI
+    EPHI_MINUS = COS_PHI   ! COS_PHI-CI*SIN_PHI
 
   else if (P2_T > 0) then ! momentum not along beam direction
 
@@ -555,8 +550,8 @@ subroutine wfIN_V(P, M, POL, EPS, POLSEL)
       ONEPCOS_THETA = P2_T / (P_MOD * (P_MOD - P(3)))
       ONEMCOS_THETA = (P_MOD - P(3)) / P_MOD
     end if
-    EPHI_PLUS  = (P(1) + CI*P(2)) / P_T ! substitute for cmplx()
-    EPHI_MINUS = (P(1) - CI*P(2)) / P_T ! substitute for cmplx()
+    EPHI_PLUS  = COS_PHI+CI*SIN_PHI ! (P(1) + CI*P(2)) / P_T
+    EPHI_MINUS = COS_PHI-CI*SIN_PHI ! (P(1) - CI*P(2)) / P_T
 
   else
     call ol_error('in subroutine wfIN_V: P^2_T < 0 forbidden')
@@ -861,7 +856,6 @@ end subroutine wf_A
 subroutine wf_V(P, M, POL, V)
 ! **********************************************************************
   use KIND_TYPES
-  use ol_global_decl, only: MaxParticles
   use ol_external_decl_/**/REALKIND, only: P_ex, Ward_array
   use ol_parameters_decl_/**/DREALKIND, only: Ward_tree, Ward_loop
   use ol_data_types_/**/REALKIND, only: wfun
@@ -875,7 +869,7 @@ subroutine wf_V(P, M, POL, V)
 
   if (Ward_tree /= 0 .or. Ward_loop /= 0) then
 
-    do i = 1, MaxParticles
+    do i = 1, size(P_ex,2)
       ! identify the particle number to associate the Ward_array(i)
       if ((P(0) >= 0 .and. all(P == P_ex(:,i))) .or. (P(0) < 0 .and. all(-P == P_ex(:,i)))) exit
     end do
@@ -1244,7 +1238,6 @@ subroutine wf_V(P, M, POL, V)
 !             = outgoing vector boson wave function (light-cone representation)
 ! **********************************************************************
   use KIND_TYPES
-  use ol_global_decl, only: MaxParticles
   use ol_external_decl_/**/REALKIND, only: P_ex, Ward_array
   use ol_parameters_decl_/**/DREALKIND, only: Ward_tree, Ward_loop
   use ol_kinematics_/**/REALKIND, only: Std2LC_Rep
@@ -1258,7 +1251,7 @@ subroutine wf_V(P, M, POL, V)
 
   if (Ward_tree /= 0 .or. Ward_loop /= 0) then
 
-    do i = 1, MaxParticles
+    do i = 1, size(P_ex,2)
       ! identify the particle number to associate the Ward_array(i)
       if ((P(0) >= 0 .and. all(P == P_ex(:,i))) .or. (P(0) < 0 .and. all(-P == P_ex(:,i)))) exit
     end do
@@ -1318,7 +1311,6 @@ subroutine pol_wf_V(P, M, POL, V, POLSEL)
 !             = outgoing vector boson wave function (light-cone representation)
 ! **********************************************************************
   use KIND_TYPES
-  use ol_global_decl, only: MaxParticles
   use ol_external_decl_/**/REALKIND, only: P_ex, Ward_array
   use ol_parameters_decl_/**/DREALKIND, only: Ward_tree, Ward_loop
   use ol_kinematics_/**/REALKIND, only: Std2LC_Rep
@@ -1333,7 +1325,7 @@ subroutine pol_wf_V(P, M, POL, V, POLSEL)
 
   if (Ward_tree /= 0 .or. Ward_loop /= 0) then
 
-    do i = 1, MaxParticles
+    do i = 1, size(P_ex,2)
       ! identify the particle number to associate the Ward_array(i)
       if ((P(0) >= 0 .and. all(P == P_ex(:,i))) .or. (P(0) < 0 .and. all(-P == P_ex(:,i)))) exit
     end do

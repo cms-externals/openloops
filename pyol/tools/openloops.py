@@ -22,9 +22,10 @@
 # TODO
 # * ProcessInfo(): select loop/tree processes only,
 #                  use Type= to group channels.
-# * Take proclib_dir from OL config?
 # * If config is loaded, replace loopspec_flags.
 # * Retrieve install_path (needs getparameter_string)?
+# * Take proclib_dir from OL config?
+# * proclib_dir is currently relative to the working directory.
 
 
 import os
@@ -33,6 +34,9 @@ import atexit
 import ctypes
 import collections
 from ctypes import c_int, c_double, c_char_p, byref, POINTER
+import OLBaseConfig
+
+config = OLBaseConfig.get_config()
 
 proclib_dir = 'proclib'
 
@@ -216,7 +220,16 @@ def set_parameter(key, val):
     elif isinstance(val, float):
         setparameter_double(key, val)
     elif isinstance(val, str):
-        setparameter_string(key, val)
+        if key.startswith('alpha') and '/' in val:
+            try:
+                valnum, valden = val.split('/')
+                val = float(valnum)/float(valden)
+            except ValueError:
+                raise OpenLoopsError(
+                    'Invalid option \'{}={}\''.format(key, val))
+            setparameter_double(key, val)
+        else:
+            setparameter_string(key, val)
     else:
         raise TypeError('set_parameter() value argument must be int, ' +
                         'float or str, not \'{}\''.format(type(val)))
@@ -267,17 +280,27 @@ class PhaseSpacePoint(object):
             else:
                 # 1-dimensional and n not known: assume 5*n notation
                 ppls = pp
-            pp = (len(ppls)*c_double)(*ppls)
-        # else: assume that a valid c_double array was passed
-        self.pp = pp
-        self._as_parameter_ = ctypes.cast(pp,c_double_ptr)
+        else:
+            # assume that a valid c_double array was passed;
+            # make a copy, otherwise the data can be overwritten
+            ppls = tuple(pp)
+        self.pp = (len(ppls)*c_double)(*ppls)
+        self._as_parameter_ = ctypes.cast(self.pp,c_double_ptr)
+    def __getstate__(self):
+        # pickle as tuple
+        return tuple(self.pp)
+    def __setstate__(self, ppls):
+        self.pp = (len(ppls)*c_double)(*ppls)
+        self._as_parameter_ = ctypes.cast(self.pp,c_double_ptr)
     def __str__(self):
         return str(tuple(self.pp))
 
 
-LoopME = collections.namedtuple('loop', ['finite', 'ir1', 'ir2'])
-IOperator = collections.namedtuple('ioperator', ['finite', 'ir1', 'ir2'])
-Loop2ME = collections.namedtuple('loop2',
+# The variable name must be the same as the name of the namedtuple,
+# otherwise it is not pickleable.
+LoopME = collections.namedtuple('LoopME', ['finite', 'ir1', 'ir2'])
+IOperator = collections.namedtuple('IOperator', ['finite', 'ir1', 'ir2'])
+Loop2ME = collections.namedtuple('Loop2ME',
                                  ['finite', 'ir1', 'ir2', 'ir3', 'ir4'])
 
 
@@ -475,7 +498,7 @@ class ProcessInfo(object):
         """Return a generator which provides channel identifiers of the form
         (<libname>_<channel>_<number>, loops_spec), taking into account
         conditional mappings with currently initialised parameters. I.e. only
-        channels are return which are not mapped to another channel.
+        channels are returned which are not mapped to another channel.
         """
         # initialisation is needed to make get_parameter_double()
         # return the correct values
@@ -502,13 +525,8 @@ class ProcessInfo(object):
 
 
 if __name__ == '__main__':
-    set_parameter('splash',0)
     set_parameter('stability_mode',11)
-    p = Process('1 -1 -> 22 21')
-    #me = p.evaluate()
-    #print 'psp', me.psp
-    #print 'tree', me.tree, me.loop
-
-    #set_parameter('rmb',0)
-    #for ch in ProcessInfo('ppajj').iterchannels():
-        #print ch
+    proc = Process('1 -1 -> 22 21')
+    me = proc.evaluate()
+    print 'pp =', me.psp
+    print me

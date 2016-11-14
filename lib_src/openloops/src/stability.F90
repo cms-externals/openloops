@@ -86,12 +86,13 @@ subroutine write_histogram(processname, hist, triggered)
 end subroutine write_histogram
 
 
-subroutine write_point(processname, psp, mu, perm, me)
+subroutine write_point(processname, psp, mu, alphas, perm, me)
   use ol_parameters_decl_/**/DREALKIND, only: pid_string, stability_logdir, max_parameter_length
   implicit none
   character(len=*), intent(in) :: processname
   real(DREALKIND), intent(in), optional :: psp(:,:)
   real(DREALKIND), intent(in), optional :: mu
+  real(DREALKIND), intent(in), optional :: alphas
   integer, intent(in), optional :: perm(:)
   real(DREALKIND), intent(in), optional :: me(:)
   character(len=max_parameter_length) :: outfile
@@ -106,6 +107,9 @@ subroutine write_point(processname, psp, mu, perm, me)
   end if
   if (present(mu)) then
     write(outunit,*) 'mu=', mu
+  end if
+  if (present(mu)) then
+    write(outunit,*) 'as=', alphas
   end if
   if (present(perm)) then
     write(outunit,*) 'perm=', perm
@@ -388,7 +392,7 @@ subroutine finish_histograms(processname, hist, hist_qp, np, qp_eval, killed)
         ! loop induced
         call write_histogram(processname, hist, [qp_eval, killed])
       else
-        call write_histogram(processname, hist, np)
+        call write_histogram(processname, hist, np(2:6))
       end if
     end if
   end if
@@ -587,6 +591,12 @@ function vamp2_qp_scaled(vamp2, P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2, redlib)
               & redlib=redlib_qp, mode=1)
   call set_parameter("scalefactor", rescalefactor)
   call parameters_flush()
+  if (M2L0 == 0)  then
+    ! loop induced: qp coefficient arrays are deallocated after every vamp2 call
+    ! --> need to recalculate; note that as long as qp scaling is only supported
+    ! for OPP reduction, this practically doesn't affect the performance.
+    mode2 = 1
+  end if
   call vamp2_qp(vamp2, P_scatt, M2L0_scaled, M2L1_scaled, IRL1_scaled, M2L2_scaled, IRL2_scaled, &
               & redlib=redlib_qp, mode=mode2)
   call set_parameter("scalefactor", rONE)
@@ -637,10 +647,10 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
                       & extperm, me_caches)
   use KIND_TYPES, only: DREALKIND
   use ol_data_types_/**/DREALKIND, only: me_cache
-  use ol_parameters_decl_/**/DREALKIND, only: current_processname, a_switch, &
-    & a_switch_rescue, redlib_qp, write_psp, use_me_cache, parameters_changed
+  use ol_parameters_decl_/**/DREALKIND, only: alpha_qcd, current_processname, a_switch, &
+    & a_switch_rescue, redlib_qp, write_psp, use_me_cache, parameters_changed, scaling_mode
   use ol_loop_parameters_decl_/**/DREALKIND, only: ratcorr_bad, ratcorr_bad_L2, &
-    & stability_mode, abscorr_unst, mureg_unscaled
+    & stability_mode, abscorr_unst, mureg_unscaled, polecheck_is
   use ol_generic, only: relative_deviation, factorial, perm_pos, to_string
   implicit none
   character(*), intent(in) :: processname
@@ -653,6 +663,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
   type(me_cache), allocatable, target, intent(inout) :: me_caches(:)
   real(DREALKIND) :: M2L1_rescue(0:2), M2L2_rescue(0:4), abs_kfactor, abs_kfactor_rescue
   type(me_cache), pointer :: cache
+  integer :: mode2
 #ifndef USE_qp
   logical, intent(in) :: vamp2qp
 #endif
@@ -709,7 +720,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
       IRL2 = cache%me(13:17)
       last_relative_deviation = cache%me(18)
       if (write_psp >= 2) then
-        call write_point(processname // "_cached", psp=P_scatt, mu=mureg_unscaled, &
+        call write_point(processname // "_cached", psp=P_scatt, mu=mureg_unscaled, alphas=alpha_qcd, &
                        & perm=extperm, me=[M2L0, M2L1(0), M2L1(1), M2L1(2), M2L2(0)])
       end if
       return
@@ -717,7 +728,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
   end if
 
   if (write_psp >= 1) then
-    call write_point(processname, psp=P_scatt, mu=mureg_unscaled, perm=extperm)
+    call write_point(processname, psp=P_scatt, mu=mureg_unscaled, alphas=alpha_qcd, perm=extperm)
   end if
 
   if (stability_mode == 11) then
@@ -733,6 +744,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
       ! kill point
       killed = killed + 1
       M2L1(0) = 0
+      M2L2(0) = 0
     end if
     call update_stability_histogram(processname, stability_histogram, last_relative_deviation, qp_eval, killed)
 
@@ -764,6 +776,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
         ! kill point
         killed = killed + 1
         M2L1(0) = 0
+        M2L2(0) = 0
       end if
     end if
     call update_stability_histogram(trim(processname) // "_qp", stability_histogram_qp, &
@@ -801,15 +814,20 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
 
 
   else if (stability_mode >= 20 .and. stability_mode < 30) then
+    if (scaling_mode == 3 .or. polecheck_is == 1) then
+      mode2 = 1
+    else
+      mode2 = 2
+    end if
     if (a_switch == a_switch_rescue) then
       call ol_fatal('stability modes 2x require different redlib1 and redlib2')
     end if
     ! reevaluation with a second library if abs(k-factor) is in
     ! the largest 'trigeff_targ' fraction of the distribution
-    call vamp2_dp(vamp2dp, P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2)
+    call vamp2_dp(vamp2dp, P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2, mode=1)
     if (M2L0 == 0) then
       ! loop induced: always reevaluate
-      call vamp2_dp(vamp2dp, P_scatt, M2L0, M2L1_rescue, IRL1, M2L2_rescue, IRL2, redlib = a_switch_rescue)
+      call vamp2_dp(vamp2dp, P_scatt, M2L0, M2L1_rescue, IRL1, M2L2_rescue, IRL2, redlib=a_switch_rescue, mode=mode2)
       last_relative_deviation = relative_deviation(M2L2(0), M2L2_rescue(0))
       if (last_relative_deviation > ratcorr_bad_L2) then
         ! kill point
@@ -823,7 +841,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
       if (abs_kfactor > abs_kfactor_threshold) then
         ! reevaluate the matrix element with a different reduction library
         call ol_msg(3,"stability system: reevaluate the matrix element with a different reduction library.")
-        call vamp2_dp(vamp2dp, P_scatt, M2L0, M2L1_rescue, IRL1, M2L2, IRL2, redlib = a_switch_rescue)
+        call vamp2_dp(vamp2dp, P_scatt, M2L0, M2L1_rescue, IRL1, M2L2, IRL2, redlib=a_switch_rescue, mode=mode2)
         last_relative_deviation = relative_deviation(M2L1(0), M2L1_rescue(0))
         abs_kfactor_rescue = abs(M2L1_rescue(0)/M2L0)
       else
@@ -857,6 +875,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
            call ol_msg(3, "stability system: point killed after qp scaling.")
           killed = killed + 1
           M2L1(0) = 0
+          M2L2(0) = 0
         end if
         call update_stability_histogram(trim(processname) // "_qp", stability_histogram_qp, &
           & last_relative_deviation, qp_eval, killed)
@@ -877,6 +896,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
       call ol_msg(3, "stability system: point killed after qp scaling.")
       killed = killed + 1
       M2L1(0) = 0
+      M2L2(0) = 0
     end if
     call update_stability_histogram(processname // "_qp", stability_histogram_qp, &
       & last_relative_deviation, qp_eval, killed)
@@ -886,7 +906,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
   else
     call ol_error(2,"unknown stability mode:" // to_string(stability_mode))
 #ifndef USE_qp
-    print *, "Note that some modes are only available when quad precision support is enabled."
+    call ol_msg("Note that some modes are only available when quad precision support is enabled.")
 #endif
     call ol_fatal()
 

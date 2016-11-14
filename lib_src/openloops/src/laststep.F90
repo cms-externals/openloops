@@ -1053,6 +1053,10 @@ subroutine check_last_VWW_V(switch, G_V, JV1, JV2, Gtensor)
 end subroutine check_last_VWW_V
 
 
+! ======================================================================
+! Last vertices  for HEFT.
+! ======================================================================
+
 !*******************************************************
 subroutine check_last_GH_G(switch, G_V, plin, J_S, Gtensor, plout)
 !*******************************************************
@@ -1165,6 +1169,123 @@ subroutine check_last_GHGG_G_23(switch, G_V, J_S, J_V3, J_V4, Gtensor)
     deallocate(Gout_V)
   end if
 end subroutine check_last_GHGG_G_23
+
+! ======================================================================
+! Last vertices  for HHEFT.
+! ======================================================================
+
+!*******************************************************
+subroutine check_last_GHH_G(switch, G_V, plin, J_S1, J_S2, Gtensor, plout)
+!*******************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_vert_interface_/**/REALKIND, only: loop_GHH_G
+  use ol_loop_routines_/**/REALKIND, only: loop_trace, loop_cont_VV
+  use ol_pseudotree_/**/REALKIND, only: exloop
+  use ol_tensor_bookkeeping, only: HR
+  implicit none
+  complex(REALKIND), intent(in)  :: G_V(:,:,:), plin(4), J_S1(4), J_S2(4), plout(4)
+  integer,           intent(in)  :: switch
+  complex(REALKIND), intent(out) :: Gtensor(:)
+  complex(REALKIND), allocatable :: Gout_V(:,:,:)
+  if (switch == 0) then
+    allocate(Gout_V(4,HR(4,HR(4,size(G_V,2))),4))
+    call loop_GHH_G(G_V, plin, J_S1, J_S2, Gout_V, plout)
+    call loop_cont_VV(Gout_V, exloop(:,2), exloop(:,1), Gtensor)
+    deallocate(Gout_V)
+  else if (switch == 1) then
+    call last_GHH_G(G_V, plin, J_S1, J_S2, Gtensor, plout)
+  else if (switch == 2) then
+    allocate(Gout_V(4,HR(4,HR(4,size(G_V,2))),4))
+    call loop_GHH_G(G_V, plin, J_S1, J_S2, Gout_V, plout)
+    call loop_trace(Gout_V, Gtensor)
+    deallocate(Gout_V)
+  end if
+end subroutine check_last_GHH_G
+
+
+!*******************************************************
+subroutine check_last_GHHG_G(switch, G_V, plin, J_S1, J_S2, J_V3, p3, Gtensor, plout)
+!*******************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_vert_interface_/**/REALKIND, only: loop_GHHG_G
+  use ol_loop_routines_/**/REALKIND, only: loop_trace, loop_cont_VV
+  use ol_pseudotree_/**/REALKIND, only: exloop
+  use ol_tensor_bookkeeping, only: HR
+  implicit none
+  complex(REALKIND), intent(in)  :: G_V(:,:,:), plin(4), J_S1(4), J_S2(4), J_V3(4), p3(4), plout(4)
+  integer,           intent(in)  :: switch
+  complex(REALKIND), intent(out) :: Gtensor(:)
+  complex(REALKIND), allocatable :: Gout_V(:,:,:)
+  if (switch == 0) then
+    allocate(Gout_V(4,HR(4,size(G_V,2)),4))
+    call loop_GHHG_G(G_V, plin, J_S1, J_S2, J_V3, p3, Gout_V, plout)
+    call loop_cont_VV(Gout_V, exloop(:,2), exloop(:,1), Gtensor)
+    deallocate(Gout_V)
+  else if (switch == 1) then
+    call last_GHHG_G(G_V, plin, J_S1, J_S2, J_V3, p3, Gtensor, plout)
+  else if (switch == 2) then
+    allocate(Gout_V(4,HR(4,size(G_V,2)),4))
+    call loop_GHHG_G(G_V, plin, J_S1, J_S2, J_V3, p3, Gout_V, plout)
+    call loop_trace(Gout_V, Gtensor)
+    deallocate(Gout_V)
+  end if
+end subroutine check_last_GHHG_G
+
+
+!*******************************************************
+subroutine check_last_GHHGG_G_12(switch, G_V, J_S1, J_S2, J_V3, J_V4, Gtensor)
+!*******************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_vert_interface_/**/REALKIND, only: loop_GHHGG_G_12
+  use ol_loop_routines_/**/REALKIND, only: loop_trace, loop_cont_VV
+  use ol_pseudotree_/**/REALKIND, only: exloop
+  implicit none
+  complex(REALKIND), intent(in)  :: G_V(:,:,:), J_S1(4), J_S2(4), J_V3(4), J_V4(4)
+  integer,           intent(in)  :: switch
+  complex(REALKIND), intent(out) :: Gtensor(:)
+  complex(REALKIND), allocatable :: Gout_V(:,:,:)
+  if (switch == 0) then
+    allocate(Gout_V(4,size(G_V,2),4))
+    call loop_GHHGG_G_12(G_V, J_S1, J_S2, J_V3, J_V4, Gout_V)
+    call loop_cont_VV(Gout_V, exloop(:,2), exloop(:,1), Gtensor)
+    deallocate(Gout_V)
+  else if (switch == 1) then
+    call last_GHHGG_G_12(G_V, J_S1, J_S2, J_V3, J_V4, Gtensor)
+  else if (switch == 2) then
+    allocate(Gout_V(4,size(G_V,2),4))
+    call loop_GHHGG_G_12(G_V, J_S1, J_S2, J_V3, J_V4, Gout_V)
+    call loop_trace(Gout_V, Gtensor)
+    deallocate(Gout_V)
+  end if
+end subroutine check_last_GHHGG_G_12
+
+
+!*******************************************************
+subroutine check_last_GHHGG_G_23(switch, G_V, J_S1, J_S2, J_V3, J_V4, Gtensor)
+!*******************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_vert_interface_/**/REALKIND, only: loop_GHHGG_G_23
+  use ol_loop_routines_/**/REALKIND, only: loop_trace, loop_cont_VV
+  use ol_pseudotree_/**/REALKIND, only: exloop
+  implicit none
+  complex(REALKIND), intent(in)  :: G_V(:,:,:), J_S1(4), J_S2(4), J_V3(4), J_V4(4)
+  integer,           intent(in)  :: switch
+  complex(REALKIND), intent(out) :: Gtensor(:)
+  complex(REALKIND), allocatable :: Gout_V(:,:,:)
+  if (switch == 0) then
+    allocate(Gout_V(4,size(G_V,2),4))
+    call loop_GHHGG_G_23(G_V, J_S1, J_S2, J_V3, J_V4, Gout_V)
+    call loop_cont_VV(Gout_V, exloop(:,2), exloop(:,1), Gtensor)
+    deallocate(Gout_V)
+  else if (switch == 1) then
+    call last_GHHGG_G_23(G_V, J_S1, J_S2, J_V3, J_V4, Gtensor)
+  else if (switch == 2) then
+    allocate(Gout_V(4,size(G_V,2),4))
+    call loop_GHHGG_G_23(G_V, J_S1, J_S2, J_V3, J_V4, Gout_V)
+    call loop_trace(Gout_V, Gtensor)
+    deallocate(Gout_V)
+  end if
+end subroutine check_last_GHHGG_G_23
 
 
 ! **********************************************************************
@@ -2112,5 +2233,179 @@ subroutine last_GHGG_G_23(Gin, J_S, J_V3, J_V4, Gtensor)
                - cont_VV(Gin(:,l,1)*SV3(1) +Gin(:,l,2)* SV3(2)+Gin(:,l,3)* SV3(3)+Gin(:,l,4)* SV3(4), J_V4)
   end do
 end subroutine last_GHGG_G_23
+
+
+!*******************************************************
+subroutine last_GHH_G(Gin_V, pi, J_S1, J_S2, Gtensor, po)
+!*******************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_tensor_bookkeeping, only: HR
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: Gin_V(:,:,:), pi(4), J_S1(4), J_S2(4), po(4)
+  complex(REALKIND), intent(out) :: Gtensor(:)
+  complex(REALKIND) :: s2, pi2(4), po2(4), poS(4), pio2(4), pipoS, Gpo(4), Gin2(10), GinS
+  integer :: l
+
+  Gtensor = 0
+  s2 = (0.5_/**/REALKIND * J_S1(1) * J_S2(1))
+  pi2 = s2 * pi
+  po2 = s2 * po
+  poS = J_S1(1) * J_S2(1) * po
+  pio2(1) = - (pi2(2)+po2(2)) ! -S/2*(pi+pi)_rho, covariant
+  pio2(2) = - (pi2(1)+po2(1))
+  pio2(3) =   (pi2(4)+po2(4))
+  pio2(4) =   (pi2(3)+po2(3))
+  pipoS = cont_VV(pi,poS)
+
+  do l = 1, size(Gin_V,2)
+    Gpo(1) = cont_VV(Gin_V(:,l,1),poS)
+    Gpo(2) = cont_VV(Gin_V(:,l,2),poS)
+    Gpo(3) = cont_VV(Gin_V(:,l,3),poS)
+    Gpo(4) = cont_VV(Gin_V(:,l,4),poS)
+    ! Gout(rank+0) = Gin.po*pi^nu - pi.po*Gin^nu
+    Gtensor(l) = Gtensor(l) + Gpo(1)*pi(1) + Gpo(2)*pi(2) + Gpo(3)*pi(3) + Gpo(4)*pi(4) &
+                            - pipoS * (Gin_V(1,l,1) + Gin_V(2,l,2) + Gin_V(3,l,3) + Gin_V(4,l,4))
+    ! Gout(rank+1) = [ Gin_rho*pi^nu + Gin.po*g^nu_rho - (pi+po)_rho*Gin^nu ] * l^rho
+    Gtensor(HR(1,l)) = Gtensor(HR(1,l)) + Gin_V(2,l,1) * pi2(1) + Gpo(1) + Gin_V(1,l,1) * pio2(1) &
+                                        + Gin_V(2,l,2) * pi2(2)          + Gin_V(2,l,2) * pio2(1) &
+                                        + Gin_V(2,l,3) * pi2(3)          + Gin_V(3,l,3) * pio2(1) &
+                                        + Gin_V(2,l,4) * pi2(4)          + Gin_V(4,l,4) * pio2(1)
+    Gtensor(HR(2,l)) = Gtensor(HR(2,l)) + Gin_V(1,l,1) * pi2(1)          + Gin_V(1,l,1) * pio2(2) &
+                                        + Gin_V(1,l,2) * pi2(2) + Gpo(2) + Gin_V(2,l,2) * pio2(2) &
+                                        + Gin_V(1,l,3) * pi2(3)          + Gin_V(3,l,3) * pio2(2) &
+                                        + Gin_V(1,l,4) * pi2(4)          + Gin_V(4,l,4) * pio2(2)
+    Gtensor(HR(3,l)) = Gtensor(HR(3,l)) - Gin_V(4,l,1) * pi2(1)          + Gin_V(1,l,1) * pio2(3) &
+                                        - Gin_V(4,l,2) * pi2(2)          + Gin_V(2,l,2) * pio2(3) &
+                                        - Gin_V(4,l,3) * pi2(3) + Gpo(3) + Gin_V(3,l,3) * pio2(3) &
+                                        - Gin_V(4,l,4) * pi2(4)          + Gin_V(4,l,4) * pio2(3)
+    Gtensor(HR(4,l)) = Gtensor(HR(4,l)) - Gin_V(3,l,1) * pi2(1)          + Gin_V(1,l,1) * pio2(4) &
+                                        - Gin_V(3,l,2) * pi2(2)          + Gin_V(2,l,2) * pio2(4) &
+                                        - Gin_V(3,l,3) * pi2(3)          + Gin_V(3,l,3) * pio2(4) &
+                                        - Gin_V(3,l,4) * pi2(4) + Gpo(4) + Gin_V(4,l,4) * pio2(4)
+    ! Gout(rank+2) = [ Gin_rho*g^nu_sigma - Gin^nu*g_rho_sigma ] l^rho l^sigma
+    Gin2(1) =   s2 *  Gin_V(2,l,1)
+    Gin2(2) =   s2 * (Gin_V(2,l,2) + Gin_V(1,l,1))
+    Gin2(3) =   s2 * (Gin_V(2,l,3) - Gin_V(4,l,1))
+    Gin2(4) =   s2 * (Gin_V(2,l,4) - Gin_V(3,l,1))
+    Gin2(5) =   s2 *  Gin_V(1,l,2)
+    Gin2(6) =   s2 * (Gin_V(1,l,3) - Gin_V(4,l,2))
+    Gin2(7) =   s2 * (Gin_V(1,l,4) - Gin_V(3,l,2))
+    Gin2(8) = - s2 *  Gin_V(4,l,3)
+    Gin2(9) = - s2 * (Gin_V(4,l,4) + Gin_V(3,l,3))
+    Gin2(10)= - s2 *  Gin_V(3,l,4)
+    GinS = J_S1(1) * J_S2(1) * (Gin_V(1,l,1) + Gin_V(2,l,2) + Gin_V(3,l,3) + Gin_V(4,l,4))
+    Gtensor(HR(1,HR(1,l))) = Gtensor(HR(1,HR(1,l))) + Gin2(1)
+    Gtensor(HR(2,HR(1,l))) = Gtensor(HR(2,HR(1,l))) + Gin2(2) - GinS
+    Gtensor(HR(3,HR(1,l))) = Gtensor(HR(3,HR(1,l))) + Gin2(3)
+    Gtensor(HR(4,HR(1,l))) = Gtensor(HR(4,HR(1,l))) + Gin2(4)
+    Gtensor(HR(2,HR(2,l))) = Gtensor(HR(2,HR(2,l))) + Gin2(5)
+    Gtensor(HR(3,HR(2,l))) = Gtensor(HR(3,HR(2,l))) + Gin2(6)
+    Gtensor(HR(4,HR(2,l))) = Gtensor(HR(4,HR(2,l))) + Gin2(7)
+    Gtensor(HR(3,HR(3,l))) = Gtensor(HR(3,HR(3,l))) + Gin2(8)
+    Gtensor(HR(4,HR(3,l))) = Gtensor(HR(4,HR(3,l))) + Gin2(9) + GinS
+    Gtensor(HR(4,HR(4,l))) = Gtensor(HR(4,HR(4,l))) + Gin2(10)
+  end do
+end subroutine last_GHH_G
+
+
+!*******************************************************
+subroutine last_GHHG_G(Gin_V, plin, J_S1, J_S2, J_V, p3, Gtensor, plout)
+!*******************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_tensor_bookkeeping, only: HR
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: Gin_V(:,:,:), plin(4), J_S1(4), J_S2(4), J_V(4), p3(4), plout(4)
+  complex(REALKIND), intent(out) :: Gtensor(:)
+  complex(REALKIND) :: SV(4), A(4), B(4), C, Jhalf(4), Jtwo(4), Ptmp(4,3)
+  integer           :: l
+
+  Gtensor = 0
+  SV = J_S1(1) * J_S2(1) * J_V
+  Ptmp(:,1) = p3 + plout
+  Ptmp(:,2) = plin + plout
+  Ptmp(:,3) = plin - p3
+  C = -cont_VV(Ptmp(:,2),SV)
+  Jhalf = 0.5_/**/REALKIND * SV
+  ! covariant components of -2*S*J_V_mu = -2*S*g_(mu,nu)*J_V^nu, factor 2 simplifies in metric tensor
+  Jtwo(1) = -SV(2)
+  Jtwo(2) = -SV(1)
+  Jtwo(3) =  SV(4)
+  Jtwo(4) =  SV(3)
+
+  do l = 1, size(Gin_V,2)
+    A(1) = cont_VV(Gin_V(:,l,1), SV)
+    A(2) = cont_VV(Gin_V(:,l,2), SV)
+    A(3) = cont_VV(Gin_V(:,l,3), SV)
+    A(4) = cont_VV(Gin_V(:,l,4), SV)
+    B(1) = cont_VV(Gin_V(:,l,1), Ptmp(:,1))
+    B(2) = cont_VV(Gin_V(:,l,2), Ptmp(:,1))
+    B(3) = cont_VV(Gin_V(:,l,3), Ptmp(:,1))
+    B(4) = cont_VV(Gin_V(:,l,4), Ptmp(:,1))
+
+    Gtensor(HR(1,l)) = Gtensor(HR(1,l)) + A(1) + Gin_V(2,l,1)*Jhalf(1) + Gin_V(1,l,1)*Jtwo(1) & ! alpha = beta = 1
+                                               + Gin_V(2,l,2)*Jhalf(2) + Gin_V(2,l,2)*Jtwo(1) & ! alpha = beta = 2
+                                               + Gin_V(2,l,3)*Jhalf(3) + Gin_V(3,l,3)*Jtwo(1) & ! alpha = beta = 3
+                                               + Gin_V(2,l,4)*Jhalf(4) + Gin_V(4,l,4)*Jtwo(1)   ! alpha = beta = 4
+
+    Gtensor(HR(2,l)) = Gtensor(HR(2,l))        + Gin_V(1,l,1)*Jhalf(1) + Gin_V(1,l,1)*Jtwo(2) & ! alpha = beta = 1
+                                        + A(2) + Gin_V(1,l,2)*Jhalf(2) + Gin_V(2,l,2)*Jtwo(2) & ! alpha = beta = 2
+                                               + Gin_V(1,l,3)*Jhalf(3) + Gin_V(3,l,3)*Jtwo(2) & ! alpha = beta = 3
+                                               + Gin_V(1,l,4)*Jhalf(4) + Gin_V(4,l,4)*Jtwo(2)   ! alpha = beta = 4
+
+    Gtensor(HR(3,l)) = Gtensor(HR(3,l))        - Gin_V(4,l,1)*Jhalf(1) + Gin_V(1,l,1)*Jtwo(3) & ! alpha = beta = 1
+                                               - Gin_V(4,l,2)*Jhalf(2) + Gin_V(2,l,2)*Jtwo(3) & ! alpha = beta = 2
+                                        + A(3) - Gin_V(4,l,3)*Jhalf(3) + Gin_V(3,l,3)*Jtwo(3) & ! alpha = beta = 3
+                                               - Gin_V(4,l,4)*Jhalf(4) + Gin_V(4,l,4)*Jtwo(3)   ! alpha = beta = 4
+
+    Gtensor(HR(4,l)) = Gtensor(HR(4,l))        - Gin_V(3,l,1)*Jhalf(1) + Gin_V(1,l,1)*Jtwo(4) & ! alpha = beta = 1
+                                               - Gin_V(3,l,2)*Jhalf(2) + Gin_V(2,l,2)*Jtwo(4) & ! alpha = beta = 2
+                                               - Gin_V(3,l,3)*Jhalf(3) + Gin_V(3,l,3)*Jtwo(4) & ! alpha = beta = 3
+                                        + A(4) - Gin_V(3,l,4)*Jhalf(4) + Gin_V(4,l,4)*Jtwo(4)   ! alpha = beta = 4
+
+    Gtensor(l) = Gtensor(l) + A(1)*Ptmp(1,3) + A(2)*Ptmp(2,3) + A(3)*Ptmp(3,3) + A(4)*Ptmp(4,3) &
+                            + B(1)*SV(1) + B(2)*SV(2) + B(3)*SV(3) + B(4)*SV(4) &
+                            + C * (Gin_V(1,l,1) + Gin_V(2,l,2) + Gin_V(3,l,3) + Gin_V(4,l,4))
+  end do
+end subroutine last_GHHG_G
+
+
+!*******************************************************
+subroutine last_GHHGG_G_12(Gin, J_S1, J_S2, J_V3, J_V4, Gtensor)
+!*******************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: Gin(:,:,:), J_S1(4), J_S2(4), J_V3(4), J_V4(4)
+  complex(REALKIND), intent(out) :: Gtensor(:)
+  complex(REALKIND) :: SV4(4), SV3V4
+  integer :: l
+  SV4 = J_S1(1) * J_S2(1) * J_V4
+  SV3V4 = cont_VV(J_V3,SV4)
+  do l = 1, size(Gin,2)
+    Gtensor(l) = cont_VV(Gin(:,l,1)*J_V3(1)+Gin(:,l,2)*J_V3(2)+Gin(:,l,3)*J_V3(3)+Gin(:,l,4)*J_V3(4), SV4) &
+               - SV3V4 * (Gin(1,l,1) + Gin(2,l,2) + Gin(3,l,3) + Gin(4,l,4))
+  end do
+end subroutine last_GHHGG_G_12
+
+
+!*******************************************************
+subroutine last_GHHGG_G_23(Gin, J_S1, J_S2, J_V3, J_V4, Gtensor)
+!*******************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: Gin(:,:,:), J_S1(4), J_S2(4), J_V3(4), J_V4(4)
+  complex(REALKIND), intent(out) :: Gtensor(:)
+  complex(REALKIND) :: SV3(4)
+  integer :: l
+  SV3 = J_S1(1) * J_S2(1) * J_V3
+  do l = 1, size(Gin,2)
+    Gtensor(l) = cont_VV(Gin(:,l,1)*J_V4(1)+Gin(:,l,2)*J_V4(2)+Gin(:,l,3)*J_V4(3)+Gin(:,l,4)*J_V4(4),  SV3) &
+               - cont_VV(Gin(:,l,1)*SV3(1) +Gin(:,l,2)* SV3(2)+Gin(:,l,3)* SV3(3)+Gin(:,l,4)* SV3(4), J_V4)
+  end do
+end subroutine last_GHHGG_G_23
+
 
 end module ol_last_step_/**/REALKIND

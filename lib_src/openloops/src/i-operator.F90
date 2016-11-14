@@ -72,7 +72,7 @@ subroutine intdip(mode, M2LO, M2CC, M2CC_EW, extflav, extcharges, Npart, extmass
   integer,           intent(in)  :: extflav(Npart)
   real(REALKIND),    intent(in)  :: extcharges(Npart)
   real(REALKIND),    intent(in)  :: M2LO, M2CC(Npart,Npart), M2CC_EW, extmass2(Npart)
-  complex(REALKIND), intent(in)  :: sarr(Npart,Npart)
+  complex(REALKIND), intent(in)  :: sarr(:,:)
   real(REALKIND),    intent(out) :: vdip, c_dip(0:2)
   real(REALKIND) :: Q2_aux, Fjk(0:2), Gj(0:2), norm_qcd, norm_qed
   integer        :: i, j, k
@@ -356,6 +356,7 @@ subroutine intdip_Fjk(j,k,Tjk,flavj,M2j,M2k,Q2_aux,Fjk)
     call ol_fatal()
   end if
 
+  ! add log term in last line of (6.16)
   Fjk(0) = Fjk(0) + Nuj_nonsing + Gaj*logmu2_Sjk
 
   ! write(*,*) 'j,k = ', j, k

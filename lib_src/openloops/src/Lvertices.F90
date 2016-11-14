@@ -1377,6 +1377,11 @@ subroutine vert_loop_VWW_V(rank_in, rank_out, G_V, J_V1, J_V2, Gout_V)
 end subroutine vert_loop_VWW_V
 
 
+! ======================================================================
+! Loop vertices  for HEFT.
+! ======================================================================
+
+
 ! *****************************************
 subroutine vert_loop_GH_G(rank_in, rank_out, Gin_V, pi, J_S, Gout_V, po)
   ! Effective Higgs gluon -> gluon vertex.
@@ -1560,6 +1565,456 @@ subroutine vert_loop_GHGG_G_23(rank_in, rank_out, Gin_V, J_S, J_V3, J_V4, Gout_V
     Gout_V(:,l) = cont_VV(Gin_V(1,l),J_V3)*SV4 - cont_VV(Gin_V(1,l),SV4)*J_V3
   end do
 end subroutine vert_loop_GHGG_G_23
+
+! ======================================================================
+! Loop vertices  for HHEFT.
+! ======================================================================
+
+! *****************************************
+subroutine vert_loop_GHH_G(rank_in, rank_out, Gin_V, pi, J_S1, J_S2, Gout_V, po)
+  ! Effective Higgs Higgs gluon -> gluon vertex.
+  ! Gout^nu = [ (pi+l)^nu*(po+l)_mu - (pi+l).(po+l)*g_mu^nu ] * S1 * S2 * Gin^mu
+  ! loop momentum l, note that po is outgoing
+  use KIND_TYPES, only: REALKIND
+  use ol_tensor_bookkeeping, only: HR
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  integer,           intent(in)  :: rank_in, rank_out
+  complex(REALKIND), intent(in)  :: Gin_V(4,rank_in), pi(4), J_S1(4), J_S2(4), po(4)
+  complex(REALKIND), intent(out) :: Gout_V(4,rank_out)
+  integer :: l
+
+  complex(REALKIND) :: ss2, pi2(4), po2(4), poS(4), pio2(4), pipoS, Gpo, Gin2(4), GinSS(4)
+
+  Gout_V = 0
+  ss2 = (0.5_/**/REALKIND * J_S1(1) * J_S2(1))
+  pi2 = ss2 * pi
+  po2 = ss2 * po
+  poS = J_S1(1) * J_S2(1) * po
+  pio2(1) = - (pi2(2)+po2(2)) ! -S/2*(pi+pi)_rho, covariant
+  pio2(2) = - (pi2(1)+po2(1))
+  pio2(3) =   (pi2(4)+po2(4))
+  pio2(4) =   (pi2(3)+po2(3))
+  pipoS = cont_VV(pi,poS)
+
+  do l = 1, rank_in
+    Gpo = cont_VV(Gin_V(:,l),poS)
+    ! Gout(rank+0) = Gin.po*pi^nu - pi.po*Gin^nu
+    Gout_V(:,l) = Gout_V(:,l) + Gpo * pi - pipoS * Gin_V(:,l)
+    ! Gout(rank+1) = [ Gin_rho*pi^nu + Gin.po*g^nu_rho - (pi+po)_rho*Gin^nu ] * l^rho
+    ! rho=1, nu=1,2,3,4
+    Gout_V(1,HR(1,l)) = Gout_V(1,HR(1,l)) + Gin_V(2,l) * pi2(1) + Gpo + Gin_V(1,l) * pio2(1)
+    Gout_V(2,HR(1,l)) = Gout_V(2,HR(1,l)) + Gin_V(2,l) * pi2(2)       + Gin_V(2,l) * pio2(1)
+    Gout_V(3,HR(1,l)) = Gout_V(3,HR(1,l)) + Gin_V(2,l) * pi2(3)       + Gin_V(3,l) * pio2(1)
+    Gout_V(4,HR(1,l)) = Gout_V(4,HR(1,l)) + Gin_V(2,l) * pi2(4)       + Gin_V(4,l) * pio2(1)
+    ! rho=2, nu=1,2,3,4
+    Gout_V(1,HR(2,l)) = Gout_V(1,HR(2,l)) + Gin_V(1,l) * pi2(1)       + Gin_V(1,l) * pio2(2)
+    Gout_V(2,HR(2,l)) = Gout_V(2,HR(2,l)) + Gin_V(1,l) * pi2(2) + Gpo + Gin_V(2,l) * pio2(2)
+    Gout_V(3,HR(2,l)) = Gout_V(3,HR(2,l)) + Gin_V(1,l) * pi2(3)       + Gin_V(3,l) * pio2(2)
+    Gout_V(4,HR(2,l)) = Gout_V(4,HR(2,l)) + Gin_V(1,l) * pi2(4)       + Gin_V(4,l) * pio2(2)
+    ! rho=3, nu=1,2,3,4
+    Gout_V(1,HR(3,l)) = Gout_V(1,HR(3,l)) - Gin_V(4,l) * pi2(1)       + Gin_V(1,l) * pio2(3)
+    Gout_V(2,HR(3,l)) = Gout_V(2,HR(3,l)) - Gin_V(4,l) * pi2(2)       + Gin_V(2,l) * pio2(3)
+    Gout_V(3,HR(3,l)) = Gout_V(3,HR(3,l)) - Gin_V(4,l) * pi2(3) + Gpo + Gin_V(3,l) * pio2(3)
+    Gout_V(4,HR(3,l)) = Gout_V(4,HR(3,l)) - Gin_V(4,l) * pi2(4)       + Gin_V(4,l) * pio2(3)
+    ! rho=4, nu=1,2,3,4
+    Gout_V(1,HR(4,l)) = Gout_V(1,HR(4,l)) - Gin_V(3,l) * pi2(1)       + Gin_V(1,l) * pio2(4)
+    Gout_V(2,HR(4,l)) = Gout_V(2,HR(4,l)) - Gin_V(3,l) * pi2(2)       + Gin_V(2,l) * pio2(4)
+    Gout_V(3,HR(4,l)) = Gout_V(3,HR(4,l)) - Gin_V(3,l) * pi2(3)       + Gin_V(3,l) * pio2(4)
+    Gout_V(4,HR(4,l)) = Gout_V(4,HR(4,l)) - Gin_V(3,l) * pi2(4) + Gpo + Gin_V(4,l) * pio2(4)
+    ! Gout(rank+2) = [ Gin_rho*g^nu_sigma - Gin^nu*g_rho_sigma ] l^rho l^sigma
+    ! g_1_2=g_2_1=1/2, g_3_4=g_4_3=-1/2
+    ! note that rho and sigma are symmetrised: (rho,sigma) = (sigma,rho)
+    Gin2(1) =   ss2 * Gin_V(2,l) ! S*Gin_rho, covariant
+    Gin2(2) =   ss2 * Gin_V(1,l)
+    Gin2(3) = - ss2 * Gin_V(4,l)
+    Gin2(4) = - ss2 * Gin_V(3,l)
+    GinSS = J_S1(1) * J_S2(1) * Gin_V(:,l) ! S1*S2*Gin^nu, contravariant
+    ! rho=1, sigma=nu=1,2,3,4 & sigma=2,nu=1,3,4
+    Gout_V(1,HR(1,HR(1,l))) = Gout_V(1,HR(1,HR(1,l))) + Gin2(1)
+    Gout_V(2,HR(2,HR(1,l))) = Gout_V(2,HR(2,HR(1,l))) + Gin2(1) - GinSS(2)
+    Gout_V(3,HR(3,HR(1,l))) = Gout_V(3,HR(3,HR(1,l))) + Gin2(1)
+    Gout_V(4,HR(4,HR(1,l))) = Gout_V(4,HR(4,HR(1,l))) + Gin2(1)
+    Gout_V(1,HR(2,HR(1,l))) = Gout_V(1,HR(2,HR(1,l))) + Gin2(2) - GinSS(1)
+    Gout_V(3,HR(2,HR(1,l))) = Gout_V(3,HR(2,HR(1,l)))           - GinSS(3)
+    Gout_V(4,HR(2,HR(1,l))) = Gout_V(4,HR(2,HR(1,l)))           - GinSS(4)
+    ! rho=2, sigma=nu=2,3,4
+    Gout_V(2,HR(2,HR(2,l))) = Gout_V(2,HR(2,HR(2,l))) + Gin2(2)
+    Gout_V(3,HR(3,HR(2,l))) = Gout_V(3,HR(3,HR(2,l))) + Gin2(2)
+    Gout_V(4,HR(4,HR(2,l))) = Gout_V(4,HR(4,HR(2,l))) + Gin2(2)
+    ! rho=3, sigma=nu=1,2,3,4 & sigma=4,nu=1,2,3
+    Gout_V(1,HR(3,HR(1,l))) = Gout_V(1,HR(3,HR(1,l))) + Gin2(3)
+    Gout_V(2,HR(3,HR(2,l))) = Gout_V(2,HR(3,HR(2,l))) + Gin2(3)
+    Gout_V(3,HR(3,HR(3,l))) = Gout_V(3,HR(3,HR(3,l))) + Gin2(3)
+    Gout_V(4,HR(4,HR(3,l))) = Gout_V(4,HR(4,HR(3,l))) + Gin2(3) + GinSS(4)
+    Gout_V(1,HR(4,HR(3,l))) = Gout_V(1,HR(4,HR(3,l)))           + GinSS(1)
+    Gout_V(2,HR(4,HR(3,l))) = Gout_V(2,HR(4,HR(3,l)))           + GinSS(2)
+    Gout_V(3,HR(4,HR(3,l))) = Gout_V(3,HR(4,HR(3,l))) + Gin2(4) + GinSS(3)
+    ! rho=4, sigma=nu=1,2,4
+    Gout_V(1,HR(4,HR(1,l))) = Gout_V(1,HR(4,HR(1,l))) + Gin2(4)
+    Gout_V(2,HR(4,HR(2,l))) = Gout_V(2,HR(4,HR(2,l))) + Gin2(4)
+    Gout_V(4,HR(4,HR(4,l))) = Gout_V(4,HR(4,HR(4,l))) + Gin2(4)
+  end do
+end subroutine vert_loop_GHH_G
+
+
+! *****************************************
+subroutine vert_loop_GHHG_G(rank_in, rank_out, Gin_V, plin, J_S1, J_S2, J_V, p3, Gout_V, plout)
+  ! Effective gluon Higgs Higgs gluon -> gluon vertex.
+  ! The same as vert_loop_UV_W*J_S1(1)*J_S2(1)
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  use ol_tensor_bookkeeping, only: HR
+  implicit none
+  integer,           intent(in)  :: rank_in, rank_out
+  complex(REALKIND), intent(in)  :: Gin_V(4,rank_in), plin(4), J_S1(4), J_S2(4), J_V(4), p3(4), plout(4)
+  complex(REALKIND), intent(out) :: Gout_V(4,rank_out)
+  complex(REALKIND) :: SSV(4), Ac, Bc, C, Jhalf(4), Jtwo(4), Ptmp(4,3)
+  integer :: l
+
+  Gout_V = 0
+  SSV = J_S1(1) * J_S2(1) * J_V
+  Ptmp(:,1) = p3 + plout
+  Ptmp(:,2) = plin + plout
+  Ptmp(:,3) = plin - p3
+  C = -cont_VV(Ptmp(:,2),SSV)
+  Jhalf = 0.5_/**/REALKIND * SSV
+  ! covariant components of -2*J_V_mu = -2*S1*S2*g_(mu,nu)*J_V^nu, factor 2 simplifies in metric tensor
+  Jtwo(1) = -SSV(2)
+  Jtwo(2) = -SSV(1)
+  Jtwo(3) =  SSV(4)
+  Jtwo(4) =  SSV(3)
+
+  do l = 1, rank_in
+    Ac = cont_VV(Gin_V(:,l), SSV)
+    Bc = cont_VV(Gin_V(:,l), Ptmp(:,1))
+
+    Gout_V(1, HR(1,l)) = Gout_V(1, HR(1,l)) + Ac + Gin_V(2,l)*Jhalf(1) + Gin_V(1,l)*Jtwo(1)
+    Gout_V(2, HR(1,l)) = Gout_V(2, HR(1,l))      + Gin_V(2,l)*Jhalf(2) + Gin_V(2,l)*Jtwo(1)
+    Gout_V(3, HR(1,l)) = Gout_V(3, HR(1,l))      + Gin_V(2,l)*Jhalf(3) + Gin_V(3,l)*Jtwo(1)
+    Gout_V(4, HR(1,l)) = Gout_V(4, HR(1,l))      + Gin_V(2,l)*Jhalf(4) + Gin_V(4,l)*Jtwo(1)
+
+    Gout_V(1, HR(2,l)) = Gout_V(1, HR(2,l))      + Gin_V(1,l)*Jhalf(1) + Gin_V(1,l)*Jtwo(2)
+    Gout_V(2, HR(2,l)) = Gout_V(2, HR(2,l)) + Ac + Gin_V(1,l)*Jhalf(2) + Gin_V(2,l)*Jtwo(2)
+    Gout_V(3, HR(2,l)) = Gout_V(3, HR(2,l))      + Gin_V(1,l)*Jhalf(3) + Gin_V(3,l)*Jtwo(2)
+    Gout_V(4, HR(2,l)) = Gout_V(4, HR(2,l))      + Gin_V(1,l)*Jhalf(4) + Gin_V(4,l)*Jtwo(2)
+
+    Gout_V(1, HR(3,l)) = Gout_V(1, HR(3,l))      - Gin_V(4,l)*Jhalf(1) + Gin_V(1,l)*Jtwo(3)
+    Gout_V(2, HR(3,l)) = Gout_V(2, HR(3,l))      - Gin_V(4,l)*Jhalf(2) + Gin_V(2,l)*Jtwo(3)
+    Gout_V(3, HR(3,l)) = Gout_V(3, HR(3,l)) + Ac - Gin_V(4,l)*Jhalf(3) + Gin_V(3,l)*Jtwo(3)
+    Gout_V(4, HR(3,l)) = Gout_V(4, HR(3,l))      - Gin_V(4,l)*Jhalf(4) + Gin_V(4,l)*Jtwo(3)
+
+    Gout_V(1, HR(4,l)) = Gout_V(1, HR(4,l))      - Gin_V(3,l)*Jhalf(1) + Gin_V(1,l)*Jtwo(4)
+    Gout_V(2, HR(4,l)) = Gout_V(2, HR(4,l))      - Gin_V(3,l)*Jhalf(2) + Gin_V(2,l)*Jtwo(4)
+    Gout_V(3, HR(4,l)) = Gout_V(3, HR(4,l))      - Gin_V(3,l)*Jhalf(3) + Gin_V(3,l)*Jtwo(4)
+    Gout_V(4, HR(4,l)) = Gout_V(4, HR(4,l)) + Ac - Gin_V(3,l)*Jhalf(4) + Gin_V(4,l)*Jtwo(4)
+
+    Gout_V(:,l) = Gout_V(:,l) + Ac*Ptmp(:,3) + Bc*SSV + C*Gin_V(:,l)
+  end do
+end subroutine vert_loop_GHHG_G
+
+
+! *****************************************
+subroutine vert_loop_GHHGG_G_12(rank_in, rank_out, Gin_V, J_S1, J_S2, J_V3, J_V4, Gout_V)
+  ! Effective gluon Higgs Higgs gluon gluon -> gluon vertex.
+  ! The same as vert_loop_GGG_G_12*J_S1(1)*J_S2(1)
+  ! g(1,4)*g(3,5)-g(1,5)*g(3,4)
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  integer,           intent(in)  :: rank_in, rank_out
+  complex(REALKIND), intent(in)  :: Gin_V(4,rank_in), J_S1(4), J_S2(4), J_V3(4), J_V4(4)
+  complex(REALKIND), intent(out) :: Gout_V(4,rank_out)
+  complex(REALKIND) :: SSV4(4), SSV3V4, GV4
+  integer :: l
+  SSV4 = J_S1(1) * J_S2(1) * J_V4
+  SSV3V4 = cont_VV(J_V3,SSV4)
+  do l = 1, rank_in
+    Gout_V(:,l) = cont_VV(Gin_V(1,l),SSV4)*J_V3 - SSV3V4*Gin_V(:,l)
+  end do
+end subroutine vert_loop_GHHGG_G_12
+
+
+! *****************************************
+subroutine vert_loop_GHHGG_G_23(rank_in, rank_out, Gin_V, J_S1, J_S2, J_V3, J_V4, Gout_V)
+  ! Effective gluon Higgs Higgs gluon gluon -> gluon vertex.
+  ! The same as vert_loop_GGG_G_23*J_S1(1)*J_S2(1)
+  ! g(1,3)*g(4,5)-g(1,4)*g(3,5)
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  integer,           intent(in)  :: rank_in, rank_out
+  complex(REALKIND), intent(in)  :: Gin_V(4,rank_in), J_S1(4), J_S2(4), J_V3(4), J_V4(4)
+  complex(REALKIND), intent(out) :: Gout_V(4,rank_out)
+  complex(REALKIND) :: SSV4(4)
+  integer :: l
+  SSV4 = J_S1(1) * J_S2(1) * J_V4
+  do l = 1, rank_in
+    Gout_V(:,l) = cont_VV(Gin_V(1,l),J_V3)*SSV4 - cont_VV(Gin_V(1,l),SSV4)*J_V3
+  end do
+end subroutine vert_loop_GHHGG_G_23
+
+
+! **********************************************************************
+! HiggsPO Effective couplings
+! **********************************************************************
+
+
+! ******************************************************************************
+subroutine vert_loop_AZS_Q(rank_in, rank_out, g_RL, G_A, J_Z, S, Gout_A)
+! bare AZ -> A Z-like interaction
+! ------------------------------------------------------------------------------
+! G_A(sigma,l)   = incoming anti-quark loop-current
+! sigma          = open index of loop line
+! l              = array component of the symmetrized tensor G
+! rank_i/o       = length of tensor array up to highest incoming/outgoing rank
+! J_Z(4)         = incoming tree level Z current (contravariant light-cone rep.)
+! g_RL(1)        = right-handed coupling gR
+! g_RL(2)        = left-handed coupling gL
+! Gout_A(beta,l) = outgoing anti-quark loop current with same rank
+! Gout_A(beta,l) = G_A(sigma,l) * [gamma_A*(gR*w_R+gL*w_L)](sigma,beta) * J_Z(A)
+! ******************************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  integer,           intent(in)  :: rank_in, rank_out
+  complex(REALKIND), intent(in)  :: G_A(4,rank_in), J_Z(4), S(4), g_RL(2)
+  complex(REALKIND), intent(out) :: Gout_A(4,rank_out)
+  integer :: l
+  do l = 1, rank_in
+    Gout_A(1,l) = g_RL(1) * ( - J_Z(1)*G_A(3,l) - J_Z(3)*G_A(4,l))
+    Gout_A(2,l) = g_RL(1) * ( - J_Z(2)*G_A(4,l) - J_Z(4)*G_A(3,l))
+    Gout_A(3,l) = g_RL(2) * ( - J_Z(2)*G_A(1,l) + J_Z(3)*G_A(2,l))
+    Gout_A(4,l) = g_RL(2) * ( - J_Z(1)*G_A(2,l) + J_Z(4)*G_A(1,l))
+    Gout_A(:,l) = Gout_A(:,l)*S(1)
+  end do
+end subroutine vert_loop_AZS_Q
+
+
+
+! ************************************************************************************
+subroutine vert_loop_SQA_Z(rank_in, rank_out, g_RL, S, G_Q, J_A, Gout_Z)
+! bare QA -> Z Z-like interaction
+! ------------------------------------------------------------------------------------
+! G_Q(sigma,l)   = incoming quark loop current
+! sigma          = open index of loop line
+! l              = array component of the symmetrized tensor G
+! rank_i/o       = length of tensor array up to highest incoming/outgoing rank
+! S(4)           = incoming scalar current
+! J_A(4)         = incoming tree level anti-quark current
+! g_RL(1)        = right-handed coupling gR
+! g_RL(2)        = left-handed coupling gL
+! Gout_Z         = outgoing Z loop current (contravariant light-cone)
+! Gout_Z(beta,l) = Jbar_A(rho)*[gamma^beta*(gR*w_R+gL*w_L)](rho,sigma) * G_Q(sigma, l)
+! ************************************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  integer,           intent(in)  :: rank_in, rank_out
+  complex(REALKIND), intent(in)  :: G_Q(4,rank_in), S(4), J_A(4), g_RL(2)
+  complex(REALKIND), intent(out) :: Gout_Z(4,rank_out)
+  integer :: l
+  do l = 1, rank_in
+    Gout_Z(1,l) = - g_RL(2)*G_Q(3,l)*J_A(1) - g_RL(1)*G_Q(2,l)*J_A(4)
+    Gout_Z(2,l) = - g_RL(2)*G_Q(4,l)*J_A(2) - g_RL(1)*G_Q(1,l)*J_A(3)
+    Gout_Z(3,l) = - g_RL(2)*G_Q(4,l)*J_A(1) + g_RL(1)*G_Q(2,l)*J_A(3)
+    Gout_Z(4,l) = - g_RL(2)*G_Q(3,l)*J_A(2) + g_RL(1)*G_Q(1,l)*J_A(4)
+    Gout_Z(:,l) = (Gout_Z(:,l) + Gout_Z(:,l))*S(1)
+  end do
+end subroutine vert_loop_SQA_Z
+
+
+! **********************************************************************************
+subroutine vert_loop_ASQ_Z(rank_in, rank_out, g_RL, G_A, S, J_Q, Gout_Z)
+! bare AQ -> Z Z-like interaction
+! ----------------------------------------------------------------------------------
+! G_A(sigma,l)   = incoming anti-quark loop-current
+! sigma          = open index of loop line
+! l              = array component of the symmetrized tensor G
+! rank_i/o       = length of tensor array up to highest incoming/outgoing rank
+! S(4)           = incoming scalar current
+! J_Q(4)         = incoming tree level quark current
+! g_RL(1)        = right-handed coupling gR
+! g_RL(2)        = left-handed coupling gL
+! Gout_Z         = outgoing Z loop current (contravariant light-cone rep.)
+! Gout_Z(beta,l) = G_A(sigma,l) * [gamma^beta*(gR*w_R+gL*w_L)](sigma,rho) * J_Q(rho)
+! **********************************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  integer,           intent(in)  :: rank_in, rank_out
+  complex(REALKIND), intent(in)  :: G_A(4,rank_in), S(4), J_Q(4), g_RL(2)
+  complex(REALKIND), intent(out) :: Gout_Z(4,rank_out)
+  integer :: l
+  do l = 1, rank_in
+    Gout_Z(1,l) = - g_RL(2)*G_A(1,l)*J_Q(3) - g_RL(1)*G_A(4,l)*J_Q(2)
+    Gout_Z(2,l) = - g_RL(2)*G_A(2,l)*J_Q(4) - g_RL(1)*G_A(3,l)*J_Q(1)
+    Gout_Z(3,l) = - g_RL(2)*G_A(1,l)*J_Q(4) + g_RL(1)*G_A(3,l)*J_Q(2)
+    Gout_Z(4,l) = - g_RL(2)*G_A(2,l)*J_Q(3) + g_RL(1)*G_A(4,l)*J_Q(1)
+    Gout_Z(:,l) = (Gout_Z(:,l) + Gout_Z(:,l))*S(1)
+  end do
+end subroutine vert_loop_ASQ_Z
+
+
+! ***********************************************************************************
+subroutine vert_loop_ZSA_Q(rank_in, rank_out, g_RL, G_Z, S, J_A, Gout_A)
+! bare ZA -> A Z-like interaction
+! -----------------------------------------------------------------------------------
+! G_Z(sigma,l)   = incoming Z-boson loop-current
+! sigma          = open index of loop line (contravariant light-cone)
+! l              = array component of the symmetrized tensor G
+! rank_i/o       = length of tensor array up to highest incoming/outgoing rank
+! J_A(4)         = incoming antiquark current
+! S(4)           = incoming scalar current
+! g_RL(1)        = right-handed coupling gR
+! g_RL(2)        = left-handed coupling gL
+! Gout_A(beta,l) = outgoing anti-quark loop current
+! Gout_A(beta,l) = G_Z(sigma,l) * Jbar_A(rho)*[gamma_sigma*(gR*w_R+gL*w_L)](rho,beta)
+! ***********************************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  integer,           intent(in)  :: rank_in, rank_out
+  complex(REALKIND), intent(in)  :: G_Z(4,rank_in), S(4), J_A(4), g_RL(2)
+  complex(REALKIND), intent(out) :: Gout_A(4,rank_out)
+  integer :: l
+  do l = 1, rank_in
+    Gout_A(1,l) = g_RL(1) * S(1) * ( - J_A(3)*G_Z(1,l) - J_A(4)*G_Z(3,l))
+    Gout_A(2,l) = g_RL(1) * S(1) * ( - J_A(4)*G_Z(2,l) - J_A(3)*G_Z(4,l))
+    Gout_A(3,l) = g_RL(2) * S(1) * ( - J_A(1)*G_Z(2,l) + J_A(2)*G_Z(3,l))
+    Gout_A(4,l) = g_RL(2) * S(1) * ( - J_A(2)*G_Z(1,l) + J_A(1)*G_Z(4,l))
+  end do
+end subroutine vert_loop_ZSA_Q
+
+
+! **********************************************************************************
+subroutine vert_loop_ZSQ_A(rank_in, rank_out, g_RL, G_Z, S, J_Q, Gout_Q)
+! bare ZQ -> Q Z-like interaction
+! ----------------------------------------------------------------------------------
+! G_Z(sigma,l)   = incoming Z-boson loop-current
+! sigma          = open index of loop line (contravariant light-cone)
+! l              = array component of the symmetrized tensor G
+! rank_i/o       = length of tensor array up to highest incoming/outgoing rank
+! S(4)           = incoming scalar current
+! J_Q(4)         = incoming quark current
+! g_RL(1)        = right-handed coupling gR
+! g_RL(2)        = left-handed coupling gL
+! Gout_Q(beta,l) = outgoing quark loop current
+! Gout_Q(beta,l) = G_Z(sigma,l) * [gamma_sigma*(gR*w_R+gL*w_L)](beta,rho) * J_Q(rho)
+! **********************************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  integer,           intent(in)  :: rank_in, rank_out
+  complex(REALKIND), intent(in)  :: G_Z(4,rank_in), S(4), J_Q(4), g_RL(2)
+  complex(REALKIND), intent(out) :: Gout_Q(4,rank_out)
+  integer :: l
+  do l = 1, rank_in
+    Gout_Q(1,l) = g_RL(2) * S(1) * ( - J_Q(3)*G_Z(2,l) + J_Q(4)*G_Z(4,l))
+    Gout_Q(2,l) = g_RL(2) * S(1) * ( - J_Q(4)*G_Z(1,l) + J_Q(3)*G_Z(3,l))
+    Gout_Q(3,l) = g_RL(1) * S(1) * ( - J_Q(1)*G_Z(1,l) - J_Q(2)*G_Z(4,l))
+    Gout_Q(4,l) = g_RL(1) * S(1) * ( - J_Q(2)*G_Z(2,l) - J_Q(1)*G_Z(3,l))
+  end do
+end subroutine vert_loop_ZSQ_A
+
+
+! ************************************************************************************
+subroutine vert_loop_QAS_Z(rank_in, rank_out, g_RL, G_Q, J_A, S, Gout_Z)
+! bare QA -> Z Z-like interaction
+! ------------------------------------------------------------------------------------
+! G_Q(sigma,l)   = incoming quark loop current
+! sigma          = open index of loop line
+! l              = array component of the symmetrized tensor G
+! rank_i/o       = length of tensor array up to highest incoming/outgoing rank
+! S(4)           = incoming scalar current
+! J_A(4)         = incoming tree level anti-quark current
+! g_RL(1)        = right-handed coupling gR
+! g_RL(2)        = left-handed coupling gL
+! Gout_Z         = outgoing Z loop current (contravariant light-cone)
+! Gout_Z(beta,l) = Jbar_A(rho)*[gamma^beta*(gR*w_R+gL*w_L)](rho,sigma) * G_Q(sigma, l)
+! ************************************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  integer,           intent(in)  :: rank_in, rank_out
+  complex(REALKIND), intent(in)  :: G_Q(4,rank_in), J_A(4), S(4), g_RL(2)
+  complex(REALKIND), intent(out) :: Gout_Z(4,rank_out)
+  integer :: l
+  do l = 1, rank_in
+    Gout_Z(1,l) = - g_RL(2)*G_Q(3,l)*J_A(1) - g_RL(1)*G_Q(2,l)*J_A(4)
+    Gout_Z(2,l) = - g_RL(2)*G_Q(4,l)*J_A(2) - g_RL(1)*G_Q(1,l)*J_A(3)
+    Gout_Z(3,l) = - g_RL(2)*G_Q(4,l)*J_A(1) + g_RL(1)*G_Q(2,l)*J_A(3)
+    Gout_Z(4,l) = - g_RL(2)*G_Q(3,l)*J_A(2) + g_RL(1)*G_Q(1,l)*J_A(4)
+    Gout_Z(:,l) = (Gout_Z(:,l) + Gout_Z(:,l))*S(1)
+  end do
+end subroutine vert_loop_QAS_Z
+
+
+!*****************************************************************************************
+subroutine vert_loop_VS_V_kap(rank_in, rank_out, G_V, P, J_S, Gout_V, P_out)
+! bare vector scalar -> vector interaction
+!-----------------------------------------------------------------------------------------
+! G_V(sigma,l)   = incoming vector loop-current
+! sigma          = open index of loop line
+! l              = array component of the symmetrized tensor G
+! rank_i/o       = length of tensor array up to highest incoming/outgoing rank
+! J_S            = incoming scalar current
+! Gout_V(beta,l) = outgoing vector loop current = G_V*J_S
+! ***************************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  integer,           intent(in)  :: rank_in, rank_out
+  complex(REALKIND), intent(in)  :: G_V(4,rank_in), J_S(4), P(4), P_out(4)
+  complex(REALKIND), intent(out) :: Gout_V(4,rank_out)
+  integer :: l
+  do l = 1, rank_in
+    Gout_V(:,l) = G_V(:,l)*J_S
+  end do
+end subroutine vert_loop_VS_V_kap
+
+
+!*****************************************************************************************
+subroutine vert_loop_VS_V_eps(rank_in, rank_out, G_V, P, J_S, Gout_V, P_out)
+! bare vector scalar -> vector interaction
+!-----------------------------------------------------------------------------------------
+! G_V(sigma,l)   = incoming vector loop-current
+! sigma          = open index of loop line
+! l              = array component of the symmetrized tensor G
+! rank_i/o       = length of tensor array up to highest incoming/outgoing rank
+! J_S            = incoming scalar current
+! Gout_V(beta,l) = Outgoing vector current: Gout_V(beta,l) = -(P.P_out)*G_V*J_S - (P_out.G_V)*P*J_S
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  integer,           intent(in)  :: rank_in, rank_out
+  complex(REALKIND), intent(in)  :: G_V(4,rank_in), J_S(4), P(4), P_out(4)
+  complex(REALKIND), intent(out) :: Gout_V(4,rank_out)
+  integer :: l
+  do l = 1, rank_in
+    Gout_V(:,l) = -cont_VV(P,P_out)*J_S(1)*G_V(:,l)*J_S(1)-cont_VV(P_out,G_V(:,l))*P
+  end do
+end subroutine vert_loop_VS_V_eps
+
+
+!*****************************************************************************************
+subroutine vert_loop_VS_V_aeps(rank_in, rank_out, G_V, P, J_S, Gout_V, P_out)
+! bare vector scalar -> vector interaction
+!-----------------------------------------------------------------------------------------
+! G_V(sigma,l)   = incoming vector loop-current
+! sigma          = open index of loop line
+! l              = array component of the symmetrized tensor G
+! rank_i/o       = length of tensor array up to highest incoming/outgoing rank
+! J_S            = incoming scalar current
+! Gout_V(beta,l) = Outgoing vector current: Gout_V(beta,l) = ep(a,b,c,d)*G_V(b)*P(c)*P2(d)*J_S
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_EpVVV
+  implicit none
+  integer,           intent(in)  :: rank_in, rank_out
+  complex(REALKIND), intent(in)  :: G_V(4,rank_in), J_S(4), P(4), P_out(4)
+  complex(REALKIND), intent(out) :: Gout_V(4,rank_out)
+  integer :: l
+  do l = 1, rank_in
+    call cont_EpVVV(G_V(:,l), P, P_out, Gout_V(:,l))
+    Gout_V(:,l) = Gout_V(:,l) * J_S(1)
+  end do
+end subroutine vert_loop_VS_V_aeps
+
 
 end module ol_loop_vertices_/**/REALKIND
 
@@ -2402,6 +2857,11 @@ subroutine loop_VWW_V(G_V, J_V1, J_V2, Gout_V)
 end subroutine loop_VWW_V
 
 
+! ======================================================================
+! Loop vertices  for HEFT.
+! ======================================================================
+
+
 ! *****************************************
 subroutine loop_GH_G(G_V, plin, J_S, Gout_V, plout)
   use KIND_TYPES, only: REALKIND
@@ -2464,5 +2924,233 @@ subroutine loop_GHGG_G_23(G_V, J_S, J_V3, J_V4, Gout_V)
   call vert_loop_GHGG_G_23(rank_in, rank_out, G_V(:,:,3), J_S, J_V3, J_V4, Gout_V(:,:,3))
   call vert_loop_GHGG_G_23(rank_in, rank_out, G_V(:,:,4), J_S, J_V3, J_V4, Gout_V(:,:,4))
 end subroutine loop_GHGG_G_23
+
+
+! ======================================================================
+! Loop vertices  for HHEFT.
+! ======================================================================
+
+
+! *****************************************
+subroutine loop_GHH_G(G_V, plin, J_S1, J_S2, Gout_V, plout)
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: G_V(:,:,:), plin(4), J_S1(4), J_S2(4), plout(4)
+  complex(REALKIND), intent(out) :: Gout_V(:,:,:)
+  integer :: rank_in, rank_out
+  rank_in  = size(G_V,2)
+  rank_out = size(Gout_V,2)
+  call vert_loop_GHH_G(rank_in, rank_out, G_V(:,:,1), plin, J_S1, J_S2, Gout_V(:,:,1), plout)
+  call vert_loop_GHH_G(rank_in, rank_out, G_V(:,:,2), plin, J_S1, J_S2, Gout_V(:,:,2), plout)
+  call vert_loop_GHH_G(rank_in, rank_out, G_V(:,:,3), plin, J_S1, J_S2, Gout_V(:,:,3), plout)
+  call vert_loop_GHH_G(rank_in, rank_out, G_V(:,:,4), plin, J_S1, J_S2, Gout_V(:,:,4), plout)
+end subroutine loop_GHH_G
+
+
+! *****************************************
+subroutine loop_GHHG_G(G_V, plin, J_S1, J_S2, J_V3, p3, Gout_V, plout)
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: G_V(:,:,:), plin(4), J_S1(4), J_S2(4), J_V3(4), p3(4), plout(4)
+  complex(REALKIND), intent(out) :: Gout_V(:,:,:)
+  integer :: rank_in, rank_out
+  rank_in  = size(G_V,2)
+  rank_out = size(Gout_V,2)
+  call vert_loop_GHHG_G(rank_in, rank_out, G_V(:,:,1), plin, J_S1, J_S2, J_V3, p3, Gout_V(:,:,1), plout)
+  call vert_loop_GHHG_G(rank_in, rank_out, G_V(:,:,2), plin, J_S1, J_S2, J_V3, p3, Gout_V(:,:,2), plout)
+  call vert_loop_GHHG_G(rank_in, rank_out, G_V(:,:,3), plin, J_S1, J_S2, J_V3, p3, Gout_V(:,:,3), plout)
+  call vert_loop_GHHG_G(rank_in, rank_out, G_V(:,:,4), plin, J_S1, J_S2, J_V3, p3, Gout_V(:,:,4), plout)
+end subroutine loop_GHHG_G
+
+
+! *****************************************
+subroutine loop_GHHGG_G_12(G_V, J_S1, J_S2, J_V3, J_V4, Gout_V)
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: G_V(:,:,:), J_S1(4), J_S2(4), J_V3(4), J_V4(4)
+  complex(REALKIND), intent(out) :: Gout_V(:,:,:)
+  integer :: rank_in, rank_out
+  rank_in  = size(G_V,2)
+  rank_out = size(Gout_V,2)
+  call vert_loop_GHHGG_G_12(rank_in, rank_out, G_V(:,:,1), J_S1, J_S2, J_V3, J_V4, Gout_V(:,:,1))
+  call vert_loop_GHHGG_G_12(rank_in, rank_out, G_V(:,:,2), J_S1, J_S2, J_V3, J_V4, Gout_V(:,:,2))
+  call vert_loop_GHHGG_G_12(rank_in, rank_out, G_V(:,:,3), J_S1, J_S2, J_V3, J_V4, Gout_V(:,:,3))
+  call vert_loop_GHHGG_G_12(rank_in, rank_out, G_V(:,:,4), J_S1, J_S2, J_V3, J_V4, Gout_V(:,:,4))
+end subroutine loop_GHHGG_G_12
+
+
+! *****************************************
+subroutine loop_GHHGG_G_23(G_V, J_S1, J_S2, J_V3, J_V4, Gout_V)
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: G_V(:,:,:), J_S1(4), J_S2(4), J_V3(4), J_V4(4)
+  complex(REALKIND), intent(out) :: Gout_V(:,:,:)
+  integer :: rank_in, rank_out
+  rank_in  = size(G_V,2)
+  rank_out = size(Gout_V,2)
+  call vert_loop_GHHGG_G_23(rank_in, rank_out, G_V(:,:,1), J_S1, J_S2, J_V3, J_V4, Gout_V(:,:,1))
+  call vert_loop_GHHGG_G_23(rank_in, rank_out, G_V(:,:,2), J_S1, J_S2, J_V3, J_V4, Gout_V(:,:,2))
+  call vert_loop_GHHGG_G_23(rank_in, rank_out, G_V(:,:,3), J_S1, J_S2, J_V3, J_V4, Gout_V(:,:,3))
+  call vert_loop_GHHGG_G_23(rank_in, rank_out, G_V(:,:,4), J_S1, J_S2, J_V3, J_V4, Gout_V(:,:,4))
+end subroutine loop_GHHGG_G_23
+
+
+! **********************************************************************
+! HiggsPO Effective couplings
+! **********************************************************************
+
+
+! *****************************************
+subroutine loop_AZS_Q(G_A, J_Z, S, Gout_A, g_RL)
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: g_RL(2), G_A(:,:,:), J_Z(4), S(4)
+  complex(REALKIND), intent(out) :: Gout_A(:,:,:)
+  integer :: rank_in, rank_out
+  rank_in  = size(G_A,2)
+  rank_out = size(Gout_A,2)
+
+  call vert_loop_AZS_Q(rank_in, rank_out, g_RL, G_A(:,:,1), J_Z, S, Gout_A(:,:,1))
+  call vert_loop_AZS_Q(rank_in, rank_out, g_RL, G_A(:,:,2), J_Z, S, Gout_A(:,:,2))
+  call vert_loop_AZS_Q(rank_in, rank_out, g_RL, G_A(:,:,3), J_Z, S, Gout_A(:,:,3))
+  call vert_loop_AZS_Q(rank_in, rank_out, g_RL, G_A(:,:,4), J_Z, S, Gout_A(:,:,4))
+end subroutine loop_AZS_Q
+
+
+! *****************************************
+subroutine loop_SQA_Z(G_Q, S, J_A, Gout_Z, g_RL)
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: g_RL(2), G_Q(:,:,:), J_A(4), S(4)
+  complex(REALKIND), intent(out) :: Gout_Z(:,:,:)
+  integer :: rank_in, rank_out
+  rank_in  = size(G_Q,2)
+  rank_out = size(Gout_Z,2)
+
+  call vert_loop_SQA_Z(rank_in, rank_out, g_RL, G_Q(:,:,1), S, J_A, Gout_Z(:,:,1))
+  call vert_loop_SQA_Z(rank_in, rank_out, g_RL, G_Q(:,:,2), S, J_A, Gout_Z(:,:,2))
+  call vert_loop_SQA_Z(rank_in, rank_out, g_RL, G_Q(:,:,3), S, J_A, Gout_Z(:,:,3))
+  call vert_loop_SQA_Z(rank_in, rank_out, g_RL, G_Q(:,:,4), S, J_A, Gout_Z(:,:,4))
+end subroutine loop_SQA_Z
+
+
+! *****************************************
+subroutine loop_ASQ_Z(G_A, S, J_Q, Gout_Z, g_RL)
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: g_RL(2), G_A(:,:,:), J_Q(4), S(4)
+  complex(REALKIND), intent(out) :: Gout_Z(:,:,:)
+  integer :: rank_in, rank_out
+  rank_in  = size(G_A,2)
+  rank_out = size(Gout_Z,2)
+
+  call vert_loop_ASQ_Z(rank_in, rank_out, g_RL, G_A(:,:,1), S, J_Q, Gout_Z(:,:,1))
+  call vert_loop_ASQ_Z(rank_in, rank_out, g_RL, G_A(:,:,2), S, J_Q, Gout_Z(:,:,2))
+  call vert_loop_ASQ_Z(rank_in, rank_out, g_RL, G_A(:,:,3), S, J_Q, Gout_Z(:,:,3))
+  call vert_loop_ASQ_Z(rank_in, rank_out, g_RL, G_A(:,:,4), S, J_Q, Gout_Z(:,:,4))
+end subroutine loop_ASQ_Z
+
+
+! *****************************************
+subroutine loop_ZSA_Q(G_Z, S, J_A, Gout_A, g_RL)
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: g_RL(2), G_Z(:,:,:), J_A(4), S(4)
+  complex(REALKIND), intent(out) :: Gout_A(:,:,:)
+  integer :: rank_in, rank_out
+  rank_in  = size(G_Z,2)
+  rank_out = size(Gout_A,2)
+
+  call vert_loop_ZSA_Q(rank_in, rank_out, g_RL, G_Z(:,:,1), J_A, S, Gout_A(:,:,1))
+  call vert_loop_ZSA_Q(rank_in, rank_out, g_RL, G_Z(:,:,2), J_A, S, Gout_A(:,:,2))
+  call vert_loop_ZSA_Q(rank_in, rank_out, g_RL, G_Z(:,:,3), J_A, S, Gout_A(:,:,3))
+  call vert_loop_ZSA_Q(rank_in, rank_out, g_RL, G_Z(:,:,4), J_A, S, Gout_A(:,:,4))
+end subroutine loop_ZSA_Q
+
+
+! *****************************************
+subroutine loop_ZSQ_A(G_Z, S, J_Q, Gout_Q, g_RL)
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: g_RL(2), G_Z(:,:,:), S(4), J_Q(4)
+  complex(REALKIND), intent(out) :: Gout_Q(:,:,:)
+  integer :: rank_in, rank_out
+  rank_in  = size(G_Z,2)
+  rank_out = size(Gout_Q,2)
+
+  call vert_loop_ZSQ_A(rank_in, rank_out, g_RL, G_Z(:,:,1), S, J_Q, Gout_Q(:,:,1))
+  call vert_loop_ZSQ_A(rank_in, rank_out, g_RL, G_Z(:,:,2), S, J_Q, Gout_Q(:,:,2))
+  call vert_loop_ZSQ_A(rank_in, rank_out, g_RL, G_Z(:,:,3), S, J_Q, Gout_Q(:,:,3))
+  call vert_loop_ZSQ_A(rank_in, rank_out, g_RL, G_Z(:,:,4), S, J_Q, Gout_Q(:,:,4))
+end subroutine loop_ZSQ_A
+
+
+! *****************************************
+subroutine loop_QAS_Z(G_Q, J_A, S, Gout_Z, g_RL)
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: g_RL(2), G_Q(:,:,:), J_A(4), S(4)
+  complex(REALKIND), intent(out) :: Gout_Z(:,:,:)
+  integer :: rank_in, rank_out
+  rank_in  = size(G_Q,2)
+  rank_out = size(Gout_Z,2)
+
+  call vert_loop_QAS_Z(rank_in, rank_out, g_RL, G_Q(:,:,1), J_A, S, Gout_Z(:,:,1))
+  call vert_loop_QAS_Z(rank_in, rank_out, g_RL, G_Q(:,:,2), J_A, S, Gout_Z(:,:,2))
+  call vert_loop_QAS_Z(rank_in, rank_out, g_RL, G_Q(:,:,3), J_A, S, Gout_Z(:,:,3))
+  call vert_loop_QAS_Z(rank_in, rank_out, g_RL, G_Q(:,:,4), J_A, S, Gout_Z(:,:,4))
+end subroutine loop_QAS_Z
+
+
+! *****************************************
+subroutine loop_VS_V_kap(G_V, P, J_S, Gout_V, P_out)
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: G_V(:,:,:), J_S(4), P(4), P_out(4)
+  complex(REALKIND), intent(out) :: Gout_V(:,:,:)
+  integer :: rank_in, rank_out
+  rank_in  = size(G_V,2)
+  rank_out = size(Gout_V,2)
+
+  call vert_loop_VS_V_kap(rank_in, rank_out, G_V(:,:,1), P, J_S(1), Gout_V(:,:,1), P_out)
+  call vert_loop_VS_V_kap(rank_in, rank_out, G_V(:,:,2), P, J_S(1), Gout_V(:,:,2), P_out)
+  call vert_loop_VS_V_kap(rank_in, rank_out, G_V(:,:,3), P, J_S(1), Gout_V(:,:,3), P_out)
+  call vert_loop_VS_V_kap(rank_in, rank_out, G_V(:,:,4), P, J_S(1), Gout_V(:,:,4), P_out)
+end subroutine loop_VS_V_kap
+
+
+! *****************************************
+subroutine loop_VS_V_eps(G_V, P, J_S, Gout_V, P_out)
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: G_V(:,:,:), J_S(4), P(4), P_out(4)
+  complex(REALKIND), intent(out) :: Gout_V(:,:,:)
+  integer :: rank_in, rank_out
+  rank_in  = size(G_V,2)
+  rank_out = size(Gout_V,2)
+
+  call vert_loop_VS_V_eps(rank_in, rank_out, G_V(:,:,1), P, J_S(1), Gout_V(:,:,1), P_out)
+  call vert_loop_VS_V_eps(rank_in, rank_out, G_V(:,:,2), P, J_S(1), Gout_V(:,:,2), P_out)
+  call vert_loop_VS_V_eps(rank_in, rank_out, G_V(:,:,3), P, J_S(1), Gout_V(:,:,3), P_out)
+  call vert_loop_VS_V_eps(rank_in, rank_out, G_V(:,:,4), P, J_S(1), Gout_V(:,:,4), P_out)
+end subroutine loop_VS_V_eps
+
+
+! *****************************************
+subroutine loop_VS_V_aeps(G_V, P, J_S, Gout_V, P_out)
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: G_V(:,:,:), J_S(4), P(4), P_out(4)
+  complex(REALKIND), intent(out) :: Gout_V(:,:,:)
+  integer :: rank_in, rank_out
+  rank_in  = size(G_V,2)
+  rank_out = size(Gout_V,2)
+
+  call vert_loop_VS_V_aeps(rank_in, rank_out, G_V(:,:,1), P, J_S(1), Gout_V(:,:,1), P_out)
+  call vert_loop_VS_V_aeps(rank_in, rank_out, G_V(:,:,2), P, J_S(1), Gout_V(:,:,2), P_out)
+  call vert_loop_VS_V_aeps(rank_in, rank_out, G_V(:,:,3), P, J_S(1), Gout_V(:,:,3), P_out)
+  call vert_loop_VS_V_aeps(rank_in, rank_out, G_V(:,:,4), P, J_S(1), Gout_V(:,:,4), P_out)
+end subroutine loop_VS_V_aeps
+
 
 end module ol_vert_interface_/**/REALKIND

@@ -54,6 +54,9 @@ subroutine parameters_init(Mass_E, Mass_M, Mass_L, Mass_U, Mass_D, Mass_S, Mass_
   !
   ! Direct calls of this routine are deprecated. Use set_parameter() interface in module openloops/ol_init instead!
   !
+#ifdef USE_IFORT
+  use IFPORT
+#endif
   use KIND_TYPES, only: REALKIND
   use ol_generic, only: to_string, random_string
   use ol_parameters_decl_/**/REALKIND
@@ -77,7 +80,7 @@ subroutine parameters_init(Mass_E, Mass_M, Mass_L, Mass_U, Mass_D, Mass_S, Mass_
     pid_string = trim(to_string(getpid())) // "-" // random_string(4)
   end if
 
-  if (splash_todo) then
+  if (splash_todo .and. .not. nosplash) then
     call print_welcome()
   end if
 
@@ -359,13 +362,28 @@ subroutine parameters_init()
   ! Right- (1) and left-handed (2) couplings of scalars to fermions
   ! gPud = P+ u~ d; gPdu = P- d~ u; gPnl = P+ n~ l; gPln = P- l~ n (all incoming)
   gPud = [   -YD,   YU ]
+  gPus = [   -YS,   YU ]
+  gPub = [   -YB,   YU ]
+  gPcd = [   -YD,   YC ]
   gPcs = [   -YS,   YC ]
+  gPcb = [   -YB,   YC ]
+  gPtd = [   -YD,   YT ]
+  gPts = [   -YS,   YT ]
   gPtb = [   -YB,   YT ]
   gPdu = [   -YU,   YD ]
+  gPdc = [   -YC,   YD ]
+  gPdt = [   -YT,   YD ]
+  gPsu = [   -YU,   YS ]
   gPsc = [   -YC,   YS ]
+  gPst = [   -YT,   YS ]
+  gPbu = [   -YU,   YB ]
+  gPbc = [   -YC,   YB ]
   gPbt = [   -YT,   YB ]
 
   if (trim(model) == "2hdm") call thdm_parameters_init()
+
+  if (trim(model) == "higgspo") call model_higgspo_parameters_init()
+
 
   ! Number of time this function has been called:
 #ifdef PRECISION_dp
@@ -430,6 +448,87 @@ subroutine thdm_parameters_init()
 end subroutine thdm_parameters_init
 
 
+! *********************************************************************
+! parameters_init for HiggsPO model
+! *********************************************************************
+#ifdef PRECISION_dp
+subroutine model_higgspo_parameters_init()
+  use ol_parameters_decl_/**/REALKIND
+  implicit none
+  complex(REALKIND) :: gRL
+  HPOvev = scalefactor * HPOvev_unscaled
+#else
+subroutine model_higgspo_parameters_init()
+  use ol_parameters_decl_/**/REALKIND
+  use ol_parameters_decl_/**/DREALKIND, only: scalefactor_dp => scalefactor, &
+    &  HPOvev_dp => HPOvev, ThetaCabi_dp => ThetaCabi, &
+    &  HPOgZeL_dp => HPOgZeL, HPOgZeR_dp => HPOgZeR, HPOgZv_dp => HPOgZv, HPOgZuL_dp => HPOgZuL, &
+    &  HPOgZuR_dp => HPOgZuR, HPOgZdL_dp  => HPOgZdL, HPOgZdR_dp => HPOgZdR, &
+    &  HPOgWeL_dp => HPOgWeL, HPOgWmL_dp => HPOgWmL, HPOgWlL_dp => HPOgWlL, HPOgWqL_dp => HPOgWqL, &
+    &  HPOkapWW_dp  => HPOkapWW, HPOkapZZ_dp  => HPOkapZZ, HPOepsWW_dp  => HPOepsWW, &
+    &  HPOaepsWW_dp => HPOaepsWW, HPOepsZZ_dp  => HPOepsZZ, HPOaepsZZ_dp => HPOaepsZZ, &
+    &  HPOepsZA_dp  => HPOepsZA, HPOaepsZA_dp => HPOaepsZA, HPOepsAA_dp  => HPOepsAA, &
+    &  HPOaepsAA_dp => HPOaepsAA, HPOepsZnn_dp => HPOepsZnn, HPOepsZll_dp => HPOepsZll, &
+    &  HPOepsZdd_dp => HPOepsZdd, HPOepsZuu_dp => HPOepsZuu, HPOepsWqq_dp => HPOepsWqq, HPOepsWln_dp => HPOepsWln, &
+    &  HPOphiWeL_dp => HPOphiWeL, HPOphiWmL_dp => HPOphiWmL, HPOphiWlL_dp => HPOphiWlL, HPOphiWqL_dp => HPOphiWqL
+  implicit none
+  complex(REALKIND) :: gRL
+  scalefactor = scalefactor_dp
+  ThetaCabi = ThetaCabi_dp
+  HPOvev    = HPOvev_dp
+  HPOgZeL   = HPOgZeL_dp
+  HPOgZeR   = HPOgZeR_dp
+  HPOgZv    = HPOgZv_dp
+  HPOgZuL   = HPOgZuL_dp
+  HPOgZuR   = HPOgZuR_dp
+  HPOgZdL   = HPOgZdL_dp
+  HPOgZdR   = HPOgZdR_dp
+  HPOgWeL   = HPOgWeL_dp
+  HPOgWmL   = HPOgWmL_dp
+  HPOgWlL   = HPOgWlL_dp
+  HPOgWqL   = HPOgWqL_dp
+  HPOkapWW  = HPOkapWW_dp
+  HPOkapZZ  = HPOkapZZ_dp
+  HPOepsWW  = HPOepsWW_dp
+  HPOaepsWW = HPOaepsWW_dp
+  HPOepsZZ  = HPOepsZZ_dp
+  HPOaepsZZ = HPOaepsZZ_dp
+  HPOepsZA  = HPOepsZA_dp
+  HPOaepsZA = HPOaepsZA_dp
+  HPOepsAA  = HPOepsAA_dp
+  HPOaepsAA = HPOaepsAA_dp
+  HPOepsZnn = HPOepsZnn_dp
+  HPOepsZll = HPOepsZll_dp
+  HPOepsZdd = HPOepsZdd_dp
+  HPOepsZuu = HPOepsZuu_dp
+  HPOepsWqq = HPOepsWqq_dp
+  HPOepsWln = HPOepsWln_dp
+  HPOphiWeL = HPOphiWeL_dp
+  HPOphiWmL = HPOphiWmL_dp
+  HPOphiWlL = HPOphiWlL_dp
+  HPOphiWqL = HPOphiWqL_dp
+#endif
+  cCabi = cos(ThetaCabi)
+  sCabi = sin(ThetaCabi)
+!  gRL = 1/(cw*sw)
+  gRL = 2*MZ/HPOvev
+  gZn  = [  ZERO      , gRL*HPOgZv ] ! neutrino
+  gZl  = gRL*[ HPOgZeR, HPOgZeL    ] ! lepton
+  gZu  = gRL*[ HPOgZuR, HPOgZuL    ] ! up
+  gZd  = gRL*[ HPOgZdR, HPOgZdL    ] ! down
+
+  HPOcpWeL = cos(HPOphiWeL)
+  HPOspWeL = sin(HPOphiWeL)
+  HPOcpWmL = cos(HPOphiWmL)
+  HPOspWmL = sin(HPOphiWmL)
+  HPOcpWlL = cos(HPOphiWlL)
+  HPOspWlL = sin(HPOphiWlL)
+  HPOcpWqL = cos(HPOphiWqL)
+  HPOspWqL = sin(HPOphiWqL)
+end subroutine model_higgspo_parameters_init
+
+
+
 
 subroutine ensure_mp_init()
   ! synchronise non-dp parameters with dp if they are not up to date
@@ -488,12 +587,16 @@ subroutine channel_on(ch)
     call cacheinit(0,ch) ! cache channel initialised for new PS point
   end if
 #else
-  if (coli_cache_use /= 0 .and. (a_switch == 1 .or. a_switch == 2 .or. a_switch == 3)) then
+  if (coli_cache_use /= 0 .and. (a_switch == 1 .or. a_switch == 2 .or. a_switch == 3 .or. a_switch == 7)) then
     if (ch == -1) then
       ch = next_channel_number
       next_channel_number = next_channel_number + 1
     end if
-    call initevent_cll(ch)
+    if (a_switch == 7) then
+      call initevent_cll(2*ch)
+    else
+      call initevent_cll(2*ch-1)
+    end if
   end if
 #endif
 #endif
@@ -519,6 +622,55 @@ end subroutine channel_off
 #endif
 
 
+subroutine init_kin_arrays(Npart)
+  use ol_momenta_decl_/**/REALKIND, only: Q, QInvariantsMatrix
+  use ol_external_decl_/**/REALKIND, only: P_ex, binom2, crossing, inverse_crossing, gf_array, Ward_array
+  use ol_external_decl_/**/REALKIND, only: allocatedNpart
+  implicit none
+  integer, intent(in) :: Npart
+  integer :: n_
+  if (Npart > allocatedNpart) then
+    if (allocatedNpart /= 0) then
+      call clean_kin_arrays()
+    end if
+    allocate(Q(5,0:2**Npart-1))
+    Q = 0
+    allocate(QInvariantsMatrix(Npart,Npart))
+    QInvariantsMatrix = 0
+
+    allocate(binom2(Npart))
+    binom2 = [((n_*(n_-1))/2, n_=1, size(binom2))]
+
+    allocate(P_ex(0:3,Npart))  ! uncleaned external 2->n-2 momenta, set by conv_mom_scatt2in
+    allocate(crossing(Npart))
+    crossing = 0        ! only used if a reduction error occurs
+    allocate(inverse_crossing(Npart))
+    inverse_crossing = 0 ! set by conv_mom_scatt2in
+    !
+    allocate(gf_array(Npart))
+    gf_array = 0
+    allocate(Ward_array(Npart))
+    Ward_array = 0
+
+    allocatedNpart = Npart
+  end if
+end subroutine init_kin_arrays
+
+subroutine clean_kin_arrays
+  use ol_external_decl_/**/REALKIND, only: allocatedNpart
+  use ol_momenta_decl_/**/REALKIND, only: Q, QInvariantsMatrix
+  use ol_external_decl_/**/REALKIND, only: P_ex, binom2, crossing, inverse_crossing, gf_array, Ward_array
+  implicit none
+  if (allocated(Q)) deallocate(Q)
+  if (allocated(QInvariantsMatrix)) deallocate(QInvariantsMatrix)
+  if (allocated(binom2)) deallocate(binom2)
+  if (allocated(P_ex)) deallocate(P_ex)
+  if (allocated(crossing)) deallocate(crossing)
+  if (allocated(inverse_crossing)) deallocate(inverse_crossing)
+  if (allocated(gf_array)) deallocate(gf_array)
+  if (allocated(Ward_array)) deallocate(Ward_array)
+  allocatedNpart = 0
+end subroutine
 
 #if defined(USE_COLLIER) && defined(COLLIER_LEGACY)
 ! *************************
@@ -597,7 +749,8 @@ subroutine loop_parameters_init(renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, 
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND
   use ol_generic, only: to_string
-  use ol_debug, only: ol_error, ol_fatal
+  use ol_debug, only: ol_error, ol_fatal, olodebug_unit
+  use ol_cwrappers, only: stdout_off, stdout_on
   use ol_tensor_storage_/**/REALKIND, only: tensor_storage_maxrank
   use ol_parameters_decl_/**/REALKIND
   use ol_loop_parameters_decl_/**/REALKIND
@@ -608,11 +761,12 @@ subroutine loop_parameters_init(renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, 
   use dd_init_/**/REALKIND, only: dd_setmode, dd_setparam
 #else
   use collier, only: init_cll, initcachesystem_cll, setmode_cll, setmuuv2_cll, &
-    & setmuir2_cll, setdeltauv_cll, setdeltair_cll, settenred_cll, setaccuracy_cll
+    & setmuir2_cll, setdeltauv_cll, setdeltair_cll, settenred_cll, setaccuracy_cll, &
+    & initmonitoring_cll
 #endif
 #endif
 #ifdef USE_ONELOOP
-  use avh_olo, only: olo_scale, olo_onshell
+  use avh_olo, only: olo_scale, olo_onshell, olo_unit
 #endif
 #ifdef USE_SAMURAI
   use msamurai, only: initsamurai
@@ -665,7 +819,7 @@ subroutine loop_parameters_init(renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, 
     opplimitvalue = opp_limitvalue
   end if
   if (present(opp_thrs)) then
-    if (oppthrs /= opp_thrs) reset_oppthrs = .true.
+    if (oppthrs /= opp_thrs) reset_opp = .true.
     oppthrs = opp_thrs
   end if
   if (present(opp_idig)) then
@@ -700,7 +854,7 @@ subroutine loop_parameters_init(renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, 
 
   if (reset_scalefactor) then
     reset_mureg = .true.
-    reset_oppthrs = .true.
+    reset_opp = .true.
     reset_scalefactor = .false.
   end if
 
@@ -791,7 +945,7 @@ subroutine loop_parameters_init
 
 #ifdef PRECISION_dp
   ! initialise reduction libraries only in double precision
-  ! (quad precision initialisation is handles within these libraries if applicable)
+  ! (quad precision initialisation is handled within these libraries if applicable)
 
 #ifdef USE_COLLIER
 #ifdef COLLIER_LEGACY
@@ -832,11 +986,23 @@ subroutine loop_parameters_init
 #else
   if (a_switch == 1 .or. a_switch_rescue == 1 .or. a_switch == 2 .or. a_switch == 3 .or. &
     & a_switch == 7 .or. a_switch_rescue == 7) then
-    if (maxpoint > maxpoint_active .or. cll_channels > cll_channels_active) then
-      if (maxpoint > maxpoint_active) call init_cll(maxpoint)
-      call initcachesystem_cll(cll_channels,maxpoint)
+    if (maxpoint > maxpoint_active .or. maxrank > maxrank_active .or. cll_channels > cll_channels_active) then
+      if (maxpoint > maxpoint_active .or. maxrank > maxrank_active) then
+        if (nosplash) call stdout_off()
+        if (cll_log == 0) then
+          call init_cll(maxpoint, rmax=maxrank, folder_name="", noreset=.true.)
+        else
+          call init_cll(maxpoint, rmax=maxrank, noreset=.true.)
+        end if
+        if (nosplash) call stdout_on()
+      end if
+      if (coli_cache_use /= 0) then
+        ! cache channel number in OL is per process; cll requires caches per reduction library (coli/dd)
+        call initcachesystem_cll(2*cll_channels,maxpoint)
+        cll_channels_active = cll_channels
+      end if
       maxpoint_active = maxpoint
-      cll_channels_active = cll_channels
+      maxrank_active = maxrank
     end if
     if (a_switch == 1) call setmode_cll(1)
     if (a_switch == 7) call setmode_cll(2)
@@ -846,6 +1012,7 @@ subroutine loop_parameters_init
     call setdeltair_cll(de1_IR,de2_1_IR)
     call settenred_cll(cll_tenred)
     call setaccuracy_cll(cll_pvthr,cll_accthr,cll_mode3thr)
+    if (cll_log == 2) call initmonitoring_cll()
   end if
 ! #ifdef COLLIER_LEGACY
 #endif
@@ -855,7 +1022,9 @@ subroutine loop_parameters_init
   ! Initialisation of CutTools
   if ((a_switch == 5 .or. a_switch_rescue == 5) .and. cuttools_not_init) then
 #ifdef USE_CUTTOOLS
+    if (nosplash) call stdout_off()
     call ctsinit(opplimitvalue, oppscaloop, .true.)
+    if (nosplash) call stdout_on()
     cuttools_not_init = .false.
 ! #else
 !     write(*,*) 'ERROR: CutTools is deactivated.'
@@ -871,11 +1040,23 @@ subroutine loop_parameters_init
 #endif
   end if
   ! Set AvH OneLOop parameters
-  if (a_switch == 5 .or. a_switch == 6 .or. a_switch_rescue == 5 .or. a_switch_rescue == 6 .or. redlib_qp == 5) then
+  if (a_switch == 5 .or. a_switch == 6 .or. a_switch_rescue == 5 .or. a_switch_rescue == 6) then
 #ifdef USE_ONELOOP
-    if (reset_oppthrs) then
+    ! Silencing with stdout_off() not necessary, because CutTools/Samurai already called olo routines.
+    if (reset_opp) then
+      if (nosplash) call stdout_off()
+      call olo_unit(-1)
+      if (nosplash) call stdout_on()
+      olodebug_unit = -1
+      if (olo_verbose > 0) call olo_unit(olo_outunit, "error")
+      if (olo_verbose > 1) call olo_unit(olo_outunit, "warning")
+      if (olo_verbose > 2) then
+        call olo_unit(olo_outunit, "message")
+        olodebug_unit = olo_outunit
+      end if
+      if (olo_verbose > 3) call olo_unit(olo_outunit, "printall")
       call olo_onshell(oppthrs)
-      reset_oppthrs = .false.
+      reset_opp = .false.
     end if
     if (reset_mureg) then
       call olo_scale(mureg)
@@ -961,16 +1142,19 @@ end subroutine ensure_mp_loop_init
 !#else
 subroutine parameters_write(filename)
 !#endif
+  use, intrinsic :: iso_fortran_env, only : stdout=>output_unit
   use KIND_TYPES, only: REALKIND
   use ol_generic, only: to_string
   use ol_debug, only: ol_error, ol_msg
   use ol_parameters_decl_/**/REALKIND
+#ifndef PRECISION_dp
   use ol_parameters_decl_/**/DREALKIND, only: model, ew_scheme, ew_renorm_scheme
+#endif
   use ol_loop_parameters_decl_/**/REALKIND
   implicit none
   character(len=*), optional :: filename
   integer :: outid, ios
-  outid = 0
+  outid = stdout
   if (present(filename)) then
     if (len_trim(filename) > 0) then
       outid = 10
@@ -991,13 +1175,15 @@ subroutine parameters_write(filename)
   write(outid,*) 'coupling constants'
   write(outid,*) 'alpha_s      =', alpha_QCD
   write(outid,*) 'alpha_qed    =', alpha_QED,    '  1/alpha_qed    =', 1/alpha_QED
-  write(outid,*) 'sw           =', sw
-  write(outid,*) 'sw2          =', sw2
   write(outid,*)
   write(outid,*) 'ew_scheme    =', ew_scheme
   write(outid,*) 'alpha_qed_0  =', alpha_QED_0,  '  1/alpha_qed_0  =', 1/alpha_QED_0
   write(outid,*) 'alpha_qed_MZ =', alpha_QED_MZ, '  1/alpha_qed_MZ =', 1/alpha_QED_MZ
   write(outid,*) 'Gmu          =', Gmu
+  write(outid,*)
+  write(outid,*) 'derived couplings'
+  write(outid,*) 'sw           =', sw,           '  sw2            =', sw2
+  write(outid,*) 'vev          =', 2*MW*sw/eQED
   if (trim(model) == "2hdm") then
     write(outid,*)
     write(outid,*) '2HDM tan(beta) =', thdmTB
@@ -1024,7 +1210,34 @@ subroutine parameters_write(filename)
     write(outid,*) 'MHH = ', MHH, 'rMHH =', rMHH, 'wMHH =', wMHH
     write(outid,*) 'MHp = ', MHp, 'rMHp =', rMHp, 'wMHp =', wMHp
   end if
+  if (trim(model) == "higgspo") then
+    write(outid,*)
+    write(outid,*) '==Higgs PO effective couplings=='
+    write(outid,*) 'vev     = ', HPOvev
+    write(outid,*) 'kapZZ   = ', HPOkapZZ,             'kapWW   = ', HPOkapWW
+    write(outid,*) 'epsZZ   = ', HPOepsZZ,             'aepsZZ  = ',HPOaepsZZ
+    write(outid,*) 'epsWW   = ', HPOepsWW,             'aepsWW  = ', HPOaepsWW
+    write(outid,*) 'epsAA   = ', HPOepsAA,             'aepsAA  = ', HPOaepsAA
+    write(outid,*) 'epsZA   = ', HPOepsZA,             'aepsZA  = ', HPOaepsZA
+    write(outid,*) 'epsZuR  = ', real(HPOepsZuu(1,1)), 'epsZuL  = ', real(HPOepsZuu(1,2))
+    write(outid,*) 'epsZdR  = ', real(HPOepsZdd(1,1)), 'epsZdL  = ', real(HPOepsZdd(1,2))
+    write(outid,*) 'epsZcR  = ', real(HPOepsZuu(2,1)), 'epsZcL  = ', real(HPOepsZuu(2,2))
+    write(outid,*) 'epsZsR  = ', real(HPOepsZdd(2,1)), 'epsZsL  = ', real(HPOepsZdd(2,2))
+    write(outid,*) 'epsZtR  = ', real(HPOepsZuu(3,1)), 'epsZtL  = ', real(HPOepsZuu(3,2))
+    write(outid,*) 'epsZbR  = ', real(HPOepsZdd(3,1)), 'epsZbL  = ', real(HPOepsZdd(3,2))
+    write(outid,*) 'epsZneR = ', real(HPOepsZnn(1,1)), 'epsZneL = ', real(HPOepsZnn(1,2))
+    write(outid,*) 'epsZeR  = ', real(HPOepsZll(1,1)), 'epsZeL  = ', real(HPOepsZll(1,2))
+    write(outid,*) 'epsZnmR = ', real(HPOepsZnn(2,1)), 'epsZnmL = ', real(HPOepsZnn(2,2))
+    write(outid,*) 'epsZmR  = ', real(HPOepsZll(2,1)), 'epsZmL  = ', real(HPOepsZll(2,2))
+    write(outid,*) 'epsZnlR = ', real(HPOepsZnn(3,1)), 'epsZnlL = ', real(HPOepsZnn(3,2))
+    write(outid,*) 'epsZlR  = ', real(HPOepsZll(3,1)), 'epsZlL  = ', real(HPOepsZll(3,2))
+    write(outid,*) 'epsWlne = ', HPOepsWln(1),         'epsWdu  = ', HPOepsWqq(1)
+    write(outid,*) 'epsWlnm = ', HPOepsWln(2),         'epsWsc  = ', HPOepsWqq(2)
+    write(outid,*) 'epsWlnl = ', HPOepsWln(3),         'epsWbt  = ', HPOepsWqq(3)
+  end if
+
   write(outid,*)
+    write(outid,*) '==Technical Parameters=='
   write(outid,*) 'muren             =', muren
   write(outid,*) 'mureg             =', mureg
   write(outid,*) 'pole1_UV          =', de1_UV
