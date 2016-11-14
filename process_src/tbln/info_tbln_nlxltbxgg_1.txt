@@ -1,0 +1,1 @@
+tbln nlxltbxgg 1 EW=2,0 QCD=2,0 MODEL=sm Type=t CKMORDER=0 nc=3 nf=6 MU=0 MD=0 MS=0 MC=0 LeadingColour=0 POLSEL=1
