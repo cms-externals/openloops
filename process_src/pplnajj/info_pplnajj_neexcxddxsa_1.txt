@@ -1,0 +1,2 @@
+pplnajj neexcxddxsa 1 EW=3,0 QCD=2,1 CKMORDER=0 MODEL=sm Type=lt ME=0 nc=3 nf=6 MU=0 MD=0 MS=0 MC=0 LeadingColour=0
+pplnajj neexuxdbbxa condmap=neexcxddxsa[1,2,3,6,4,5,7] MB=0

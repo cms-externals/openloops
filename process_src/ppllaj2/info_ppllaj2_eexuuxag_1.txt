@@ -1,0 +1,3 @@
+ppllaj2 eexuuxag 1 EW=3,0 QCD=3,0 CKMORDER=0 MODEL=sm Type=ls CC=0 ME=0 YE=0 nc=3 nf=6 MU=0 MD=0 MS=0 MC=0 LeadingColour=0 POLSEL=1
+ppllaj2 eexddxag map=eexuuxag
+ppllaj2 eexbbxag condmap=eexuuxag MB=0 YB=0
