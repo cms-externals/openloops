@@ -19,7 +19,6 @@
 
 module openloops
   use KIND_TYPES, only: DREALKIND
-  use ol_global_decl, only: MaxParticles
   use, intrinsic :: iso_c_binding, only: c_ptr, c_null_ptr, c_char, c_int, c_double, c_null_char
   use ol_init, only: set_init_error_fatal, set_parameter, get_parameter, parameters_flush, &
       & tree_parameters_flush, cleanup
@@ -36,9 +35,11 @@ module openloops
   ! from module use ol_version
   public :: welcome
   ! process interface
-  public :: n_external, amplitudetype, phase_space_point, start, finish, tree_colbasis_dim, tree_colbasis
+  public :: n_external, amplitudetype, phase_space_point, start, finish
+  public :: tree_colbasis_dim, tree_colbasis, tree_colourflow
   public :: register_process, register_process_id
-  public :: evaluate_tree, evaluate_tree_colvect, evaluate_cc, evaluate_ccmatrix, evaluate_sc, evaluate_scpowheg
+  public :: evaluate_tree, evaluate_cc, evaluate_ccmatrix, evaluate_sc, evaluate_scpowheg
+  public :: evaluate_tree_colvect, evaluate_tree_colvect2
   public :: evaluate_full, evaluate_loop, evaluate_loop2, evaluate_ct, evaluate_pt
   ! Print parameters
   public :: ol_printparameter
@@ -58,6 +59,7 @@ module openloops
     character(len=max_parameter_length) :: library_name
     integer, allocatable :: permutation(:)
     integer, allocatable :: pol(:)
+    integer, allocatable :: extid(:)
     type(c_ptr) :: library_handle = c_null_ptr
     integer :: amplitude_type ! 1=Tree, 2=ccTree, 3=scTree, 4=scTree_polvect, 11=Loop, 12=LoopInduced
     integer :: content = 0 ! bitwise: 2^0=tree, 2^1=loop, 2^2=loop2, 2^3=pt
@@ -116,6 +118,8 @@ module openloops
   character(len=max_parameter_length), save, allocatable :: shopped_processes(:)
   logical, save :: shopping_list_open = .false.
   integer, parameter :: fh_shopping = 998
+  ! PDG IDs of particles which carry adjoint colour
+  integer :: pdgadjoint(1) = [21]
 
 #if __APPLE__
   character(len=5), parameter :: dynlib_extension='dylib'
@@ -153,7 +157,7 @@ module openloops
   end function rval_size
 
 
-  function get_process_handle(lib, libname, proc, content, amptype, n_in, perm, pol)
+  function get_process_handle(lib, libname, proc, content, amptype, n_in, perm, pol, extid)
     ! [in] lib: a shared library handle
     ! [in] proc: a full process name, '<lib>_<subproc>_<id>'
     ! [in] perm: integer array with the crossing
@@ -170,6 +174,7 @@ module openloops
     integer, intent(in) :: content, amptype, n_in
     integer, intent(in), optional :: perm(:)
     integer, intent(in), optional :: pol(:)
+    integer, intent(in), optional :: extid(:)
     type(process_handle) :: get_process_handle
     integer :: k
     procedure(), pointer :: tmp_fun
@@ -217,6 +222,17 @@ module openloops
       get_process_handle%has_pol = .false.
       get_process_handle%pol = 0
     end if
+    allocate(get_process_handle%extid(get_process_handle%n_particles))
+    if (present(extid)) then
+      ! check correct size of the extid vector
+      if (get_process_handle%n_particles /= size(extid)) then
+        call ol_fatal('error: registered process with wrong size of extid')
+        return
+      end if
+      get_process_handle%extid = extid
+    else
+      get_process_handle%extid = 0
+    end if
     if (btest(content, 1)) then
       tmp_fun => dlsym(lib, "ol_f_max_point_" // trim(proc))
       call tmp_fun(get_process_handle%max_point)
@@ -230,7 +246,7 @@ module openloops
   end function get_process_handle
 
 
-  function register_process_lib(libname, proc, content, amptype, n_in, pol, perm)
+  function register_process_lib(libname, proc, content, amptype, n_in, pol, perm, extid)
     ! [in] libname: name of the process library
     ! [in] proc: a full process name, '<lib>_<subproc>_<id>'
     ! [in] perm: integer array with the crossing
@@ -246,6 +262,7 @@ module openloops
     integer, intent(in) :: content, amptype, n_in
     integer, intent(in), optional :: pol(:)
     integer, intent(in), optional :: perm(:)
+    integer, intent(in), optional :: extid(:)
     type(c_ptr) :: lib
     logical :: same_perm, same_pol
     integer :: register_process_lib
@@ -253,11 +270,15 @@ module openloops
     type(process_handle) :: prochandle
     type(process_handle), allocatable :: process_handles_bak(:)
     lib = dlopen(libname, RTLD_LAZY, 2)
-    prochandle = get_process_handle(lib, libname, proc, content, amptype, n_in, perm=perm, pol=pol)
+    prochandle = get_process_handle(lib, libname, proc, content, amptype, n_in, perm=perm, pol=pol, extid=extid)
     if (error > 1) return
     ! Check if the process was registered before with the same permutation, polarization and amptype.
     ! If yes, return the previously assigned id
     do k = 1, last_process_id
+      if ((trim(proc) /= trim(process_handles(k)%process_name)) .or. &
+        & (trim(libname) /= trim(process_handles(k)%library_name)) ) then
+        cycle
+      end if
       if (present(perm)) then
         same_perm = all(perm == process_handles(k)%permutation)
       else
@@ -269,9 +290,7 @@ module openloops
       else
         same_pol = all(process_handles(k)%pol == 0)
       end if
-      if ((trim(proc) == trim(process_handles(k)%process_name)) .and. &
-        & (trim(libname) == trim(process_handles(k)%library_name)) .and. &
-        & same_perm .and. &
+      if (same_perm .and. &
         & same_pol .and. &
         & (amptype == process_handles(k)%amplitude_type) ) then
         register_process_lib = k
@@ -301,7 +320,6 @@ module openloops
   end function register_process_lib
 
 
-
   subroutine unregister_processes()
     ! Close all process libraries and nullify process handles.
     use ol_dlfcn, only: dlclose
@@ -312,6 +330,8 @@ module openloops
       process_handles(id)%n_particles = 0
       process_handles(id)%content = 0
       deallocate(process_handles(id)%permutation)
+      deallocate(process_handles(id)%pol)
+      deallocate(process_handles(id)%extid)
       deallocate(process_handles(id)%masses)
       process_handles(id)%library_handle = c_null_ptr
       process_handles(id)%set_permutation => null()
@@ -347,6 +367,7 @@ module openloops
     type(extparticle), allocatable :: ext(:)
     integer, allocatable :: perm(:)
     integer, allocatable :: pol(:)
+    integer, allocatable :: extid(:)
     integer :: coupling_QCD_1_bak, coupling_EW_1_bak
     integer :: associated_ew, associated_born
     integer :: i
@@ -354,6 +375,9 @@ module openloops
 
     call parameters_flush() ! make sure that pid_string is set
     register_process_string = -1
+
+    call ol_msg(3,"registering process: " // trim(process_in) )
+
 
     ! process: in -> out
     if (index(process_in, ">") > 0) then
@@ -363,9 +387,8 @@ module openloops
         outp = adjustl(process_in(index(process_in, "->")+2:len(process_in)))
       else
         inp = adjustl(trim(process_in(1:index(process_in, ">")-1)))
-        outp = adjustl(process_in(index(process_in, ">")+2:len(process_in)))
+        outp = adjustl(process_in(index(process_in, ">")+1:len(process_in)))
       end if
-
 
       n_in = size(process_to_extparticlelist(inp))
       n_out = size(process_to_extparticlelist(outp))
@@ -380,13 +403,14 @@ module openloops
       call charge_conj(ext)
 
       ! flavour mapping
-      if (flavour_mapping_on == 1) then
-        call flavour_mapping(ext)
+      if (flavour_mapping_on > 0) then
+        call flavour_mapping(ext, flavour_mapping_on)
       end if
 
       ! determine normal ordering
       allocate (perm(size(ext)))
-      call normal_order(ext, perm, proc)
+      allocate (extid(size(ext)))
+      call normal_order(ext, perm, extid, proc)
       if (proc == "") then
         call ol_error("register_process: invalid argument: " // trim(process_in))
         return
@@ -398,7 +422,7 @@ module openloops
         pol(perm(i)) = ext(i)%pol
       end do
 
-      call ol_msg(3,"registering process: " // trim(proc) // ", " // integerlist_to_string([(ext(i)%id,i=1,size(ext))]))
+      call ol_msg(3,"check process library for: " // trim(proc) // ", " // integerlist_to_string([(ext(i)%id,i=1,size(ext))]))
 
       if (amptype == 99 .or. write_shopping_list ) then ! write shopping list
         ! charge conjugate back final state particles to write shopping list
@@ -406,14 +430,14 @@ module openloops
         register_process_string = write_shop_list(ext, proc)
       else
 
-        register_process_string = loop_over_libraries(proc, amptype, n_in, perm, pol, process_in)
+        register_process_string = loop_over_libraries(proc, amptype, n_in, perm, pol, extid, process_in)
 
         ! register associate EW one-loop amplitude
         if (register_process_string > 0 .and. add_associated_ew == 1 .and. coupling_EW(1) == 0 ) then
           coupling_QCD_1_bak = coupling_QCD(1)
           call set_parameter("coupling_qcd_1",0)
           call set_parameter("coupling_ew_1",1)
-          associated_ew = loop_over_libraries(proc, amptype, n_in, perm, pol, process_in)
+          associated_ew = loop_over_libraries(proc, amptype, n_in, perm, pol, extid, process_in)
           process_handles(register_process_string)%associated_ew = associated_ew
           call set_parameter("coupling_qcd_1",coupling_QCD_1_bak)
           call set_parameter("coupling_ew_1",0)
@@ -485,11 +509,12 @@ module openloops
   end subroutine charge_conj
 
 
-  subroutine normal_order(ext, perm, proc)
+  subroutine normal_order(ext, perm, extid, proc)
       use KIND_TYPES, only: DREALKIND
       implicit none
       type(extparticle), intent(in) :: ext(:)
       integer, intent(out) :: perm(:)
+      integer, intent(out) :: extid(:)
       character(len=*), intent(out) :: proc
       integer :: i,j, normal(35), pos
       character(len=3) :: normalc(35)
@@ -519,6 +544,7 @@ module openloops
           if (ext(j)%id == normal(i)) then
             proc = trim(proc) // trim(normalc(i))
             perm(j) = pos
+            extid(j) = ext(j)%id
             pos = pos + 1
           end if
         end do
@@ -529,14 +555,16 @@ module openloops
       end if
   end subroutine normal_order
 
-  function loop_over_libraries(proc, amptype, n_in, perm, pol, process_in)
+  function loop_over_libraries(proc, amptype, n_in, perm, pol, extid, process_in)
   use KIND_TYPES, only: DREALKIND
+  use ol_parameters_decl_/**/DREALKIND, only: check_collection
   ! loop over library types
     implicit none
     character(len=max_parameter_length), intent(in) :: proc
     integer, intent(in) :: amptype, n_in
     integer, intent(in), optional :: perm(:)
     integer, intent(in), optional :: pol(:)
+    integer, intent(in), optional :: extid(:)
     character(len=*), intent(in), optional :: process_in
     integer loop_over_libraries
     integer librarytype, check
@@ -544,21 +572,21 @@ module openloops
     loop_over_libraries = -1
     librarytype = 0
     do
-      check = check_process(proc, amptype, librarytype, n_in, perm_in=perm, pol=pol, process_string=process_in)
+      check = check_process(proc, amptype, librarytype, n_in, perm_in=perm, pol=pol, extid=extid, process_string=process_in)
       if (error > 1) return
       if (check > 0) then ! found & registered
         loop_over_libraries = check
         exit
       else if (check == 0) then ! look in next library type
         librarytype = librarytype + 1
-      else if (check == -1) then  ! not found --> check collections
-        check = check_process(proc, 999, librarytype, n_in, perm_in=perm, pol=pol, process_string=process_in)
+      else if (check == -1 .and. check_collection) then  ! not found --> check collections
+        check = check_process(proc, 999, librarytype, n_in, perm_in=perm, pol=pol, extid=extid, process_string=process_in)
         if (error > 1) return
         if (check /= 1) then ! not found anywhere
           call ol_msg("register_process: process " // trim(process_in) // " not found!")
         end if
         exit
-      else if (check == -2) then ! error
+      else if (check == -2 .or. .not. check_collection) then ! return
           return
       end if
     end do
@@ -591,7 +619,7 @@ module openloops
   end function register_process_id
 
 
-  function check_process(proc_in, amptype, librarytype, n_in, perm_in, pol, process_string)
+  function check_process(proc_in, amptype, librarytype, n_in, perm_in, pol, extid, process_string)
   ! 1: found, 0: not found, -1: abort
     use KIND_TYPES, only: DREALKIND
     use ol_parameters_decl_/**/DREALKIND, only: &
@@ -604,6 +632,7 @@ module openloops
     integer, intent(in) :: amptype, librarytype, n_in
     integer, intent(in), optional :: perm_in(:)
     integer, intent(in), optional :: pol(:)
+    integer, intent(in), optional :: extid(:)
     character(len=*), intent(in), optional :: process_string
     integer, allocatable :: perm(:)
     integer, allocatable :: select_pol(:)
@@ -615,7 +644,7 @@ module openloops
     integer, save :: max_out_length = 35
     logical :: found
     logical :: is_already_loaded, only_loaded
-    logical :: has_pol
+    logical :: has_pol = .false.
     character(len=4) :: loops_specification
     character(len=4) :: lib_specification
     character(len=max_parameter_length) :: proc, libfilename, libhandle, libname
@@ -705,6 +734,7 @@ module openloops
         end if
       case (999) ! check libraries
         lib_specification = "lib"
+        loops_specification = ""
         if (info_files_read < 2) then
           call readAllInfoFiles(.true.)
             if (error /= 0)  then
@@ -883,9 +913,10 @@ module openloops
 
         !register
         if (has_pol) then
-          check_process = register_process_lib(libfilename, libhandle, lib_content, amptype, n_in, perm=perm, pol=select_pol)
+          check_process = register_process_lib(libfilename, libhandle, lib_content, amptype, &
+                                             &  n_in, perm=perm, pol=select_pol, extid=extid)
         else
-          check_process = register_process_lib(libfilename, libhandle, lib_content, amptype, n_in, perm=perm)
+          check_process = register_process_lib(libfilename, libhandle, lib_content, amptype, n_in, perm=perm, extid=extid)
         end if
         if (error > 1) then
           call ol_error("register_process_lib failed")
@@ -909,6 +940,7 @@ module openloops
         if (allocated(perm)) then
           outstring = trim(outstring) //  trim(integerlist_to_string(perm,.true.))
         end if
+        outstring = trim(outstring) // " (id=" // trim(to_string(check_process)) // ")"
         outstring = trim(outstring) // trim(mapping_str)
         call ol_msg(1,outstring)
 
@@ -973,7 +1005,7 @@ module openloops
       & rME, rMM, rML, rMU, rMD, rMC, rMS, rMB, rMT, &
       & rYE, rYM, rYL, rYU, rYD, rYC, rYS, rYB, rYT, &
       & leadingcolour, coupling_QCD, coupling_EW, &
-      & approximation, ckmorder, model, allowed_libs
+      & approximation, CKMORDER, model, allowed_libs
     use ol_loop_parameters_decl_/**/DREALKIND , only: nf, nc
     implicit none
     integer, intent(in) :: p
@@ -998,7 +1030,7 @@ module openloops
       call check(process_infos(p)%LeadingColour == leadingcolour, found, "LeadingColour OK.")
       call check(process_infos(p)%NC == nc, found, "nc NOT ok.")
       call check(process_infos(p)%NF == nf, found, "nf NOT ok.")
-      call check(process_infos(p)%CKMorder == ckmorder, found, "CKM NOT ok.")
+      call check(process_infos(p)%CKMorder == CKMORDER, found, "CKM NOT ok.")
       call check(index(process_infos(p)%MODEL, trim(model)) == 1, found, "model NOT ok.")
       call check((process_infos(p)%ME /= "0" .and. rME /= 0) .or. rME == 0, found, "mass ME NOT ok.")
       call check((process_infos(p)%MM /= "0" .and. rMM /= 0) .or. rMM == 0, found, "mass MM NOT ok.")
@@ -1063,7 +1095,7 @@ module openloops
   subroutine readAllInfoFiles(load_channel_lib)
     use ol_parameters_decl_/**/DREALKIND, only: install_path
     use iso_fortran_env, only: iostat_end
-    use ol_dirent, only: opendir, readdir, closedir
+    use ol_cwrappers, only: opendir, readdir, closedir
     implicit none
     logical, optional, intent(in) :: load_channel_lib
     integer :: readok
@@ -1356,33 +1388,47 @@ module openloops
    end subroutine
 
 
-  subroutine flavour_mapping(ext)
-!   Lepton & quark flavour mapping
-!   Concept (taken from old Sherpa interface):
-!   (1) Given a final state, determine the four (anti)lepton/neutrino
-!       multiplicities in the given process:
-!       a_nubar, a_nu, a_lbar, a_l
-!   (2) Compute the discriminant N[i] as
-!       N[i] = Ngen - i + Ngen*(a_nubar + a_nu*Nmax + a_lbar*Nmax^2 + a_l*Nmax^3)
-!       where Nmax should be chosen such that a_...<=Nmax.
-!       In practice one can safely set Nmax=10 and it will work for any
-!       process with <= 20 final-state leptons.
-!       It is also convenient to set Ngen=10, although i runs only from 1 to 3.
-!   (3) Reassign the lepton generations with a permutation
-!       p1 -> 1, p2 -> 2, p3 -> 3  such that  N[p1] > N[p2] > N[p3] */
+  subroutine flavour_mapping(ext,switch_in)
+  ! ext: PDG coded integer array
+  ! switch: 0: no mapping, 1: quark & lepton mapping, 2: only lepton mapping, 3: only quark mapping
+  ! ==Lepton & quark flavour mapping==
+  !   Concept (taken from old Sherpa interface):
+  !   (1) Given a final state, determine the four (anti)lepton/neutrino
+  !       multiplicities in the given process:
+  !       a_nubar, a_nu, a_lbar, a_l
+  !   (2) Compute the discriminant N[i] as
+  !       N[i] = Ngen - i + Ngen*(a_nubar + a_nu*Nmax + a_lbar*Nmax^2 + a_l*Nmax^3)
+  !       where Nmax should be chosen such that a_...<=Nmax.
+  !       In practice one can safely set Nmax=10 and it will work for any
+  !       process with <= 20 final-state leptons.
+  !       It is also convenient to set Ngen=10, although i runs only from 1 to 3.
+  !   (3) Reassign the lepton generations with a permutation
+  !       p1 -> 1, p2 -> 2, p3 -> 3  such that  N[p1] > N[p2] > N[p3] */
     use ol_generic, only: integerlist_to_string
     use ol_parameters_decl_/**/DREALKIND, only: rMC, rYC, rMM, rYM, rML, rYL
     implicit none
     type(extparticle), intent(inout) :: ext(:)
+    integer, optional, intent(in)    :: switch_in
     type(extparticle), allocatable :: new_ext(:)
-    integer i, j
-    integer Ngen, Nlgen, Nqgen, Nmax
-    integer l_gen, nu_gen, l_gen_new, nu_gen_new
-    integer d_gen, u_gen, d_gen_new, u_gen_new
-    integer a_nu, a_nubar, a_l, a_lbar
-    integer a_u, a_ubar, a_d, a_dbar
-    integer Nl(3,2), Nq(2,2)
-    integer perm(size(ext))
+    integer :: switch
+    integer :: i, j
+    integer :: Ngen, Nlgen, Nqgen, Nmax
+    integer :: l_gen, nu_gen, l_gen_new, nu_gen_new
+    integer :: d_gen, u_gen, d_gen_new, u_gen_new
+    integer :: a_nu, a_nubar, a_l, a_lbar
+    integer :: a_u, a_ubar, a_d, a_dbar
+    integer :: Nl(3,2), Nq(2,2)
+    integer :: perm(size(ext))
+
+    if (present(switch_in)) then
+      switch = switch_in
+    else
+      switch = 0
+    end if
+
+    if (switch < 0 .or. switch > 3) then
+      call ol_error("flavour_mapping: only options for switch=0,1,2,3")
+    end if
 
     Ngen=10
     Nmax=10
@@ -1406,65 +1452,67 @@ module openloops
     allocate(new_ext(size(ext)))
     new_ext = ext
 
-    !lepton flavour mapping
-    do i = 1, Nlgen
-      l_gen=9+2*i;
-      nu_gen=10+2*i;
+    if (switch == 1 .or. switch == 2) then
+      !lepton flavour mapping
+      do i = 1, Nlgen
+        l_gen=9+2*i;
+        nu_gen=10+2*i;
 
-      a_nu=count_integer(ext,nu_gen);
-      a_nubar=count_integer(ext,-nu_gen);
-      a_l=count_integer(ext,l_gen);
-      a_lbar=count_integer(ext,-l_gen);
+        a_nu=count_integer(ext,nu_gen);
+        a_nubar=count_integer(ext,-nu_gen);
+        a_l=count_integer(ext,l_gen);
+        a_lbar=count_integer(ext,-l_gen);
 
-      Nl(i,1)=Ngen-i+Ngen*(a_nubar+a_nu*Nmax+a_lbar*Nmax*Nmax+a_l*Nmax*Nmax*Nmax)
-      Nl(i,2)=i
-    end do
-
-    call sort_pair(Nl,Nlgen)
-
-    do i = 1, Nlgen
-      l_gen=9+2*Nl(i,2);
-      l_gen_new=9+2*i;
-      nu_gen=10+2*Nl(i,2);
-      nu_gen_new=10+2*i;
-
-      do j = 1, size(ext)
-        if (abs(ext(j)%id)==nu_gen) new_ext(j)%id=sign(nu_gen_new,ext(j)%id)
-        if (abs(ext(j)%id)==l_gen)  new_ext(j)%id=sign(l_gen_new,ext(j)%id)
+        Nl(i,1)=Ngen-i+Ngen*(a_nubar+a_nu*Nmax+a_lbar*Nmax*Nmax+a_l*Nmax*Nmax*Nmax)
+        Nl(i,2)=i
       end do
-    end do
 
-    ext = new_ext
+      call sort_pair(Nl,Nlgen)
 
-    !quark flavour mapping
-    do i = 1, Nqgen
-      d_gen=2*i-1;
-      u_gen=2*i;
+      do i = 1, Nlgen
+        l_gen=9+2*Nl(i,2);
+        l_gen_new=9+2*i;
+        nu_gen=10+2*Nl(i,2);
+        nu_gen_new=10+2*i;
 
-      a_d=count_integer(ext,d_gen);
-      a_dbar=count_integer(ext,-d_gen);
-      a_u=count_integer(ext,u_gen);
-      a_ubar=count_integer(ext,-u_gen);
-
-      Nq(i,1)=Ngen-(i+1) + Ngen*(a_ubar+a_u*Nmax+a_dbar*Nmax*Nmax+a_d*Nmax*Nmax*Nmax)
-      Nq(i,2)=i
-    end do
-
-    call sort_pair(Nq,Nqgen)
-
-    do i = 1, Nqgen
-      d_gen=2*Nq(i,2)-1;
-      d_gen_new=2*i-1;
-      u_gen=2*Nq(i,2);
-      u_gen_new=2*i;
-
-      do j = 1, size(ext)
-        if (abs(ext(j)%id)==u_gen) new_ext(j)%id=sign(u_gen_new,ext(j)%id)
-        if (abs(ext(j)%id)==d_gen) new_ext(j)%id=sign(d_gen_new,ext(j)%id)
+        do j = 1, size(ext)
+          if (abs(ext(j)%id)==nu_gen) new_ext(j)%id=sign(nu_gen_new,ext(j)%id)
+          if (abs(ext(j)%id)==l_gen)  new_ext(j)%id=sign(l_gen_new,ext(j)%id)
+        end do
       end do
-    end do
+      ext = new_ext
+    end if
 
-    ext = new_ext
+    if (switch == 1 .or. switch == 3) then
+      !quark flavour mapping
+      do i = 1, Nqgen
+        d_gen=2*i-1;
+        u_gen=2*i;
+
+        a_d=count_integer(ext,d_gen);
+        a_dbar=count_integer(ext,-d_gen);
+        a_u=count_integer(ext,u_gen);
+        a_ubar=count_integer(ext,-u_gen);
+
+        Nq(i,1)=Ngen-(i+1) + Ngen*(a_ubar+a_u*Nmax+a_dbar*Nmax*Nmax+a_d*Nmax*Nmax*Nmax)
+        Nq(i,2)=i
+      end do
+
+      call sort_pair(Nq,Nqgen)
+
+      do i = 1, Nqgen
+        d_gen=2*Nq(i,2)-1;
+        d_gen_new=2*i-1;
+        u_gen=2*Nq(i,2);
+        u_gen_new=2*i;
+
+        do j = 1, size(ext)
+          if (abs(ext(j)%id)==u_gen) new_ext(j)%id=sign(u_gen_new,ext(j)%id)
+          if (abs(ext(j)%id)==d_gen) new_ext(j)%id=sign(d_gen_new,ext(j)%id)
+        end do
+      end do
+      ext = new_ext
+    end if
 
     deallocate(new_ext)
 
@@ -1710,6 +1758,7 @@ module openloops
   function ID_to_extparticle(id_in)
     use KIND_TYPES, only: DREALKIND
     use ol_generic, only: to_int, to_lowercase
+    use ol_parameters_decl_/**/DREALKIND, only: use_me_cache
   ! MadGraph naming scheme -> PDG
     implicit none
     character(len=*), intent(in) :: id_in
@@ -1719,9 +1768,14 @@ module openloops
     if (index(id_in, "(") > 0 .and. index(id_in, ")") > 0) then
       ID_to_extparticle%pol = to_int(id_in(index(id_in,"(")+1:index(id_in,")")-1))
       if (ID_to_extparticle%pol /= 0 .and. abs(ID_to_extparticle%pol) /= 1 .and. ID_to_extparticle%pol /= 2) then
-        call ol_error("polarization of external particles has to be: 0,-1,1,2")
+        call ol_error("polarization of external particles has to be: 0 (unpol.), -1 (left), 1 (right), 2 (long.)")
       end if
       id = id_in(1:index(id_in,"(")-1)
+      ! deactive me_cache for polarized amplitudes
+      if (use_me_cache == 1) then
+        use_me_cache = 0
+        call ol_msg(2,"Matrix element cache deactivated (not available for polarized amplitudes).")
+      end if
     else
       ID_to_extparticle%pol = 0
       id = id_in
@@ -1790,13 +1844,13 @@ module openloops
         ID_to_extparticle%id = 25
       case  ('h1')
         ID_to_extparticle%id = 25
-      case  ('h2')
+      case  ('h2', 'h0')
         ID_to_extparticle%id = 35
-      case  ('h3')
+      case  ('h3', 'a0')
         ID_to_extparticle%id = 36
-      case  ('h-')
+      case  ('h-', 'hpx')
         ID_to_extparticle%id = -37
-      case  ('h+')
+      case  ('h+', 'hp')
         ID_to_extparticle%id = 37
       case default
         ID_to_extparticle%id = to_int(trim(id))
@@ -2180,15 +2234,142 @@ module openloops
   end subroutine tree_colbasis_c
 
 
+  subroutine tree_colourflow(id, flowbasis)
+    ! Convert the trace colour basis for tree amplitudes from tree_colbasis()
+    ! to a colour flow basis and return it as a rank 3 integer array
+    ! flowbasis(2,nexternal,basissize). For each basis element and each
+    ! external particle it contains a pair (i,j) with the incoming fundamental
+    ! colour i and outgoing colour j. A zero entry means uncoloured.
+    ! Incoming quark / outgoing antiquark: (i,0)
+    ! Incoming antiquark / outgoing quark: (0,i)
+    ! In T(a1,a2,...,an)_ij, j connects to the gluon 'an' and to an incoming quark.
+    implicit none
+    integer, intent(in) :: id
+    integer, intent(out) :: flowbasis(2,n_external(id),get_tree_colbasis_dim(id))
+    integer :: tracebasis(tree_colbasis_elemsize(id),get_tree_colbasis_dim(id))
+    integer :: neededdummy(get_tree_colbasis_dim(id),get_tree_colbasis_dim(id))
+    integer :: ncolb, colelemsz, i, k, lastcol, startmon, endmon
+    integer :: powersof2(n_external(id))
+
+    ncolb = size(tracebasis,2)
+    colelemsz = size(tracebasis,1)
+    flowbasis = 0
+    call tree_colbasis(id, tracebasis, neededdummy)
+
+    do k = 1, ncolb ! for each basis element
+      do lastcol = colelemsz, 1, -1
+        ! size of trace basis element with trailing zeroes dropped
+        if (tracebasis(lastcol,k) /= 0) exit
+      end do
+      if (lastcol == 0) then
+        ! no coloured external particles
+        return
+      end if
+      startmon = 1
+      do ! for each colour monomial
+        endmon = locateval(tracebasis(:lastcol,k), 0, startmon) - 1
+        if (endmon <= 0) endmon = lastcol
+        if (any(process_handles(id)%extid(tracebasis(endmon,k)) == pdgadjoint)) then
+          ! if the last index is adjoint (gluon),
+          ! the monomial is a trace
+          call tracetoflow(tracebasis(startmon:endmon,k), flowbasis(:,:,k))
+        else
+          ! the monomial is a chain
+          call chaintoflow(tracebasis(startmon:endmon,k), flowbasis(:,:,k))
+        end if
+        startmon = endmon + 2
+        if (startmon > lastcol) exit
+      end do
+    end do
+
+  contains
+
+    function locateval(arr, val, startpos)
+      ! Return the first position (starting from startpos if present) in the
+      ! array arr which holds the value val, or -1 if val is not in arr(startpos:).
+      implicit none
+      integer :: locateval
+      integer, intent(in) :: arr(:), val
+      integer, intent(in), optional :: startpos
+      integer :: sp, k
+      sp = 1
+      if (present(startpos)) sp = startpos
+      if (sp < 1) sp = 1
+      locateval = -1
+      do k = sp, size(arr)
+        if (arr(k) == val) then
+          locateval = k
+          return
+        end if
+      end do
+    end function locateval
+
+    subroutine chaintoflow(colmon, flowbasisel)
+      ! Add information from the colour chain colmon
+      ! to the colour flow basis element flowbasisel.
+      implicit none
+      integer, intent(in) :: colmon(:)
+      integer, intent(inout) :: flowbasisel(:,:)
+      integer :: k, ng, colin, colout
+      ! chain T(a1,a2,...,an)_ij
+      ! number of gluons
+      ng = size(colmon) - 2
+      colin = colmon(ng+1)
+      flowbasisel(:,colmon(ng+1)) = [0,colin] ! anti-quark (0,i)
+      do k = 1, ng
+        ! (i,a1)(a1,a2)...(an-1,an)
+        colout = colmon(k)
+        flowbasisel(:,colout) = [colin,colout]
+        colin = colout
+      end do
+      flowbasisel(:,colmon(ng+2)) = [colin,0] ! quark (an,0), j->an
+    end subroutine chaintoflow
+
+    subroutine tracetoflow(colmon, flowbasisel)
+      ! Add information from the colour trace colmon
+      ! to the colour flow basis element flowbasisel.
+      implicit none
+      integer, intent(in) :: colmon(:)
+      integer, intent(inout) :: flowbasisel(:,:)
+      integer :: k, ng, colin, colout
+      ! trace T(a1,a2,...,an)
+      ! number of gluons
+      ng = size(colmon)
+      colin = colmon(ng)
+      do k = 1, ng
+        ! (a1,an)(a2,a1)...(an,an-1)
+        colout = colmon(k)
+        flowbasisel(:,colout) = [colin,colout]
+        colin = colout
+      end do
+    end subroutine tracetoflow
+
+  end subroutine tree_colourflow
+
+
+  subroutine tree_colourflow_c(id, flowbasis) bind(c,name="ol_tree_colourflow")
+    ! C interface to tree_colourflow(). Return flowbasis as
+    ! int flowbasis[ncolb][nex][2];
+    implicit none
+    integer(c_int), value :: id
+    integer(c_int), intent(out) :: flowbasis(2,n_external(int(id)),get_tree_colbasis_dim(int(id)))
+    integer :: f_flowbasis(2,n_external(int(id)),get_tree_colbasis_dim(int(id)))
+    call tree_colourflow(int(id), f_flowbasis)
+    flowbasis = f_flowbasis
+  end subroutine tree_colourflow_c
+
+
   subroutine start() bind(c,name="ol_start")
     use ol_parameters_decl_/**/DREALKIND,  only: &
-      & write_params_at_start, stability_logdir_not_created, stability_log, stability_logdir
+      & write_params_at_start, stability_logdir_not_created, stability_log, stability_logdir, &
+      & write_psp, ti_monitor
     use ol_parameters_init_/**/DREALKIND, only: parameters_write
-    use ol_dirent, only: mkdir
+    use ol_cwrappers, only: mkdir
     implicit none
     integer :: mkdirerr
     call parameters_flush()
-    if (stability_logdir_not_created .and. stability_log > 0) then
+    if (stability_logdir_not_created .and. (stability_log > 0 .or. &
+      & write_psp > 0 .or. ti_monitor > 0)) then
       stability_logdir_not_created = .false.
       mkdirerr = mkdir(stability_logdir)
     end if
@@ -2274,7 +2455,7 @@ module openloops
     implicit none
     integer(c_int), value :: id
     real(c_double), intent(in) :: pp(5*n_external(id))
-    real(c_double) :: amp(2*get_tree_colbasis_dim(id),get_nhel(id))
+    real(c_double), intent(out) :: amp(2*get_tree_colbasis_dim(id),get_nhel(id))
     integer(c_int), intent(out) :: nhel
     real(c_double) :: res
     complex(DREALKIND) :: f_amp(get_tree_colbasis_dim(id),get_nhel(id))
@@ -2289,6 +2470,40 @@ module openloops
     end do
     nhel = f_nhel
   end subroutine evaluate_tree_colvect_c
+
+
+  subroutine evaluate_tree_colvect2(id, psp, m2arr)
+    ! Helicity summed squared tree colour vector.
+    ! Apart from the missing colour factor these are the squared matrix elements
+    ! for each colour flow.
+    ! [in] id: process id as set by register_process
+    ! [in] psp: phase space point
+    ! [out] m2arr: array of squared matrix elements per colour flow
+    implicit none
+    integer, intent(in) :: id
+    real(DREALKIND), intent(in) :: psp(:,:)
+    real(DREALKIND), intent(out) :: m2arr(:)
+    integer :: nhel
+    real(DREALKIND) :: res
+    complex(DREALKIND) :: amp(get_tree_colbasis_dim(id),get_nhel(id))
+    call evaluate_tree(id, psp, res) ! fill colour vector cache
+    call process_handles(id)%tree_colvect(amp, nhel)
+    m2arr = sum(real(amp(:,1:nhel)*conjg(amp(:,1:nhel))), 2)
+  end subroutine evaluate_tree_colvect2
+
+
+  subroutine evaluate_tree_colvect2_c(id, pp, m2arr) bind(c,name="ol_evaluate_tree_colvect2")
+    implicit none
+    integer(c_int), value :: id
+    real(c_double), intent(in) :: pp(5*n_external(id))
+    real(c_double), intent(out) :: m2arr(get_tree_colbasis_dim(id))
+    integer :: nhel
+    real(c_double) :: res
+    complex(DREALKIND) :: amp(get_tree_colbasis_dim(id),get_nhel(id))
+    call evaluate_tree_c(id, pp, res) ! fill colour vector cache
+    call process_handles(int(id))%tree_colvect(amp, nhel)
+    m2arr = sum(real(amp(:,1:nhel)*conjg(amp(:,1:nhel))), 2)
+  end subroutine evaluate_tree_colvect2_c
 
 
   subroutine evaluate_cc(id, psp, tree, cc, ewcc)
@@ -2318,6 +2533,7 @@ module openloops
     end if
     n_scatt = subprocess%n_in
     call subprocess%set_permutation(subprocess%permutation)
+    if (subprocess%has_pol) call subprocess%pol_init(subprocess%pol)
     n_cc = subprocess%n_particles*(subprocess%n_particles+1)/2
     call tree_parameters_flush()
     call subprocess%tree(psp, m2cc, 0, &
@@ -2379,6 +2595,7 @@ module openloops
     end if
     n_scatt = subprocess%n_in
     call subprocess%set_permutation(subprocess%permutation)
+    if (subprocess%has_pol) call subprocess%pol_init(subprocess%pol)
     n_cc = subprocess%n_particles*(subprocess%n_particles+1)/2+1
     call tree_parameters_flush()
     call subprocess%tree(psp, m2cc, 0, &
@@ -2399,7 +2616,7 @@ module openloops
     implicit none
     integer(c_int), value :: id
     real(c_double), intent(in) :: pp(5*n_external(id))
-    real(c_double), intent(out) :: tree, ccij(n_external(id),n_external(id)), ewcc
+    real(c_double), intent(out) :: tree, ccij(n_external(id)*n_external(id)), ewcc
     integer :: f_id
     real(DREALKIND) :: f_pp(0:4,n_external(id))
     real(DREALKIND) :: f_tree, f_ccij(n_external(id),n_external(id)), f_ewcc
@@ -2409,7 +2626,7 @@ module openloops
     f_pp = reshape(pp, [5,process_handles(id)%n_particles])
     call evaluate_ccmatrix(f_id, f_pp(0:3,:), f_tree, f_ccij, f_ewcc)
     tree = f_tree
-    ccij = f_ccij
+    ccij = reshape(f_ccij,(/n_external(id)*n_external(id)/))
     ewcc = f_ewcc
   end subroutine evaluate_ccmatrix_c
 
@@ -2428,7 +2645,7 @@ module openloops
     real(DREALKIND), intent(in) :: psp(:,:), polvect(4)
     real(DREALKIND), intent(out) :: res(:)
     type(process_handle) :: subprocess
-    integer :: j, extcombs(n_external(id))
+    integer :: j, extcombs(n_external(id)), nextcombs
     real(DREALKIND) :: m2sc(0:n_external(id)*(n_external(id)+1)/2+1)
     real(DREALKIND) :: resmunu(4,4)
     call stop_invalid_id(id)
@@ -2438,16 +2655,27 @@ module openloops
       call ol_fatal('evaluate: sc routine not available for process ' // trim(to_string(id)))
       return
     end if
-    do j = 1, subprocess%n_particles
-      if (j <= emitter) then
-        extcombs(j) = emitter*(emitter-1)/2 + j
-      else
-        extcombs(j) = j*(j-1)/2 + emitter
-      end if
-    end do
+    if (subprocess%extid(emitter) == 21) then
+      do j = 1, subprocess%n_particles
+        if (j <= emitter) then
+          extcombs(j) = emitter*(emitter-1)/2 + j
+        else
+          extcombs(j) = j*(j-1)/2 + emitter
+        end if
+      end do
+      nextcombs = subprocess%n_particles
+    else if (subprocess%extid(emitter) == 22) then    ! no color insertions for photon emitter
+      extcombs = 0
+      nextcombs = 1
+    else
+      res = 0
+      return
+    end if
     n_scatt = subprocess%n_in
     call tree_parameters_flush()
-    call subprocess%tree(psp, m2sc, emitter, polvect, subprocess%n_particles, extcombs, resmunu)
+    call subprocess%set_permutation(subprocess%permutation)
+    if (subprocess%has_pol) call subprocess%pol_init(subprocess%pol)
+    call subprocess%tree(psp, m2sc, emitter, polvect, nextcombs, extcombs, resmunu)
     do j = 1, subprocess%n_particles
       res(j) = m2sc(extcombs(j))
     end do
@@ -2496,6 +2724,7 @@ module openloops
     end if
     n_scatt = subprocess%n_in
     call subprocess%set_permutation(subprocess%permutation)
+    if (subprocess%has_pol) call subprocess%pol_init(subprocess%pol)
     call tree_parameters_flush()
     call subprocess%tree(psp, m2cc, -emitter, &
       & [0._/**/DREALKIND, 0._/**/DREALKIND, 0._/**/DREALKIND, 0._/**/DREALKIND], &
@@ -2508,7 +2737,7 @@ module openloops
     implicit none
     integer(c_int), value :: id, emitter
     real(c_double), intent(in) :: pp(5*n_external(id))
-    real(c_double), intent(out) :: res, resmunu(4,4)
+    real(c_double), intent(out) :: res, resmunu(16)
     integer :: f_id, f_emitter
     real(DREALKIND) :: f_pp(0:4,n_external(id))
     real(DREALKIND) :: f_res, f_resmunu(4,4)
@@ -2519,6 +2748,7 @@ module openloops
     f_emitter = emitter
     call evaluate_scpowheg(f_id, f_pp(0:3,:), f_emitter, f_res, f_resmunu)
     res = f_res
+    resmunu = reshape(f_resmunu,(/4*4/))
   end subroutine evaluate_scpowheg_c
 
 
@@ -2559,8 +2789,7 @@ module openloops
       n_scatt = subprocessew%n_in
       call subprocessew%set_permutation(subprocessew%permutation)
       IR_is_on_bak = IR_is_on
-      IR_is_on = 0
-      call set_parameter("mureg", rMZ)
+      IR_is_on = 2
       call set_parameter("ew_renorm", 1)
       if (subprocessew%has_pol) call subprocessew%pol_init(subprocessew%pol)
       call parameters_flush()
@@ -2576,6 +2805,7 @@ module openloops
     if (IR_is_on == 3) then
       m2l1 = ir1
     end if
+    call ol_msg(5,"evaluate_full: " // trim(to_string(m2l0)) // " " // trim(to_string(m2l1(0))))
   end subroutine evaluate_full
 
 
@@ -2741,7 +2971,7 @@ module openloops
     if (error > 1) return
     subprocess = process_handles(id)
     if (.not. btest(subprocess%content, 3)) then
-      call ol_fatal('evaluate: ct routine not available for process ' // trim(to_string(id)))
+      call ol_fatal('evaluate: pt routine not available for process ' // trim(to_string(id)))
       return
     end if
     n_scatt = subprocess%n_in

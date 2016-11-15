@@ -5,7 +5,7 @@
 # or imported as a module for interactive use.
 
 # TODO
-# * Support for the stability_mode=2x stability histogram data format.
+# * Show more trigger information in 2x histograms.
 
 # http://stackoverflow.com/questions/7534453/matplotlib-does-not-show-my-drawings-although-i-call-pyplot-show
 
@@ -80,7 +80,12 @@ class StabilityData(object):
         try:
             total = int(dat[0])
             points = map(int, dat[1].split())
-            n_qp, killed = map(int, dat[2].split())
+            triggerdat = map(int, dat[2].split())
+            if len(triggerdat) == 8:
+                # workaround for missing np(2:6) slicing
+                # in old finish_histograms()
+                triggerdat[1:6]
+            n_qp, killed = triggerdat[-2:]
         except:
             print 'unexpected histogram data format:'
             print '\'' + dataline + '\''
@@ -256,10 +261,14 @@ def stability_plot(data):
     """Add a step plot with data from a StabilityData object."""
     pyplot.figure()
     # usually 19 data points, starting with the bin between -16 and -15.
-    # The points in the bin between 1 and 2 deviate by a factor 10 and 100.
+    # The points in the bin between 1 and 2 deviate by a factor 10 to 100.
     if data.channel:
         pyplot.suptitle(data.channel, fontweight='bold')
     killed = max(data.killed, data.killed_qp)
+    if data.total_qp:
+        killed = data.killed_qp
+    else:
+        killed = data.killed
     if data.total:
         total = data.total
     else:
@@ -276,6 +285,8 @@ def stability_plot(data):
         dp_points = list(data.points)
         while dp_points[-1] == 0:
             dp_points.pop()
+        # If a value is zero in a logarithmic step plot, matplotlib
+        # will omit the vertical line --> use a small number instead.
         n_dp_points = len(dp_points)
         # minimal non-zero data point
         min_dp_point = min(y for y in dp_points if y > 0)/total
@@ -290,7 +301,7 @@ def stability_plot(data):
         n_dp_points = 0
         min_dp_point = None
     # the same for the quad precision histogram
-    if data.points_qp:
+    if data.points_qp and data.points_qp[0]:
         qp_points = list(data.points_qp)
         while qp_points[-1] == 0:
             qp_points.pop()
@@ -332,8 +343,8 @@ stability log files. Files can be specified directly, as (first-level) content
 of directories or as tar archives. File names must follow the OpenLoops naming
 convention. If directories or archives are included, files which do not match
 the naming convention are skipped silently. Plots are shown unless --output is
-specified. Showing plots only works if the matplotlib backend is properly
-configured and the backend is available from the terminal which is used.""")
+specified. Showing plots only works if the matplotlib back end is properly
+configured and the back end is available from the terminal which is used.""")
     parser.add_option('-o', '--output', dest='outfile', metavar='outfile',
                       default='', help='PDF output file name.')
     parser.add_option('-a', '--accumulate', action='store_true', default=False,

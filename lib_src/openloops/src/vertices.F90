@@ -608,6 +608,10 @@ subroutine vert_VC_D(J_V, P1, J_C, P2, Jout_C)
 end subroutine vert_VC_D
 
 
+! ======================================================================
+! HEFT vertices
+! ======================================================================
+
 ! **********************************************************************
 subroutine vert_GG_H(V1, P1, V2, P2, S_out)
 ! Effective gluon gluon -> Higgs vertex
@@ -620,6 +624,19 @@ subroutine vert_GG_H(V1, P1, V2, P2, S_out)
   complex(REALKIND), intent(out) :: S_out(4)
   S_out(1) = cont_VV(V1,V2)*cont_VV(P1,P2) - cont_VV(P1,V2)*cont_VV(P2,V1)
 end subroutine vert_GG_H
+
+
+! **********************************************************************
+subroutine counter_GG_H_vert(V1, P1, V2, P2, S_out)
+! Effective gluon gluon -> Higgs vertex for double operator insertion
+! S_out = (P1.P2*g(1,2) - P1(2)*P2(1))*V1(1)*V2(2) = V1.V2*P1.P2 - P1.V2*P2.V1
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: V1(4), P1(4), V2(4), P2(4)
+  complex(REALKIND), intent(out) :: S_out(4)
+  call vert_GG_H(V1, P1, V2, P2, S_out)
+end subroutine counter_GG_H_vert
 
 
 ! **********************************************************************
@@ -638,6 +655,21 @@ end subroutine vert_HG_G
 
 
 ! **********************************************************************
+subroutine counter_HG_G_vert(S, V2, P2, V_out, P3)
+! Effective Higgs gluon -> gluon vertex for double operator insertion
+! V_out(3) = (P2(3)*P3(2) - P2.P3*g(2,3))*S*V2(2) = S*P3.V2*P2(3) - S*P2.P3*V2(3)
+! note that P3 is outgoing
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S(4), V2(4), P2(4), P3(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  call vert_HG_G(S, V2, P2, V_out, P3)
+end subroutine counter_HG_G_vert
+
+
+! **********************************************************************
 subroutine vert_GGG_H(V1, P1, V2, P2, V3, P3, S_out)
 ! Effective gluon gluon gluon -> Higgs vertex
 ! S_out = (g(1,2)*(P1-P2)(3) + g(2,3)*(P2-P3)(1) + g(3,1)*(P3-P1)(2)) * V1(1)*V2(2)*V3(3)
@@ -653,6 +685,21 @@ end subroutine vert_GGG_H
 
 
 ! **********************************************************************
+subroutine counter_GGG_H_vert(V1, P1, V2, P2, V3, P3, S_out)
+! Effective gluon gluon gluon -> Higgs vertex for double operator insertion
+! S_out = (g(1,2)*(P1-P2)(3) + g(2,3)*(P2-P3)(1) + g(3,1)*(P3-P1)(2)) * V1(1)*V2(2)*V3(3)
+!       = V1.V2*(P1-P2).V3 + V2.V3*(P2-P3).V1 + V3.V1*(P3-P1).V2
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: V1(4), P1(4), V2(4), P2(4), V3(4), P3(4)
+  complex(REALKIND), intent(out) :: S_out(4)
+  call vert_GGG_H(V1, P1, V2, P2, V3, P3, S_out)
+end subroutine counter_GGG_H_vert
+
+
+! **********************************************************************
 subroutine vert_HGG_G(S, V2, P2, V3, P3, V_out, P4)
 ! Effective Higgs gluon gluon -> gluon vertex
 ! V_out(4) = (g(2,3)*(P2-P3)(4) + g(3,4)*(P3+P4)(2) + g(4,2)*(-P4-P2)(3)) * S*V2(2)*V3(3)
@@ -665,6 +712,21 @@ subroutine vert_HGG_G(S, V2, P2, V3, P3, V_out, P4)
   complex(REALKIND), intent(out) :: V_out(4)
   V_out = (S(1) * cont_VV(V2,V3)) * (P2-P3) + (S(1) * cont_VV(P3+P4,V2)) * V3 - (S(1) * cont_VV(P4+P2,V3)) * V2
 end subroutine vert_HGG_G
+
+
+! **********************************************************************
+subroutine counter_HGG_G_vert(S, V2, P2, V3, P3, V_out, P4)
+! Effective Higgs gluon gluon -> gluon vertex for double operator insertion
+! V_out(4) = (g(2,3)*(P2-P3)(4) + g(3,4)*(P3+P4)(2) + g(4,2)*(-P4-P2)(3)) * S*V2(2)*V3(3)
+!          = S*V2.V3*(P2-P3)(4) + S*(P3+P4).V2*V3(4) - S*(P4+P2).V3*V2(4)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S(4), V2(4), P2(4), V3(4), P3(4), P4(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  call vert_HGG_G(S, V2, P2, V3, P3, V_out, P4)
+end subroutine counter_HGG_G_vert
 
 
 ! **********************************************************************
@@ -684,6 +746,22 @@ end subroutine vert_GGGG_H
 
 
 ! **********************************************************************
+subroutine counter_GGGG_H_vert(V1, V2, V3, V4, S_out)
+! Effective gluon gluon gluon gluon -> Higgs vertex for double operator insertion
+! for factorised colour monomials f(a,b,x)*f(c,d,x)
+! S_out = (g(1,3)*g(2,4) - g(1,4)*g(2,3)) * V1(1) * V2(2) * V3(3) * V4(4)
+!       = V1.V3*V2.V4 - V1.V4*V2.V3
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: V1(4), V2(4), V3(4), V4(4)
+  complex(REALKIND), intent(out) :: S_out(4)
+  call vert_GGGG_H(V1, V2, V3, V4, S_out)
+end subroutine counter_GGGG_H_vert
+
+
+! **********************************************************************
 subroutine vert_HGGG_G(S, V2, V3, V4, V_out)
 ! Effective Higgs gluon gluon gluon -> gluon vertex
 ! for factorised colour monomials f(a,b,x)*f(c,d,x)
@@ -697,6 +775,289 @@ subroutine vert_HGGG_G(S, V2, V3, V4, V_out)
   complex(REALKIND), intent(out) :: V_out(4)
   V_out = (S(1)*cont_VV(V2,V4)) * V3 - (S(1)*cont_VV(V3,V4)) * V2
 end subroutine vert_HGGG_G
+
+
+! **********************************************************************
+subroutine counter_HGGG_G_vert(S, V2, V3, V4, V_out)
+! Effective Higgs gluon gluon gluon -> gluon vertex for double operator insertion
+! for factorised colour monomials f(a,b,x)*f(c,d,x)
+! V_out(5) = (g(2,4)*g(3,5) - g(2,5)*g(3,4)) * S * V2(2) * V3(3) * V4(4)
+!          = S*V2.V4*V3(5) - S*V3.V4*V2(5)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S(4), V2(4), V3(4), V4(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  call vert_HGGG_G(S, V2, V3, V4, V_out)
+end subroutine counter_HGGG_G_vert
+
+
+! ======================================================================
+! HHEFT vertices
+! ======================================================================
+
+
+! **********************************************************************
+subroutine vert_HGG_H(S1, V2, P2, V3, P3,  S_out)
+! Effective Higgs gluon gluon -> Higgs vertex
+! S_out = (P2.P3*g(2,3) - P2(3)*P3(2))*V2(2)*V3(3)*S1 = (V2.V3*P2.P3 - P2.V3*P3.V2)*S1
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S1(4), V2(4), P2(4), V3(4), P3(4)
+  complex(REALKIND), intent(out) :: S_out(4)
+  S_out(1) = S1(1)*(cont_VV(V2,V3)*cont_VV(P2,P3) - cont_VV(P2,V3)*cont_VV(P3,V2))
+end subroutine vert_HGG_H
+
+
+! **********************************************************************
+subroutine vert_HHG_G(S1, S2, V3, P3, V_out, P4)
+! Effective Higgs Higgs gluon -> gluon vertex
+! V_out(4) = (P3(4)*P4(3) - P3.P4*g(3,4))*S1*S2*V3(3) = S1*S2*(P3.V2*P3(4) - P3.P4*V3(4))
+! note that P4 is outgoing
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S1(4), S2(4), V3(4), P3(4), P4(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  V_out = S1(1)*S2(1)*(cont_VV(P4,V3) * P3 - cont_VV(P3,P4) * V3)
+end subroutine vert_HHG_G
+
+
+! **********************************************************************
+subroutine vert_HGGG_H(S1, V2, P2, V3, P3, V4, P4, S_out)
+! Effective Higgs gluon gluon gluon -> Higgs vertex
+! S_out = (g(2,3)*(P2-P3)(4) + g(3,4)*(P3-P4)(2) + g(4,2)*(P4-P2)(3)) * V2(2)*V3(3)*V4(4)*S1
+!       = (V2.V3*(P2-P3).V4 + V3.V4*(P3-P4).V2 + V4.V2*(P4-P2).V3)*S1
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S1(4), V2(4), P2(4), V3(4), P3(4), V4(4), P4(4)
+  complex(REALKIND), intent(out) :: S_out(4)
+  S_out(1) = S1(1)*(cont_VV(V2,V3)*cont_VV(P2-P3,V4) + cont_VV(V3,V4)*cont_VV(P3-P4,V2) + cont_VV(V4,V2)*cont_VV(P4-P2,V3))
+end subroutine vert_HGGG_H
+
+
+! **********************************************************************
+subroutine vert_HHGG_G(S1, S2, V3, P3, V4, P4, V_out, P5)
+! Effective Higgs Higgs gluon gluon -> gluon vertex
+! V_out(5) = (g(3,4)*(P3-P4)(5) + g(4,5)*(P4+P5)(3) + g(5,3)*(-P5-P3)(4))*S1*S2*V4(3)*V4(4)
+!          = S1*S2*(V3.V4*(P3-P4)(5) + (P4+P5).V3*V4(5) - (P5+P3).V4*V3(5))
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S1(4), S2(4), V3(4), P3(4), V4(4), P4(4), P5(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  V_out = S1(1)*S2(1)*(cont_VV(V3,V4) * (P3-P4) + cont_VV(P4+P5,V3) * V4 - cont_VV(P5+P3,V4) * V3)
+end subroutine vert_HHGG_G
+
+
+! **********************************************************************
+subroutine vert_HGGGG_H(S1, V2, V3, V4, V5, S_out)
+! Effective Higgs gluon gluon gluon gluon -> Higgs vertex
+! for factorised colour monomials f(a,b,x)*f(c,d,x)
+! S_out = (g(2,4)*g(3,5) - g(2,5)*g(3,4)) * S1 * V2(2) * V3(3) * V4(4) * V5(5)
+!       = S1*(V2.V4*V3.V5 - V2.V5*V3.V4)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S1(4), V2(4), V3(4), V4(4), V5(4)
+  complex(REALKIND), intent(out) :: S_out(4)
+  S_out(1) = S1(1)*(cont_VV(V2,V4)*cont_VV(V3,V5) - cont_VV(V2,V5)*cont_VV(V3,V4))
+end subroutine vert_HGGGG_H
+
+
+! **********************************************************************
+subroutine vert_HHGGG_G(S1, S2, V3, V4, V5, V_out)
+! Effective Higgs Higgs gluon gluon gluon -> gluon vertex
+! for factorised colour monomials f(a,b,x)*f(c,d,x)
+! V_out(6) = (g(3,5)*g(4,6) - g(3,6)*g(4,5)) * S1 * S2 * V3(3) * V4(4) * V5(5)
+!          = S1*S2*(V3.V5*V4(6) - V4.V5*V3(6))
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S1(4), S2(4), V3(4), V4(4), V5(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  V_out = S1(1)*S2(1)*(cont_VV(V3,V5) * V4 - cont_VV(V4,V5) * V3)
+end subroutine vert_HHGGG_G
+
+
+! **********************************************************************
+! HiggsPO Effective couplings
+! **********************************************************************
+
+! **********************************************************************
+subroutine vert_SV_V_kap(J_S, J_V, P, Jout_V, P_out)
+! Two vector boson + scalar vertex
+! Incoming scalar current: J_S
+! Incoming vector current: J_V(4) (light-cone rep.)
+! Outgoing vector current: Jout_V
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: J_S(4), J_V(4)
+  complex(REALKIND), intent(out) :: Jout_V(4), P(4), P_out(4)
+  Jout_V = J_S(1) * J_V
+end subroutine vert_SV_V_kap
+
+
+! **********************************************************************
+subroutine vert_SV_V_eps(J_S, J_V, P, Jout_V, P_out)
+! Two vector boson + scalar vertex (
+! Incoming scalar current: J_S
+! Incoming vector current: J_V(4) (light-cone rep.)
+! Outgoing vector current: Jout_V = -(P.P_out)*V1*S - (P_out.V1)*P*S
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: J_S(4), J_V(4)
+  complex(REALKIND), intent(out) :: Jout_V(4), P(4), P_out(4)
+  Jout_V = -cont_VV(P,P_out)*J_V + cont_VV(P_out,J_V)*P
+  Jout_V = J_S(1) * Jout_V
+end subroutine vert_SV_V_eps
+
+
+! **********************************************************************
+subroutine vert_SV_V_aeps(J_S, J_V, P1, Jout_V, P2)
+! Two vector boson + scalar vertex
+! Incoming scalar current: J_S
+! Incoming vector current: J_V(4) (light-cone rep.)
+! Outgoing vector current: Jout_V(a) = ep(a,b,c,d)*J_V(b)*P(c)*P2(d)*S
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_EpVVV
+  implicit none
+  complex(REALKIND), intent(in)  :: J_S(4), J_V(4)
+  complex(REALKIND), intent(out) :: Jout_V(4), P1(4), P2(4)
+  call cont_EpVVV(J_V, P1, P2, Jout_V)
+  Jout_V = J_S(1) * Jout_V
+end subroutine vert_SV_V_aeps
+
+
+! **********************************************************************
+subroutine vert_ZSQ_A(g_RL, J_Z, S, J_Q, Jout_Q)
+! bare ZSQ -> Q Z-like interaction
+! ----------------------------------------------------------------------
+! S(4)       = incoming scalar current
+! J_Q(4)     = incoming quark current
+! J_Z(4)     = incoming Z current ("light-cone" rep.)
+! g_RL(1)    = right-handed coupling gR
+! g_RL(2)    = left-handed coupling gL
+! Jout_Q(4)  = outgoing quark current
+! Jout_Q(i)  = J_Z(A)*[gamma_A*(gR*w_R+gL*w_L)](i,j)*J_Q(j)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: g_RL(2), J_Z(4), J_Q(4), S(4)
+  complex(REALKIND), intent(out) :: Jout_Q(4)
+  Jout_Q(1) = g_RL(2) * ( - J_Z(2)*J_Q(3) + J_Z(4)*J_Q(4))
+  Jout_Q(2) = g_RL(2) * ( - J_Z(1)*J_Q(4) + J_Z(3)*J_Q(3))
+  Jout_Q(3) = g_RL(1) * ( - J_Z(1)*J_Q(1) - J_Z(4)*J_Q(2))
+  Jout_Q(4) = g_RL(1) * ( - J_Z(2)*J_Q(2) - J_Z(3)*J_Q(1))
+  Jout_Q = Jout_Q*S(1)
+end subroutine vert_ZSQ_A
+
+
+! **********************************************************************
+subroutine vert_SAZ_Q(g_RL, S, J_A, J_Z, Jout_A)
+! bare SAZ -> A Z-like interaction
+! ----------------------------------------------------------------------
+! S(4)       = incoming scalar current
+! J_A(4)     = incoming anti-quark current
+! J_Z(4)     = incoming Z current (light-cone rep.)
+! g_RL(1)    = right-handed coupling gR
+! g_RL(2)    = left-handed coupling gL
+! Jout_A(4)  = outgoing anti-quark current
+! Jout_A(i)  = J_A(j) * [gamma_A*(gR*w_R+gL*w_L)](j,i) * J_Z(A)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: g_RL(2), J_A(4), J_Z(4), S(4)
+  complex(REALKIND), intent(out) :: Jout_A(4)
+  Jout_A(1) = g_RL(1) * ( - J_Z(1)*J_A(3) - J_Z(3)*J_A(4))
+  Jout_A(2) = g_RL(1) * ( - J_Z(2)*J_A(4) - J_Z(4)*J_A(3))
+  Jout_A(3) = g_RL(2) * ( - J_Z(2)*J_A(1) + J_Z(3)*J_A(2))
+  Jout_A(4) = g_RL(2) * ( - J_Z(1)*J_A(2) + J_Z(4)*J_A(1))
+  Jout_A = Jout_A*S(1)
+end subroutine vert_SAZ_Q
+
+
+! **********************************************************************
+subroutine vert_AZS_Q(g_RL, J_A, J_Z, S, Jout_A)
+! bare AZS -> A Z-like interaction
+! ----------------------------------------------------------------------
+! J_A(4)     = incoming anti-quark current
+! J_Z(4)     = incoming Z current (light-cone rep.)
+! S(4)       = incoming scalar current
+! g_RL(1)    = right-handed coupling gR
+! g_RL(2)    = left-handed coupling gL
+! Jout_A(4)  = outgoing anti-quark current
+! Jout_A(i)  = J_A(j) * [gamma_A*(gR*w_R+gL*w_L)](j,i) * J_Z(A)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: g_RL(2), J_A(4), J_Z(4), S(4)
+  complex(REALKIND), intent(out) :: Jout_A(4)
+  Jout_A(1) = g_RL(1) * ( - J_Z(1)*J_A(3) - J_Z(3)*J_A(4))
+  Jout_A(2) = g_RL(1) * ( - J_Z(2)*J_A(4) - J_Z(4)*J_A(3))
+  Jout_A(3) = g_RL(2) * ( - J_Z(2)*J_A(1) + J_Z(3)*J_A(2))
+  Jout_A(4) = g_RL(2) * ( - J_Z(1)*J_A(2) + J_Z(4)*J_A(1))
+  Jout_A = Jout_A*S(1)
+end subroutine vert_AZS_Q
+
+
+! **********************************************************************
+subroutine vert_SQA_Z(g_RL, S, J_Q, J_A, Jout_Z)
+! bare SQA -> Z Z-like interaction
+! ----------------------------------------------------------------------
+! S(4)       = incoming scalar current
+! J_Q(4)    = quark current
+! J_A(4)    = anti-quark current
+! g_RL(1)   = right-handed coupling gR
+! g_RL(2)   = left-handed coupling gL
+! Jout_Z(4) = outgoing Z current (light-cone rep.)
+! Jout_Z(A) = J_A(i) * [gamma^A*(gR*w_R+gL*w_L)](i,j) * J_Q(j)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: g_RL(2), J_Q(4), J_A(4), S(4)
+  complex(REALKIND), intent(out) :: Jout_Z(4)
+  Jout_Z(1) = - g_RL(2)*J_A(1)*J_Q(3) - g_RL(1)*J_A(4)*J_Q(2)
+  Jout_Z(2) = - g_RL(2)*J_A(2)*J_Q(4) - g_RL(1)*J_A(3)*J_Q(1)
+  Jout_Z(3) = - g_RL(2)*J_A(1)*J_Q(4) + g_RL(1)*J_A(3)*J_Q(2)
+  Jout_Z(4) = - g_RL(2)*J_A(2)*J_Q(3) + g_RL(1)*J_A(4)*J_Q(1)
+  Jout_Z = (Jout_Z + Jout_Z)*S(1)
+end subroutine vert_SQA_Z
+
+
+! **********************************************************************
+subroutine vert_SQA_V(S, J_Q, J_A, Jout_V)
+! bare QA -> V gluon-like (i.e. vector-like) interaction
+! ----------------------------------------------------------------------
+! J_Q(4)    = quark current
+! J_A(4)    = anti-quark current
+! Jout_V(4) = outgoing gluon current (light-cone rep.)
+! Jout_V(A) = J_A(i) * gamma^A(i,j) * J_Q(j)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: J_Q(4), J_A(4), S(4)
+  complex(REALKIND), intent(out) :: Jout_V(4)
+  Jout_V(1) = - J_A(1)*J_Q(3) - J_A(4)*J_Q(2)
+  Jout_V(2) = - J_A(2)*J_Q(4) - J_A(3)*J_Q(1)
+  Jout_V(3) = - J_A(1)*J_Q(4) + J_A(3)*J_Q(2)
+  Jout_V(4) = - J_A(2)*J_Q(3) + J_A(4)*J_Q(1)
+  Jout_V = (Jout_V + Jout_V)*S(1)
+end subroutine vert_SQA_V
+
 
 end module ol_vertices_/**/REALKIND
 
@@ -2937,6 +3298,11 @@ subroutine vert_VC_D(ntry, V, P1, C, P2, C_out, n, t)
 end subroutine vert_VC_D
 
 
+! ======================================================================
+! HEFT vertices
+! ======================================================================
+
+
 ! **********************************************************************
 subroutine vert_GG_H(ntry, V1, P1, V2, P2, S_out, n, t)
 ! Effective gluon gluon -> Higgs vertex
@@ -2972,7 +3338,7 @@ subroutine vert_HG_G(ntry, S, V2, P2, V_out, P3, n, t)
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND, intkind1, intkind2
   use ol_data_types_/**/REALKIND, only: wfun
-  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3, checkzero_scalar
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3
   use ol_h_contractions_/**/REALKIND, only: cont_PP
   implicit none
   integer(intkind1), intent(in)    :: ntry
@@ -3104,5 +3470,635 @@ subroutine vert_HGGG_G(ntry, S, V2, V3, V4, V_out, n, t)
   end do
   if (ntry == 1) call helbookkeeping_vert5(ntry, S, V2, V3, V4, V_out, n, t)
 end subroutine vert_HGGG_G
+
+
+! ======================================================================
+! HHEFT vertices
+! =====================================================================
+
+
+! **********************************************************************
+subroutine vert_HGG_H(ntry, S1, V2, P2, V3, P3, S_out, n, t)
+! Effective Higgs gluon gluon -> Higgs vertex
+! S_out = (P2.P3*g(2,3) - P2(3)*P3(2))*V2(2)*V3(3)*S1 = S1*(V2.V3*P2.P3 - P2.V3*P3.V2)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert4, checkzero_scalar
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(4), t(3,n(4))
+  type(wfun),        intent(in)    :: S1(n(1))
+  type(wfun),        intent(in)    :: V2(n(2)), V3(n(3))
+  complex(REALKIND), intent(in)    :: P2(4), P3(4)
+  type(wfun),        intent(out)   :: S_out(n(4))
+  integer :: h
+  do h = 1, n(4)
+    S_out(h)%j(1) = S1(t(1,h))%j(1)*(cont_PP(V2(t(2,h))%j, V3(t(3,h))%j) * cont_PP(P2, P3) &
+                & - cont_PP(P2, V3(t(3,h))%j) * cont_PP(P3, V2(t(2,h))%j))
+  end do
+  if (ntry == 1) then
+    call checkzero_scalar(S_out)
+    call helbookkeeping_vert4(ntry, S1, V2, V3, S_out, n, t)
+  end if
+end subroutine vert_HGG_H
+
+
+! **********************************************************************
+subroutine vert_HHG_G(ntry, S1, S2, V3, P3, V_out, P4, n, t)
+! Effective Higgs Higgs gluon -> gluon vertex
+! V_out(4) = (P3(4)*P4(3) - P3.P4*g(3,4))*S1*S2*V3(3) = S*P4.V3*P3(4) - S1*S2*P3.P4*V3(4)
+! note that P3 is outgoing
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert4
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(4), t(3,n(4))
+  type(wfun),        intent(in)    :: S1(n(1)), S2(n(2)), V3(n(3))
+  complex(REALKIND), intent(in)    :: P3(4), P4(4)
+  type(wfun),        intent(out)   :: V_out(n(4))
+  integer :: h
+  do h = 1, n(4)
+    V_out(h)%j = S1(t(1,h))%j(1) * S2(t(2,h))%j(1)* (cont_PP(P4, V3(t(3,h))%j) * P3 &
+             & - cont_PP(P3, P4) * V3(t(3,h))%j)
+  end do
+  if (ntry == 1) call helbookkeeping_vert4(ntry, S1, S2, V3, V_out, n, t)
+end subroutine vert_HHG_G
+
+
+! **********************************************************************
+subroutine vert_HGGG_H(ntry, S1, V2, P2, V3, P3, V4, P4, S_out, n, t)
+! Effective Higgs gluon gluon gluon -> Higgs vertex
+! S_out = (g(2,3)*(P2-P3)(4) + g(3,4)*(P3-P4)(2) + g(4,2)*(P4-P2)(3)) * S1*V2(2)*V3(3)*V4(4)
+!       = S1*(V2.V3*(P2-P3).V4 + V3.V4*(P3-P4).V2 + V4.V2*(P4-P2).V3)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert5, checkzero_scalar
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(5), t(4,n(5))
+  type(wfun),        intent(in)    :: S1(n(1)), V2(n(2)), V3(n(3)), V4(n(4))
+  complex(REALKIND), intent(in)    :: P2(4), P3(4), P4(4)
+  type(wfun),        intent(out)   :: S_out(n(5))
+  integer :: h
+  do h = 1, n(5)
+    S_out(h)%j(1) = cont_PP(V2(t(2,h))%j, V3(t(3,h))%j) * cont_PP(P2-P3, V4(t(4,h))%j) * S1(t(1,h))%j(1) &
+                & + cont_PP(V3(t(3,h))%j, V4(t(4,h))%j) * cont_PP(P3-P4, V2(t(2,h))%j) * S1(t(1,h))%j(1) &
+                & + cont_PP(V4(t(4,h))%j, V2(t(2,h))%j) * cont_PP(P4-P2, V3(t(3,h))%j) * S1(t(1,h))%j(1)
+  end do
+  if (ntry == 1) then
+    call checkzero_scalar(S_out)
+    call helbookkeeping_vert5(ntry, S1, V2, V3, V4, S_out, n, t)
+  end if
+end subroutine vert_HGGG_H
+
+
+! **********************************************************************
+subroutine vert_HHGG_G(ntry, S1, S2, V3, P3, V4, P4, V_out, P5, n, t)
+! Effective Higgs Higgs gluon gluon -> gluon vertex
+! ! V_out(5) = (g(3,4)*(P3-P4)(5) + g(4,5)*(P4-P5)(3) + g(5,3)*(P5-P3)(4)) * S1*S2*V3(3)*V4(4)
+! !          = S1*S2*V3.V4*(P3-P4)(5) + S1*S2*(P4-P5).V3*V4(5) + S1*S2*(P5-P3).V4*V3(5)
+! V_out(5) = (g(3,4)*(P3-P4)(5) + g(4,5)*(P4+P5)(3) + g(5,3)*(-P5-P3)(4)) * S1*S2*V3(3)*V4(4)
+!          = S1*2*V3.V4*(P3-P4)(5) + S1*S2*(P4+P5).V3*V4(5) - S1*S2*(P5+P3).V4*V3(5)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert5
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(5), t(4,n(5))
+  type(wfun),        intent(in)    :: S1(n(1)), S2(n(2)), V3(n(3)), V4(n(4))
+  complex(REALKIND), intent(in)    :: P3(4), P4(4), P5(4)
+  type(wfun),        intent(out)   :: V_out(n(5))
+  complex(REALKIND) :: P45_V3(n(3)), P53_V4(n(4))
+  integer :: h
+  do h = 1, n(3)
+    P45_V3(h) = cont_PP(P4+P5, V3(h)%j)
+  end do
+  do h = 1, n(4)
+    P53_V4(h) = cont_PP(P5+P3, V4(h)%j)
+  end do
+  do h = 1, n(5)
+    V_out(h)%j = (S1(t(1,h))%j(1) * S2(t(2,h))%j(1) * cont_PP(V3(t(3,h))%j, V4(t(4,h))%j)) * (P3-P4) &
+             & + (S1(t(1,h))%j(1) * S2(t(2,h))%j(1) * P45_V3(t(3,h))) * V4(t(4,h))%j &
+             & - (S1(t(1,h))%j(1) * S2(t(2,h))%j(1) * P53_V4(t(4,h))) * V3(t(3,h))%j
+  end do
+  if (ntry == 1) call helbookkeeping_vert5(ntry, S1, S2, V3, V4, V_out, n, t)
+end subroutine vert_HHGG_G
+
+
+! **********************************************************************
+subroutine vert_HGGGG_H(ntry, S1, V2, V3, V4, V5, S_out, n, t)
+! Effective Higgs gluon gluon gluon gluon -> Higgs vertex
+! for factorised colour monomials f(a,b,x)*f(c,d,x)
+! S_out = (g(2,4)*g(3,5) - g(2,5)*g(3,4)) * S_in * V2(2) * V3(3) * V4(4) * V5(5)
+!       = S_in * (V2.V3*V3.V5 - V2.V5*V3.V4)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert6, checkzero_scalar
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(6), t(5,n(6))
+  type(wfun),        intent(in)    :: S1(n(1)), V2(n(2)), V3(n(3)), V4(n(4)), V5(n(5))
+  type(wfun),        intent(out)   :: S_out(n(6))
+  integer :: h
+  do h = 1, n(6)
+    S_out(h)%j(1) = S1(t(1,h))%j(1) * cont_PP(V2(t(2,h))%j, V4(t(4,h))%j) * cont_PP(V3(t(3,h))%j, V5(t(5,h))%j) &
+                & - S1(t(1,h))%j(1) * cont_PP(V2(t(2,h))%j, V5(t(5,h))%j) * cont_PP(V3(t(3,h))%j, V4(t(4,h))%j)
+  end do
+  if (ntry == 1) then
+    call checkzero_scalar(S_out)
+    call helbookkeeping_vert6(ntry, S1, V2, V3, V4, V5, S_out, n, t)
+  end if
+end subroutine vert_HGGGG_H
+
+
+! **********************************************************************
+subroutine vert_HHGGG_G(ntry, S1, S2, V3, V4, V5, V_out, n, t)
+! Effective Higgs Higgs gluon gluon gluon -> gluon vertex
+! for factorised colour monomials f(a,b,x)*f(c,d,x)
+! V_out(6) = (g(3,5)*g(4,6) - g(3,6)*g(3,5)) * S1 * S2 * V3(3) * V4(4) * V5(5)
+!          = S1*S2*V2.V4*V3(5) - S1*S2*V3.V4*V2(5)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert6
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(6), t(5,n(6))
+  type(wfun),        intent(in)    :: S1(n(1)), S2(n(2)), V3(n(3)), V4(n(4)), V5(n(5))
+  type(wfun),        intent(out)   :: V_out(n(6))
+  integer :: h
+  do h = 1, n(6)
+    V_out(h)%j = (S1(t(1,h))%j(1) * S2(t(2,h))%j(1) * cont_PP(V3(t(3,h))%j, V5(t(5,h))%j)) * V4(t(4,h))%j &
+             & - (S1(t(1,h))%j(1) * S2(t(2,h))%j(1) * cont_PP(V4(t(4,h))%j, V5(t(5,h))%j)) * V3(t(3,h))%j
+  end do
+  if (ntry == 1) call helbookkeeping_vert6(ntry, S1, S2, V3, V4, V5, V_out, n, t)
+end subroutine vert_HHGGG_G
+
+
+! **********************************************************************
+! HiggsPO Effective couplings
+! **********************************************************************
+
+! **********************************************************************
+subroutine vert_VV_S_kap(ntry, V1, P1, V2, P2, S_out, n, t)
+! Two vector boson + scalar vertex
+! ----------------------------------------------------------------------
+! ntry            : 1 (2) for 1st (subsequent) PS points
+! Incoming vectors: Vi(1:n(i))  (light-cone representation)
+! Outgoing scalar : S_out(1:n(3))
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3, checkzero_scalar
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(3), t(2,n(3))
+  type(wfun),        intent(in)    :: V1(n(1)), V2(n(2))
+  type(wfun),        intent(out)   :: S_out(n(3))
+  complex(REALKIND), intent(in)    :: P1(4), P2(4)
+  integer :: h
+
+  do h = 1, n(3)
+    S_out(h)%j(1) = cont_PP(V1(t(1,h))%j,V2(t(2,h))%j)
+  end do
+
+  if (ntry == 1) then
+    call checkzero_scalar(S_out)
+    call helbookkeeping_vert3(ntry, V1, V2, S_out, n, t)
+  end if
+
+end subroutine vert_VV_S_kap
+
+
+! **********************************************************************
+subroutine vert_VS_V_kap(ntry, V, P1, S, V_out, P2, n, t)
+! Two vector boson + scalar vertex
+! ----------------------------------------------------------------------
+! ntry            : 1 (2) for 1st (subsequent) PS points
+! Incoming vector : V(1:n(1)) (light-cone representation)
+! Incoming scalar : S(1:n(2))
+! Outgoing vector : V_out(1:n(3))
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(3), t(2,n(3))
+  type(wfun),        intent(in)    :: V(n(1)), S(n(2))
+  type(wfun),        intent(out)   :: V_out(n(3))
+  complex(REALKIND), intent(in)    :: P1(4), P2(4)
+  integer :: h
+
+  do h = 1, n(3)
+    V_out(h)%j = V(t(1,h))%j * S(t(2,h))%j(1)
+  end do
+
+  if (ntry == 1) call helbookkeeping_vert3(ntry, V, S, V_out, n, t)
+
+end subroutine vert_VS_V_kap
+
+
+! **********************************************************************
+subroutine vert_SV_V_kap(ntry, S, V, P1, V_out, P2, n, t)
+! Two vector boson + scalar vertex
+! ----------------------------------------------------------------------
+! ntry            : 1 (2) for 1st (subsequent) PS points
+! Incoming scalar : S(1:n(1))
+! Incoming vector : V(1:n(2)) (light-cone representation)
+! Outgoing vector : V_out(1:n(3))
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(3), t(2,n(3))
+  type(wfun),        intent(in)    :: S(n(1)), V(n(2))
+  type(wfun),        intent(out)   :: V_out(n(3))
+  complex(REALKIND), intent(in)    :: P1(4), P2(4)
+  integer :: h
+!
+  do h = 1, n(3)
+    V_out(h)%j = S(t(1,h))%j(1) * V(t(2,h))%j
+  end do
+!
+  if (ntry == 1) call helbookkeeping_vert3(ntry, S, V, V_out, n, t)
+!
+end subroutine vert_SV_V_kap
+!
+
+! ! **********************************************************************
+! subroutine vert_SV_W_kap(ntry, S, V, P1, V_out, P2, n, t)
+! ! Two vector boson + scalar vertex
+! ! ----------------------------------------------------------------------
+! ! ntry            : 1 (2) for 1st (subsequent) PS points
+! ! Incoming scalar : S(1:n(1))
+! ! Incoming vector : V(1:n(2)) (light-cone representation)
+! ! Outgoing vector : V_out(1:n(3))
+! ! **********************************************************************
+!   use KIND_TYPES, only: REALKIND, intkind1, intkind2
+!   use ol_data_types_/**/REALKIND, only: wfun
+!   use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3
+!   implicit none
+!   integer(intkind1), intent(in)    :: ntry
+!   integer(intkind2), intent(inout) :: n(3), t(2,n(3))
+!   type(wfun),        intent(in)    :: S(n(1)), V(n(2))
+!   type(wfun),        intent(out)   :: V_out(n(3))
+!   complex(REALKIND), intent(in)    :: P1(4), P2(4)
+!   integer :: h
+! 
+!   do h = 1, n(3)
+!     V_out(h)%j = S(t(1,h))%j(1) * V(t(2,h))%j
+!   end do
+! 
+!   if (ntry == 1) call helbookkeeping_vert3(ntry, S, V, V_out, n, t)
+! 
+! end subroutine vert_SV_W_kap
+! 
+
+
+! **********************************************************************
+subroutine vert_SV_V_eps(ntry, S, V, P1, V_out, P2, n, t)
+! Two vector boson + scalar vertex
+! ----------------------------------------------------------------------
+! ntry            : 1 (2) for 1st (subsequent) PS points
+! Incoming scalar : S(1:n(1))
+! Incoming vector : V(1:n(2)) (light-cone representation)
+! Outgoing vector : V_out(1:n(3)) = -(P1.P2)*V1*S - (P2.V1)*P1*S
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(3), t(2,n(3))
+  type(wfun),        intent(in)    :: S(n(1)), V(n(2))
+  type(wfun),        intent(out)   :: V_out(n(3))
+  complex(REALKIND), intent(in)    :: P1(4), P2(4)
+  complex(REALKIND) ::  P2V1(n(2))
+  integer :: h
+
+  do h = 1, n(2)
+    P2V1(h) = cont_PP(P2, V(h)%j)
+  end do
+
+  do h = 1, n(3)
+    V_out(h)%j = S(t(1,h))%j(1) * (-cont_PP(P1,P2)*V(t(2,h))%j+P2V1(h)*P1)
+  end do
+
+  if (ntry == 1) call helbookkeeping_vert3(ntry, S, V, V_out, n, t)
+
+end subroutine vert_SV_V_eps
+
+
+! **********************************************************************
+subroutine vert_SV_V_aeps(ntry, S, V, P1, V_out, P2, n, t)
+! Two vector boson + scalar vertex
+! ----------------------------------------------------------------------
+! ntry            : 1 (2) for 1st (subsequent) PS points
+! Incoming scalar : S(1:n(1))
+! Incoming vector : V(1:n(2)) (light-cone representation)
+! Outgoing vector : V_out(1:n(3)) = ep(a,b,c,d)*J_V(b)*P(c)*P2(d)*S
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_h_contractions_/**/REALKIND, only: cont_EpPPP
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(3), t(2,n(3))
+  type(wfun),        intent(in)    :: S(n(1)), V(n(2))
+  type(wfun),        intent(out)   :: V_out(n(3))
+  complex(REALKIND), intent(in)    :: P1(4), P2(4)
+  integer :: h
+
+  do h = 1, n(3)
+    call cont_EpPPP(V(t(2,h))%j, P1, P2, V_out(h)%j)
+    V_out(h)%j = S(t(1,h))%j(1) * V_out(h)%j
+  end do
+
+  if (ntry == 1) call helbookkeeping_vert3(ntry, S, V, V_out, n, t)
+
+end subroutine vert_SV_V_aeps
+
+! ! **********************************************************************
+! subroutine vert_VS_V_aeps(ntry, V, P1, S, V_out, P2, n, t)
+! ! Two vector boson + scalar vertex
+! ! ----------------------------------------------------------------------
+! ! ntry            : 1 (2) for 1st (subsequent) PS points
+! ! Incoming scalar : S(1:n(1))
+! ! Incoming vector : V(1:n(2)) (light-cone representation)
+! ! Outgoing vector : V_out(1:n(3)) = ep(a,b,c,d)*J_V(b)*P(c)*P2(d)
+! ! **********************************************************************
+!   use KIND_TYPES, only: REALKIND, intkind1, intkind2
+!   use ol_data_types_/**/REALKIND, only: wfun
+!   use ol_h_contractions_/**/REALKIND, only: cont_EpPPP
+!   use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3
+!   implicit none
+!   integer(intkind1), intent(in)    :: ntry
+!   integer(intkind2), intent(inout) :: n(3), t(2,n(3))
+!   type(wfun),        intent(in)    :: S(n(2)), V(n(1))
+!   type(wfun),        intent(out)   :: V_out(n(3))
+!   complex(REALKIND), intent(in)    :: P1(4), P2(4)
+!   integer :: h
+! 
+!   do h = 1, n(3)
+!     call cont_EpPPP(V(t(1,h))%j, P1, P2, V_out(h)%j)
+!     V_out(h)%j = S(t(2,h))%j(1) * V_out(h)%j
+!   end do
+! 
+!   if (ntry == 1) call helbookkeeping_vert3(ntry, S, V, V_out, n, t)
+! 
+! end subroutine vert_VS_V_aeps
+! 
+
+! **********************************************************************
+subroutine vert_SQA_V(g, ntry, S, Q, A, V_out, n, t)
+! bare SQA -> V gluon-like (i.e. vector-like) interaction
+! ----------------------------------------------------------------------
+! ntry          = 1 (2) for 1st (subsequent) PS points
+! Q(1:n(1))     = incoming quark
+! A(1:n(2))     = incoming anti-quark
+! V_out(1:n(3)) = outgoing gluon
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert4
+  implicit none
+  real(REALKIND),    intent(in)    :: g
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(4), t(3,n(4))
+  type(wfun),        intent(in)    :: S(n(1)), Q(n(2)), A(n(3))
+  type(wfun),        intent(out)   :: V_out(n(4))
+  integer :: h
+
+  do h = 1, n(4)
+    select case (ishft(Q(t(2,h))%h,2) + A(t(3,h))%h)
+
+    case (B"1111")
+      V_out(h)%j(1) = - A(t(3,h))%j(1)*Q(t(2,h))%j(3) - A(t(3,h))%j(4)*Q(t(2,h))%j(2)
+      V_out(h)%j(2) = - A(t(3,h))%j(2)*Q(t(2,h))%j(4) - A(t(3,h))%j(3)*Q(t(2,h))%j(1)
+      V_out(h)%j(3) = - A(t(3,h))%j(1)*Q(t(2,h))%j(4) + A(t(3,h))%j(3)*Q(t(2,h))%j(2)
+      V_out(h)%j(4) = - A(t(3,h))%j(2)*Q(t(2,h))%j(3) + A(t(3,h))%j(4)*Q(t(2,h))%j(1)
+      V_out(h)%j = g*(V_out(h)%j + V_out(h)%j)*S(t(1,h))%j(1)
+
+    case (B"0110", B"0111", B"1110")
+      V_out(h)%j(1) = - A(t(3,h))%j(1)*Q(t(2,h))%j(3)
+      V_out(h)%j(2) = - A(t(3,h))%j(2)*Q(t(2,h))%j(4)
+      V_out(h)%j(3) = - A(t(3,h))%j(1)*Q(t(2,h))%j(4)
+      V_out(h)%j(4) = - A(t(3,h))%j(2)*Q(t(2,h))%j(3)
+      V_out(h)%j = g*(V_out(h)%j + V_out(h)%j)*S(t(1,h))%j(1)
+
+    case (B"1001", B"1101", B"1011")
+      V_out(h)%j(1) = - A(t(3,h))%j(4)*Q(t(2,h))%j(2)
+      V_out(h)%j(2) = - A(t(3,h))%j(3)*Q(t(2,h))%j(1)
+      V_out(h)%j(3) =   A(t(3,h))%j(3)*Q(t(2,h))%j(2)
+      V_out(h)%j(4) =   A(t(3,h))%j(4)*Q(t(2,h))%j(1)
+      V_out(h)%j = g*(V_out(h)%j + V_out(h)%j)*S(t(1,h))%j(1)
+
+    case default
+      V_out(h)%j = 0 ! needed to detect vanishing helicity configurations
+
+    end select
+  end do
+
+  if (ntry == 1) call helbookkeeping_vert4(ntry, S, Q, A, V_out, n, t)
+
+end subroutine vert_SQA_V
+
+
+!************************************************************************
+subroutine vert_ZSQ_A(g_RL, ntry, Z, S, Q, Q_out, n, t)
+! bare ZQ -> Q Z-like interaction
+! ----------------------------------------------------------------------
+! ntry          = 1 (2) for 1st (subsequent) PS points
+! Z(1:n(1)      = incoming Z (light-cone representation)
+! S(1:n(2)      = incoming scalar
+! Q(1:n(3))     = incoming quark
+! g_RL(1)       = right-handed coupling gR
+! g_RL(2)       = left-handed coupling gL
+! Q_out(1:n(3)) = outgoing quark
+! Q_out(h)%j(i) = Z(t(1,h))%j(A)*[gamma_A*(gR*w_R+gL*w_L)](i,j)*Q(t(2,h))%j(j)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert4
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(4), t(3,n(4))
+  type(wfun),        intent(in)    :: Z(n(1)), S(n(2)), Q(n(3))
+  complex(REALKIND), intent(in)    :: g_RL(2)
+  type(wfun),        intent(out)   :: Q_out(n(4))
+  integer :: h
+
+  do h = 1, n(4)
+    select case (Q(t(3,h))%h)
+
+    case (B"01")
+      Q_out(h)%j(1) = g_RL(2) * S(t(2,h))%j(1) * ( - Z(t(1,h))%j(2)*Q(t(3,h))%j(3) + Z(t(1,h))%j(4)*Q(t(3,h))%j(4))
+      Q_out(h)%j(2) = g_RL(2) * S(t(2,h))%j(1) * ( - Z(t(1,h))%j(1)*Q(t(3,h))%j(4) + Z(t(1,h))%j(3)*Q(t(3,h))%j(3))
+      Q_out(h)%j(3:4) = 0
+      Q_out(h)%h    = B"10"
+
+    case (B"10")
+      Q_out(h)%j(1:2) = 0
+      Q_out(h)%j(3) = g_RL(1) * S(t(2,h))%j(1) * ( - Z(t(1,h))%j(1)*Q(t(3,h))%j(1) - Z(t(1,h))%j(4)*Q(t(3,h))%j(2))
+      Q_out(h)%j(4) = g_RL(1) * S(t(2,h))%j(1) * ( - Z(t(1,h))%j(2)*Q(t(3,h))%j(2) - Z(t(1,h))%j(3)*Q(t(3,h))%j(1))
+      Q_out(h)%h    = B"01"
+
+    case (B"00")
+      Q_out(h)%j = 0 ! needed to detect vanishing helicity configurations
+      Q_out(h)%h = B"00"
+
+    case default
+      Q_out(h)%j(1) = g_RL(2) * S(t(2,h))%j(1) * ( - Z(t(1,h))%j(2)*Q(t(3,h))%j(3) + Z(t(1,h))%j(4)*Q(t(3,h))%j(4))
+      Q_out(h)%j(2) = g_RL(2) * S(t(2,h))%j(1) * ( - Z(t(1,h))%j(1)*Q(t(3,h))%j(4) + Z(t(1,h))%j(3)*Q(t(3,h))%j(3))
+      Q_out(h)%j(3) = g_RL(1) * S(t(2,h))%j(1) * ( - Z(t(1,h))%j(1)*Q(t(3,h))%j(1) - Z(t(1,h))%j(4)*Q(t(3,h))%j(2))
+      Q_out(h)%j(4) = g_RL(1) * S(t(2,h))%j(1) * ( - Z(t(1,h))%j(2)*Q(t(3,h))%j(2) - Z(t(1,h))%j(3)*Q(t(3,h))%j(1))
+      Q_out(h)%h    = B"11"
+
+    end select
+  end do
+
+  if (ntry == 1) call helbookkeeping_vert4(ntry, Z, S, Q, Q_out, n, t)
+
+end subroutine vert_ZSQ_A
+
+
+! **********************************************************************
+subroutine vert_SQA_Z(g_RL, ntry, S, Q, A, Z_out, n, t)
+! bare SQA -> Z Z-like interaction
+! ----------------------------------------------------------------------
+! ntry          = 1 (2) for 1st (subsequent) PS points
+! Q(1:n(1))     = incoming quark
+! A(1:n(2))     = incoming anti-quark
+! g_RL(1)       = right-handed coupling gR
+! g_RL(2)       = left-handed coupling g
+! Z_out(1:n(3)) = outgoing Z
+! Z_out(h)%j(A) = A(t(3,h))%j(i) * [gamma^A*(gR*w_R+gL*w_L)](i,j) * Q(t(2,h))%j(j) * S(t(1,h))%j(1)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert4
+  implicit none
+  complex(REALKIND),    intent(in)    :: g_RL(2)
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(4), t(3,n(4))
+  type(wfun),        intent(in)    :: S(n(1)), Q(n(2)), A(n(3))
+  type(wfun),        intent(out)   :: Z_out(n(4))
+  complex(REALKIND) :: A_aux(4)
+  integer :: h
+
+  do h = 1, n(4)
+    select case (ishft(Q(t(2,h))%h,2) + A(t(3,h))%h)
+
+    case (B"1111")
+      A_aux(1:2)    = g_RL(2)*A(t(3,h))%j(1:2)
+      A_aux(3:4)    = g_RL(1)*A(t(3,h))%j(3:4)
+      Z_out(h)%j(1) = - A_aux(1)*Q(t(2,h))%j(3) - A_aux(4)*Q(t(2,h))%j(2)
+      Z_out(h)%j(2) = - A_aux(2)*Q(t(2,h))%j(4) - A_aux(3)*Q(t(2,h))%j(1)
+      Z_out(h)%j(3) = - A_aux(1)*Q(t(2,h))%j(4) + A_aux(3)*Q(t(2,h))%j(2)
+      Z_out(h)%j(4) = - A_aux(2)*Q(t(2,h))%j(3) + A_aux(4)*Q(t(2,h))%j(1)
+      Z_out(h)%j    =  (Z_out(h)%j + Z_out(h)%j)*S(t(1,h))%j(1)
+
+    case (B"0110", B"0111", B"1110")
+      A_aux(1:2)    = g_RL(2)*A(t(3,h))%j(1:2)
+      Z_out(h)%j(1) = - A_aux(1)*Q(t(2,h))%j(3)
+      Z_out(h)%j(2) = - A_aux(2)*Q(t(2,h))%j(4)
+      Z_out(h)%j(3) = - A_aux(1)*Q(t(2,h))%j(4)
+      Z_out(h)%j(4) = - A_aux(2)*Q(t(2,h))%j(3)
+      Z_out(h)%j    =  (Z_out(h)%j + Z_out(h)%j)*S(t(1,h))%j(1)
+
+    case (B"1001", B"1101", B"1011")
+      A_aux(3:4)    = g_RL(1)*A(t(3,h))%j(3:4)
+      Z_out(h)%j(1) = - A_aux(4)*Q(t(2,h))%j(2)
+      Z_out(h)%j(2) = - A_aux(3)*Q(t(2,h))%j(1)
+      Z_out(h)%j(3) = + A_aux(3)*Q(t(2,h))%j(2)
+      Z_out(h)%j(4) = + A_aux(4)*Q(t(2,h))%j(1)
+      Z_out(h)%j    =  (Z_out(h)%j + Z_out(h)%j)*S(t(1,h))%j(1)
+
+    case default
+      Z_out(h)%j = 0 ! needed to detect vanishing helicity configurations
+
+    end select
+  end do
+
+  if (ntry == 1) call helbookkeeping_vert4(ntry, S, Q, A, Z_out, n, t)
+
+end subroutine vert_SQA_Z
+
+
+! **********************************************************************
+subroutine vert_AZS_Q(g_RL, ntry, A, Z, S, A_out, n, t)
+! bare AZ -> A Z-like interaction
+! ----------------------------------------------------------------------
+! ntry          = 1 (2) for 1st (subsequent) PS points
+! A(1:n(1))     = incoming anti-quark
+! Z(1:n(2))     = incoming Z (light-cone representation)
+! S(1:n(3)      = incoming scalar
+! g_RL(1)       = right-handed coupling gR
+! g_RL(2)       = left-handed coupling gL
+! A_out(1:n(3)) = outgoing anti-quark
+! A_out(h)%j(i) = A(t(1,h))%j(j) * [gamma_A*(gR*w_R+gL*w_L)](j,i) * Z(t(2,h))%j(A)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert4
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(4), t(3,n(4))
+  type(wfun),        intent(in)    :: A(n(1)), Z(n(2)), S(n(3))
+  complex(REALKIND), intent(in)    :: g_RL(2)
+  type(wfun),        intent(out)   :: A_out(n(4))
+  integer :: h
+
+  do h = 1, n(4)
+    select case (A(t(1,h))%h)
+
+    case (B"01")
+      A_out(h)%j(1) = g_RL(1)*S(t(3,h))%j(1)*( - Z(t(2,h))%j(1)*A(t(1,h))%j(3) - Z(t(2,h))%j(3)*A(t(1,h))%j(4))
+      A_out(h)%j(2) = g_RL(1)*S(t(3,h))%j(1)*( - Z(t(2,h))%j(2)*A(t(1,h))%j(4) - Z(t(2,h))%j(4)*A(t(1,h))%j(3))
+      A_out(h)%j(3:4) = 0
+      A_out(h)%h    = B"10"
+
+    case (B"10")
+      A_out(h)%j(1:2) = 0
+      A_out(h)%j(3) = g_RL(2)*S(t(3,h))%j(1)*( - Z(t(2,h))%j(2)*A(t(1,h))%j(1) + Z(t(2,h))%j(3)*A(t(1,h))%j(2))
+      A_out(h)%j(4) = g_RL(2)*S(t(3,h))%j(1)*( - Z(t(2,h))%j(1)*A(t(1,h))%j(2) + Z(t(2,h))%j(4)*A(t(1,h))%j(1))
+      A_out(h)%h    = B"01"
+
+    case (B"00")
+      A_out(h)%j = 0 ! needed to detect vanishing helicity configurations
+      A_out(h)%h = B"00"
+
+    case default
+      A_out(h)%j(1) = g_RL(1)*S(t(3,h))%j(1)*( - Z(t(2,h))%j(1)*A(t(1,h))%j(3) - Z(t(2,h))%j(3)*A(t(1,h))%j(4))
+      A_out(h)%j(2) = g_RL(1)*S(t(3,h))%j(1)*( - Z(t(2,h))%j(2)*A(t(1,h))%j(4) - Z(t(2,h))%j(4)*A(t(1,h))%j(3))
+      A_out(h)%j(3) = g_RL(2)*S(t(3,h))%j(1)*( - Z(t(2,h))%j(2)*A(t(1,h))%j(1) + Z(t(2,h))%j(3)*A(t(1,h))%j(2))
+      A_out(h)%j(4) = g_RL(2)*S(t(3,h))%j(1)*( - Z(t(2,h))%j(1)*A(t(1,h))%j(2) + Z(t(2,h))%j(4)*A(t(1,h))%j(1))
+      A_out(h)%h    = B"11"
+
+    end select
+  end do
+
+  if (ntry == 1) call helbookkeeping_vert4(ntry, A, Z, S, A_out, n, t)
+
+end subroutine vert_AZS_Q
+
 
 end module ol_h_vertices_/**/REALKIND

@@ -23,6 +23,12 @@
 #include <sys/stat.h>
 #include <dlfcn.h>
 
+#include <unistd.h>
+#include <fcntl.h>
+
+/* _______________ */
+/* dirent wrappers */
+
 // modes for dlopen (direct binding to Fortran doesn't work)
 int ol_c_rtld_lazy = RTLD_LAZY;
 int ol_c_rtld_now = RTLD_NOW;
@@ -79,4 +85,26 @@ int ol_c_mkdir(const char *dirname)
   int err;
   err = mkdir(dirname, ACCESSPERMS);
   return err;
+}
+
+/* __________________ */
+/* stdout redirection */
+
+int ol_c_stdout_bak;
+
+void ol_c_stdout_off()
+{
+  int devnull;
+  fflush(stdout);
+  ol_c_stdout_bak = dup(1);
+  devnull = open("/dev/null", O_WRONLY);
+  dup2(devnull, 1);
+  close(devnull);
+}
+
+void ol_c_stdout_on()
+{
+  fflush(stdout);
+  dup2(ol_c_stdout_bak, 1);
+  close(ol_c_stdout_bak);
 }

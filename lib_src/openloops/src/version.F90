@@ -60,10 +60,11 @@ module ol_version
   end subroutine welcome_c
 
   subroutine print_welcome()
+    use ol_debug, only: ol_write_msg
     implicit none
     character(welcome_length) :: welcome_string
     call welcome(welcome_string)
-    print *, trim(adjustl(welcome_string))
+    call ol_write_msg(trim(welcome_string))
   end subroutine print_welcome
 
 end module ol_version

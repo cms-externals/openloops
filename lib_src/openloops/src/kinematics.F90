@@ -19,11 +19,7 @@
 
 module ol_kinematics_/**/REALKIND
   use KIND_TYPES
-  use ol_global_decl, only: MaxParticles
   implicit none
-  integer :: n_
-  integer :: binom2(MaxParticles) = [((n_*(n_-1))/2, n_=1, MaxParticles)]
-
 contains
 
 ! **********************************************************************
@@ -371,7 +367,7 @@ end subroutine rambo
 
 subroutine rambo_c(sqrt_s, m_ex, n, p_rambo) bind(c,name="ol_rambo")
   use KIND_TYPES, only: REALKIND
-  use ol_debug, ol_fatal
+  use ol_debug, only: ol_fatal
   use, intrinsic :: iso_c_binding, only: c_double, c_int
   implicit none
   integer(c_int), intent(in)  :: n
@@ -584,14 +580,16 @@ end subroutine dirty_mom
 
 ! **********************************************************************
 subroutine conv_mom_scatt2in(P_scatt, m_ext2, P_in_clean, perm_inv, n)
-! Keep two incoming momenta and reverse outgoing momenta.
+! Keep incoming momenta and reverse outgoing momenta.
 ! Apply phase space cleaning and crossing.
+! Note: calls init_kin_arrays -> allocation of kinematic arrays
 ! ToDo: cleaning for n_scatt /= 2
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND, DREALKIND
   use ol_external_decl_/**/REALKIND, only: nParticles, P_ex, inverse_crossing
   use ol_external_decl_/**/DREALKIND, only: n_scatt
   use ol_parameters_decl_/**/DREALKIND, only: scalefactor
+  use ol_parameters_init_/**/REALKIND, only: init_kin_arrays
   implicit none
   integer,           intent(in)  :: n
   real(DREALKIND),   intent(in)  :: P_scatt(0:3,n)
@@ -602,6 +600,7 @@ subroutine conv_mom_scatt2in(P_scatt, m_ext2, P_in_clean, perm_inv, n)
   real(REALKIND)  :: P_clean(0:3,n), m_ext2_perm(n)
   integer         :: k
   nParticles = n
+  call init_kin_arrays(nParticles)
   P_ex(:,1:n) = P_scatt
   inverse_crossing(1:n) = perm_inv
   do k = 1, n
@@ -609,7 +608,7 @@ subroutine conv_mom_scatt2in(P_scatt, m_ext2, P_in_clean, perm_inv, n)
   end do
   P_in(:,1:n_scatt) =   scalefactor * P_scatt(:,1:n_scatt)
   P_in(:,n_scatt+1:)  = - scalefactor * P_scatt(:,n_scatt+1:)
-  if (n_scatt == 2) then
+  if (n_scatt == 2 .and. n > 3) then
     ! Clean momenta to get full numerical precision.
     ! Do the cleaning in the original permutation where the first two momenta are incoming.
     ! Otherwise the beam alignment (zero components) might be spoiled by the cleaning.
@@ -714,13 +713,11 @@ subroutine internal_momenta(P, Npart)
   real(REALKIND), intent(in) :: P(0:3,Npart)
   integer,        intent(in)  :: Npart
   integer :: i, j
-  integer, save :: allocatedNpart = 0
   integer :: Jmax
   integer :: i1, i2 ! conventional particle numbers
   integer :: l1, l2 ! individual 2^(i-1) particles numbers
   integer :: s1, s2 ! sums of 2^(i-1) particle numbers
   integer :: r1, r2 ! inverse of s1, s2, ...
-
 
   i = 2**Npart - 2
 
@@ -746,12 +743,6 @@ subroutine internal_momenta(P, Npart)
     Q(5,6) = Q(5,1)
   else
     call intmom(P, Npart, i)
-  end if
-
-  if (allocatedNpart /= Npart) then
-    if (allocatedNpart /= 0) deallocate(QInvariantsMatrix)
-    allocate(QInvariantsMatrix(Npart,Npart))
-    allocatedNpart = Npart
   end if
 
   do i = 1, Npart
@@ -869,6 +860,7 @@ function momenta_invariants(moms) result(invs)
 ! as used by Collier. Apply 'squeeze_onshell' to each invariant with the masses in the theory.
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND
+  use ol_external_decl_/**/REALKIND, only: binom2
   use ol_parameters_decl_/**/DREALKIND, only: model
   use ol_parameters_decl_/**/REALKIND, only: &
     & wMW, rMW, wMZ, rMZ, wMH, rMH, wMC, rMC, wMB, rMB, wMT, rMT, &

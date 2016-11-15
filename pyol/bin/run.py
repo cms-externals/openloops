@@ -19,17 +19,11 @@
 # along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
 
 
-# TODO
-# * Python version check.
-# * Accept internal channel identifier to register a process
-#   (distingish from library name).
-# * set model automatically, print message.
-
-
 import sys
 import argparse
 import time
 import openloops
+import parallel
 
 # =============== #
 # argument parser #
@@ -67,30 +61,26 @@ parser.add_argument(
     help='Minimal number of points in runtime measurements.')
 parser.add_argument(
     '-v', '--verbose', type=int, default=1, help='Verbosity level')
+parser.add_argument(
+    '-p', '--parallel', type=int, default=-1,
+    help="""Number of subprocesses for parallel matrix element evaluation.
+    Default -1 means no subprocesses, 0 means as many subprocesses as there
+    are CPU cores. Note that 1 differs from -1 as it uses one subprocess
+    instead of just the main process.""")
 # This is just to create a help message, opt=val pairs are extracted manually
 # to avoid ordering conflicts between options and positional arguments.
 parser.add_argument(
-    'options', metavar='OPT=VAL', nargs='*',
-    help='Options to pass to directly to OpenLoops')
+    'options', metavar='OPT=VAL[:VAL2[...]]', nargs='*',
+    help="""Options to pass to directly to OpenLoops. Swap options:
+    separate multiple values for the same option with colons to evaluate the
+    matrix element for the same phase space point with different options.
+    The first value of each swap option is initialised before registering
+    processes, i.e. the first values should be such that the loaded process
+    works with all following values. Can be used with multiple options if they
+    all have the same number of swap options.""")
 
-options = [arg for arg in sys.argv[1:] if ('=' in arg and not arg.startswith('-'))]
-args = parser.parse_args(
-    [arg for arg in sys.argv[1:] if (arg.startswith('-') or '=' not in arg)])
-if not args.timing and args.n is None:
-    args.n = 1
 
-# ======================== #
-# parameter initialisation #
-# ======================== #
-
-openloops.set_parameter('splash',0)
-
-for opt in options:
-    try:
-        key, val = opt.split('=',1)
-    except ValueError:
-        print '[PYOL] ERROR: invalid option \'{}\''.format(opt)
-        sys.exit(1)
+def set_option(key, val):
     if key.startswith('alpha') and '/' in val:
         try:
             valnum, valden = val.split('/')
@@ -101,9 +91,96 @@ for opt in options:
         print 'call set_parameter({},{})'.format(key,val)
     openloops.set_parameter(key, val)
 
+
+def eval_me(proc, psp):
+    mes = []
+    if swap_options:
+        # multiple evaluation with different parameters
+        for sopts in swap_options:
+            for key, val in sopts:
+                set_option(key, val)
+            mes.append(proc.evaluate(psp))
+    else:
+        # single evaluation
+        mes.append(proc.evaluate(psp))
+    return mes
+
+
+def print_me(mes, first=False):
+    """Print matrix elements.
+    mes -- a list of matrix elements,
+           usually for the same phase space point.
+    first -- if True, print a line to lable the results.
+    """
+    if first and args.verbose >= 1:
+        prepend = ''
+        if swap_options:
+            prepend = '   '
+        if mes[0].amptype == openloops.TREE:
+            print prepend + '{:>23}'.format('tree')
+        elif mes[0].amptype == openloops.LOOP:
+            print (prepend + 5*'{:>23}').format(
+                  'tree', 'finite', 'ir1', 'ir2', 'acc')
+        elif mes[0].amptype == openloops.LOOP2:
+            print (prepend + 2*'{:>23}').format('loop2', 'acc')
+    if args.verbose >= 2:
+        print mes[0].psp
+    if args.verbose >= 1:
+        if swap_options:
+            for ns, me in enumerate(mes):
+                print '[{}]{}'.format(ns+1, me.valuestr())
+        else:
+            print mes[0].valuestr()
+
+# =============== #
+# option handling #
+# =============== #
+
+stroptions = openloops.config['pyrunoptions']
+stroptions.extend([arg for arg in sys.argv[1:]
+                 if ('=' in arg and not arg.startswith('-'))])
+args = parser.parse_args(
+    [arg for arg in sys.argv[1:] if (arg.startswith('-') or '=' not in arg)])
+if not args.timing and args.n is None:
+    args.n = 1
+
+options = [] # [(opt, val), ...]
+swap_options = [] # [(opt, [val1, val2, ...]), ...]
+
+for opt in stroptions:
+    try:
+        key, val = opt.split('=',1)
+    except ValueError:
+        print '[PYOL] ERROR: invalid option \'{}\''.format(opt)
+        sys.exit(1)
+    vals = val.split(':')
+    options.append((key,vals[0]))
+    if len(vals) > 1:
+        if not swap_options:
+            swap_options = [list() for val in vals]
+        if len(vals) != len(swap_options):
+            print 'ERROR: swap options must all have equal length.'
+            sys.exit(1)
+        for val, sopt in zip(vals, swap_options):
+            sopt.append((key,val))
+
+# ======================== #
+# parameter initialisation #
+# ======================== #
+
+# Also in parallel mode parameters must be initialised in the main process,
+# so that the processes can be registered to generate phase space points
+# in the main programm (which are then distributed to the workers).
+
+for key, val in options:
+    set_option(key, val)
+
 # ================== #
 # register processes #
 # ================== #
+
+# Note that when the processes are successfully registered in the main process
+# we assume that this also works in the subprocesses.
 
 is_library = False
 if not '>' in args.process:
@@ -129,50 +206,60 @@ else:
         processes = procinfo.register()
     except openloops.RegisterProcessError as err:
         print ('[PYOL] ERROR while registering process from library ' +
-                '{}:\n       {}').format(args.process, err.args[0])
+               '{}:\n       {}').format(args.process, err.args[0])
         sys.exit(1)
 
 # === #
 # run #
 # === #
 
-def eval_and_print(proc, first=False):
-    me = proc.evaluate(args.energy)
-    if args.verbose >= 2:
-        print me.psp
-    if args.verbose >= 1:
-        if first:
-            if me.amptype == openloops.TREE:
-                print '{:>23}'.format('tree')
-            elif me.amptype == openloops.LOOP:
-                print (5*'{:>23}').format(
-                    'tree', 'finite', 'ir1', 'ir2', 'acc')
-            elif me.amptype == openloops.LOOP2:
-                print (2*'{:>23}').format('loop2', 'acc')
-        print me.valuestr()
-
-for proc in processes:
-    print
-    print '"' + proc.process + '"'
-    if not args.timing:
-        for n in range(args.n):
-            eval_and_print(proc, first=not(n))
-    else:
-        eval_and_print(proc, first=True)
-        eval_and_print(proc)
-        starttime = time.clock()
-        if args.n is not None:
-            npoints = args.n
+if args.parallel < 0:
+    # evaluation in main process only
+    for proc in processes:
+        print
+        print '"' + proc.process + '"'
+        if not args.timing:
             for n in range(args.n):
-                eval_and_print(proc, first=not(n))
+                psp = proc.psp(args.energy)
+                mes = eval_me(proc, psp)
+                print_me(mes, first=not(n))
         else:
-            npoints = 0
-            while (time.clock() < starttime + args.mintime or
-                   npoints < args.minn):
-                npoints = npoints + 1
-                eval_and_print(proc)
-        endtime = time.clock()
-        print ('time per phase space point: {:3f} ms (avg. of {} ' +
-               'points)').format(1000*(endtime - starttime)/npoints, npoints)
+            # timing
+            psp = proc.psp(args.energy)
+            mes = eval_me(proc, psp)
+            print_me(mes, first=True)
+            psp = proc.psp(args.energy)
+            mes = eval_me(proc, psp)
+            print_me(mes)
+            starttime = time.clock()
+            if args.n is not None:
+                npoints = args.n
+                for n in range(args.n):
+                    psp = proc.psp(args.energy)
+                    mes = eval_me(proc, psp)
+                    print_me(mes)
+            else:
+                npoints = 0
+                while (time.clock() < starttime + args.mintime or
+                    npoints < args.minn):
+                    npoints = npoints + 1
+                    psp = proc.psp(args.energy)
+                    mes = eval_me(proc, psp)
+                    print_me(mes)
+            endtime = time.clock()
+            print ('time per phase space point: {:3f} ms (avg. of {} ' +
+                'points)').format(1000*(endtime - starttime)/npoints, npoints)
 
-print
+else:
+    # parallel evaluation in subprocesses
+    procamp_list = [(proc.process, proc.amptype) for proc in processes]
+    pool = parallel.Pool(procamp_list, args.parallel, options, swap_options)
+    for proc in processes:
+        print
+        print '"' + proc.process + '"'
+        # submit phase space points
+        for n in range(args.n):
+            pool.put((proc.process, proc.amptype), proc.psp(args.energy))
+        for n in range(args.n):
+            mes = pool.get()
+            print_me(mes, first=not(n))
