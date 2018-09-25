@@ -1,25 +1,29 @@
-
-# Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-#
-# This file is part of OpenLoops.
-#
-# OpenLoops is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# OpenLoops is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+#!******************************************************************************!
+#! Copyright (C) 2014-2018 OpenLoops Collaboration. For authors see authors.txt !
+#!                                                                              !
+#! This file is part of OpenLoops.                                              !
+#!                                                                              !
+#! OpenLoops is free software: you can redistribute it and/or modify            !
+#! it under the terms of the GNU General Public License as published by         !
+#! the Free Software Foundation, either version 3 of the License, or            !
+#! (at your option) any later version.                                          !
+#!                                                                              !
+#! OpenLoops is distributed in the hope that it will be useful,                 !
+#! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+#! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+#! GNU General Public License for more details.                                 !
+#!                                                                              !
+#! You should have received a copy of the GNU General Public License            !
+#! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+#!******************************************************************************!
 
 
 import os
 import sys
-import ConfigParser
+if sys.version_info.major == 2:
+    import ConfigParser as configparser
+else:
+    import configparser
 import re
 
 # prefix for default_config_file and user_config_file
@@ -40,12 +44,12 @@ loops_specifications = ['auto', 't', 'l', 'lt', 'lp', 'ls',
 
 
 def exit_error(err):
-    print 'CONFIG ERROR:', err
+    print('CONFIG ERROR:', err)
     sys.exit(1)
 
 
 def split_list(ls, converter=str):
-    return map(converter, ls.replace(',',' ').split())
+    return list(map(converter, ls.replace(',',' ').split()))
 
 
 def parse_bool(bl):
@@ -97,7 +101,7 @@ def get_config(args=[]):
           (if the same option is given more than once,
            only the last set value is used)
     """
-    config = ConfigParser.SafeConfigParser()
+    config = configparser.SafeConfigParser()
     # default configuration
     with open(os.path.join(prefix, default_config_file), 'r') as fh:
         config.readfp(fh)
@@ -121,6 +125,7 @@ def get_config(args=[]):
     parse_option(config, 'cc')
     parse_option(config, 'cxx')
     parse_option(config, 'ccflags', converter=split_list)
+    parse_option(config, 'cxxflags', converter=split_list)
     parse_option(config, 'generator', converter=int, one_of=[0,1,2])
     parse_option(config, 'gjobs', converter=int)
     parse_option(config, 'compile', converter=int, one_of=[0,1,2])
@@ -131,12 +136,13 @@ def get_config(args=[]):
     parse_option(config, 'precision', converter=split_list,
                  subset_of=['dp','qp'])
     parse_option(config, 'compile_libraries', converter=split_list,
-                 subset_of=['rambo','collier','cuttools','samurai'])
+                 subset_of=['rambo', 'collier', 'cuttools', 'trred'])
     parse_option(config, 'link_libraries', converter=split_list,
-                 subset_of=['rambo', 'collier', 'cuttools', 'samurai'])
+                 subset_of=['rambo', 'collier', 'cuttools', 'trred'])
     parse_option(config, 'scalar_integral_libraries', converter=split_list,
                  subset_of=['qcdloop', 'oneloop'])
     parse_option(config, 'collier_legacy', converter=parse_bool)
+    parse_option(config, 'oneloop_legacy', converter=parse_bool)
     parse_option(config, 'clean', converter=split_list,
                  subset_of=['procs', 'src'])
     parse_option(config, 'debug', converter=int, one_of=range(8))
@@ -186,7 +192,7 @@ def get_config(args=[]):
 
     if 'dp' not in config['precision']:
         config['precision'] = config['precision'].append('dp')
-        print 'CONFIG: added \'dp\' to \'precision\''
+        print('CONFIG: added \'dp\' to \'precision\'')
 
     if config['debug'] in (1,3,5,7):
         config['f_flags'].extend(config['debug_flags_1'])
@@ -206,14 +212,16 @@ def get_config(args=[]):
     config['f90_flags'] = config['f90_flags'] + config['f_flags']
     config['link_flags'] = config['link_flags'] + config['link_optimisation']
 
-    config['compile_libraries'].extend(['olcommon', 'openloops'])
-    config['link_libraries'].extend(['olcommon', 'openloops'])
-    if ('cuttools' in config['compile_libraries'] or
-        'samurai' in config['compile_libraries']):
-        config['compile_libraries'].extend(config['scalar_integral_libraries'])
-    if ('cuttools' in config['link_libraries'] or
-        'samurai' in config['link_libraries']):
-        config['link_libraries'].extend(config['scalar_integral_libraries'])
+    config['compile_libraries'].extend(['olcommon', 'openloops', 'trred'])
+    config['link_libraries'].extend(['olcommon', 'openloops', 'trred'])
+    if ('cuttools' in config['compile_libraries']):
+        for lib in config['scalar_integral_libraries']:
+            if lib not in config['compile_libraries']:
+                config['compile_libraries'].append(lib)
+    if ('cuttools' in config['link_libraries']):
+        for lib in config['scalar_integral_libraries']:
+            if lib not in config['link_libraries']:
+                config['link_libraries'].append(lib)
 
     config['generator_dependencies'] = (
        [config['code_generator_prg']]

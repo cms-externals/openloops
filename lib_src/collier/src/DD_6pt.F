@@ -43,8 +43,10 @@ c local variables
 c LH: variables for cache system
         complex*16 xcache(21), fct(NCoefmax6)
         integer n0,n1,n2,n3,n4,n5,n12345,cnt,cntmax,r2cache
-        logical nocalc/.false./, wrica/.false./
-        save wrica
+c        logical nocalc/.false./, wrica/.false./
+c        save wrica
+         logical :: nocalc = .false.
+         logical, save :: wrica =.false.
 #endif
 
         if (id.eq.0) then
@@ -618,7 +620,7 @@ c F(i0,i1,...) from symmetrization as in Eq.(6.14)
      &                                   + i4*Fb(4,i0,i1,i2,i3,i4-1,i5)
           if (i5.gt.0) F(i0/2,i1,i2,i3,i4,i5) = F(i0/2,i1,i2,i3,i4,i5)
      &                                   + i5*Fb(5,i0,i1,i2,i3,i4,i5-1)
-          F(i0/2,i1,i2,i3,i4,i5) = F(i0/2,i1,i2,i3,i4,i5) / dfloat(r)
+          F(i0/2,i1,i2,i3,i4,i5) = F(i0/2,i1,i2,i3,i4,i5) / dble(r)
 120     continue
 
         Fij_err(tid(id),r)  = 0d0

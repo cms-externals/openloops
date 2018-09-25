@@ -1,16 +1,6 @@
 
 #include <iostream>
-
-extern "C" {
-
-  void OLP_Info(char* str);
-  void OLP_Start(const char* contract_file_name, int* ierr);
-  void OLP_SetParameter(const char* para, double* re, double* im, int* ierr);
-  void OLP_EvalSubProcess2(int* id, double* pp, double* mu, double* rval, double* acc);
-
-  void ol_phase_space_point(int id, double sqrt_s, double* pp);
-  int ol_n_external(int id);
-}
+#include "openloops.h"
 
 int main() {
 

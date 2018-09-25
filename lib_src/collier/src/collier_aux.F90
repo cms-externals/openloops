@@ -156,7 +156,7 @@ contains
 
     character(len=*),parameter :: fmt1 = "(A6,'dcmplx(',d25.18,' ,',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
-    "(A6,' B(',i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,' B(',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
 
 !    data DiffCntB /0/
 
@@ -270,7 +270,7 @@ contains
 
     character(len=*),parameter :: fmt1 = "(A5,'dcmplx(',d25.18,' ,',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
-    "(A6,' C(',i1,','i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,' C(',i1,',',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
 
 !    data DiffCntC /0/
 
@@ -389,7 +389,7 @@ contains
 
     character(len=*),parameter :: fmt1 = "(A5,'dcmplx(',d25.18,' ,',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
-    "(A6,' D(',i1,','i1,','i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,' D(',i1,',',i1,',',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
 
 !    data DiffCntD /0/
 
@@ -532,13 +532,13 @@ contains
     double complex :: LoCons(0:rmax/2,BinomTable(rmax,rmax+3),0:rmax/2,BinomTable(rmax,rmax+3),0:rmax)
     integer :: i1,i2
 
-    character(len=*),parameter :: fmt1 = "(A5,'dcmplx(',d25.18,',',d25.18,')')"
+    character(len=*),parameter :: fmt1 = "(A5,'dcmplx(',d25.18,',',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
-    "(A6,' E(',i1,','i1,','i1,','i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,' E(',i1,',',i1,',',i1,',',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
     character(len=*),parameter :: fmt3 = &
-    "(A6,' E*T(',i1,','i1,','i1,','i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,' E*T(',i1,',',i1,',',i1,',',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
     character(len=*),parameter :: fmt4 = &
-    "(A6,'   E(',i1,','i1,','i1,','i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,'   E(',i1,',',i1,',',i1,',',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
 
 !    data DiffCntE /0/
 
@@ -812,13 +812,13 @@ contains
     double complex :: LoCons(0:rmax/2,BinomTable(rmax,rmax+4),0:rmax/2,BinomTable(rmax,rmax+4),0:rmax)
     integer :: i1,i2
 
-    character(len=*),parameter :: fmt1 = "(A5,'dcmplx(',d25.18,',',d25.18,')')"
+    character(len=*),parameter :: fmt1 = "(A5,'dcmplx(',d25.18,',',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
-    "(A6,' F(',i1,','i1,','i1,','i1,','i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,' F(',i1,',',i1,',',i1,',',i1,',',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
     character(len=*),parameter :: fmt3 = &
-    "(A6,' F*T(',i1,','i1,','i1,','i1,','i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,' F*T(',i1,',',i1,',',i1,',',i1,',',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
     character(len=*),parameter :: fmt4 = &
-    "(A6,'   F(',i1,','i1,','i1,','i1,','i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,'   F(',i1,',',i1,',',i1,',',i1,',',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
 
 !    data DiffCntF /0/
     
@@ -1107,11 +1107,11 @@ contains
 !    integer, save :: DiffCntTN
     double complex, allocatable :: LoCons(:,:,:,:,:)
     integer :: i1,i2
-    character(len=*),parameter :: fmt1 = "(A8'(',i2,')=dcmplx(',d25.18,',',d25.18,')')"
+    character(len=*),parameter :: fmt1 = "(A8,'(',i2,')=dcmplx(',d25.18,',',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
     "(A6,' TN(',i2,') = (',E23.16,' , ',E23.16,' ), r=',i2)"
     character(len=*),parameter :: fmt3 = &
-    "(A6,' TN*T(',i1,','i2,') = (',E23.16,' , ',E23.16,' ), r=',i2)"
+    "(A6,' TN*T(',i1,',',i2,') = (',E23.16,' , ',E23.16,' ), r=',i2)"
     character(len=*),parameter :: fmt4 = &
     "(A6,' TN(',i2,') = (',E23.16,' , ',E23.16,' )')"
 
@@ -1347,7 +1347,7 @@ contains
 !    integer, parameter :: noutCheckDBmax=50
 !    integer, save :: DiffCntDB
 
-    character(len=*),parameter :: fmt1 = "(A5,'dcmplx(',g25.18,',',g25.18,')')"
+    character(len=*),parameter :: fmt1 = "(A5,'dcmplx(',g25.18,',',g25.18,' )')"
 
 !    data DiffCntDB /0/
 
@@ -1418,7 +1418,7 @@ contains
 
     character(len=*),parameter :: fmt1 = "(A6,'dcmplx(',d25.18,' ,',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
-    "(A6,' DB(',i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,' DB(',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
 
 !    data DiffCntDB /0/
 

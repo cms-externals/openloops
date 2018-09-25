@@ -1,20 +1,21 @@
-
-! Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-!
-! This file is part of OpenLoops.
-!
-! OpenLoops is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! OpenLoops is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-! GNU General Public License for more details.
-!
-! You should have received a copy of the GNU General Public License
-! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+!******************************************************************************!
+! Copyright (C) 2014-2018 OpenLoops Collaboration. For authors see authors.txt !
+!                                                                              !
+! This file is part of OpenLoops.                                              !
+!                                                                              !
+! OpenLoops is free software: you can redistribute it and/or modify            !
+! it under the terms of the GNU General Public License as published by         !
+! the Free Software Foundation, either version 3 of the License, or            !
+! (at your option) any later version.                                          !
+!                                                                              !
+! OpenLoops is distributed in the hope that it will be useful,                 !
+! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+! GNU General Public License for more details.                                 !
+!                                                                              !
+! You should have received a copy of the GNU General Public License            !
+! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+!******************************************************************************!
 
 
 module ol_helicity_init
@@ -30,7 +31,7 @@ subroutine heltable(n_in, n, tab)
   implicit none
   integer,           intent(in)  :: n_in(:)
   integer(intkind2), intent(out) :: n(:), tab(:,:)
-  integer :: i1, i2, i3, i4, i5, i6
+  integer :: i1, i2, i3, i4, i5, i6, i7
 
   n = n_in
 
@@ -88,10 +89,30 @@ subroutine heltable(n_in, n, tab)
         end do
       end do
     end do
+  else if (size(n) == 7) then
+    i7 = 1
+    do i1 = 1, n(1)
+      do i2 = 1, n(2)
+        do i3 = 1, n(3)
+          do i4 = 1, n(4)
+            do i5 = 1, n(5)
+              do i6 = 1, n(6)
+                tab(1,i7) = i1
+                tab(2,i7) = i2
+                tab(3,i7) = i3
+                tab(4,i7) = i4
+                tab(5,i7) = i5
+                tab(6,i7) = i6
+                i7 = i7 + 1
+              end do
+            end do
+          end do
+        end do
+      end do
+    end do
   else
     call ol_fatal("heltable: " // trim(to_string(size(n))) // " point vertices are not supported.")
   end if
-
 end subroutine heltable
 
 

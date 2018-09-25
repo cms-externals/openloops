@@ -1,0 +1,14 @@
+
+QCDLoop 2.0.3 from https://github.com/scarrazza/qcdloop.git (master, 158deba6c7b4616513b78a05f6d0d811a79c03ae).
+
+The only macros from config.h which are actually used are QL_NAMES and VERSION.
+
+tools.cc:62
+commented Splash::Show();
+
+wrapper.h:456
+inserted
+  void qlshowsplash_() {
+    Splash::Show();
+  }
+(when OCDLoop is used by OpenLoops, call this function)

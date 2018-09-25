@@ -45,6 +45,11 @@ generator=0/1/2
   1: use the process generator
   2: use the process downloader
 
+gversion=0/1/2
+  0: full hel loop, parent-child-recycling (only option for loop induced processes)
+  1: on-the-fly hel summation, born contracted with 1-loop colour in beginning, on-the-fly-merging of diagrams
+  2: gversion 1 + on-the-fly-reduction
+
 compile=0/1/2
   0: don't compile
   1: compile processes,
@@ -88,17 +93,26 @@ import OLBaseConfig
 import OLToolbox
 from OLLibrary import CPPContainer, OLLibrary
 
+# This is a workaround for a bug in SCons 3
+# (tested with 3.0.1, no later version available as of now):
+# Use HashableLiteral instead of Literal e.g. when setting RPATH to $ORIGIN
+# to avoid the error
+# TypeError `unhashable type: 'Literal'' trying to evaluate `${_concat(RPATHPREFIX, RPATH, RPATHSUFFIX, __env__)}'
+import SCons
+class HashableLiteral(SCons.Subst.Literal):
+    def __hash__(self):
+        return hash(self.lstr)
 
 if '--help' in sys.argv or '-h' in sys.argv:
-    print help_message
+    print(help_message)
     Exit(0)
 
 scons_cmd = sys.argv[0]
 
-process_arguments = filter(lambda el: el[0] in
-                           OLBaseConfig.loops_specifications, ARGLIST)
-commandline_options = filter(lambda el: el[0] not in
-                             OLBaseConfig.loops_specifications, ARGLIST)
+process_arguments = list(filter(lambda el: el[0] in
+                                OLBaseConfig.loops_specifications, ARGLIST))
+commandline_options = list(filter(lambda el: el[0] not in
+                                  OLBaseConfig.loops_specifications, ARGLIST))
 
 config = OLBaseConfig.get_config(commandline_options)
 
@@ -123,7 +137,7 @@ svn_revision = str(OLToolbox.get_svn_revision(mandatory = False))
 # Install directory; only effect is that this is put into
 # the openloops library as a string. TODO: override by command line argument;
 # and actually install the libraries there
-install_path = os.getcwd()
+install_path =  os.path.abspath(os.path.join(config['process_lib_dir'],"../"))
 
 generate_process_true = ((config['generator'] == 1) and
                          not GetOption('clean') and not GetOption('no_exec'))
@@ -148,7 +162,7 @@ else:
 # - WARN -- issue warnings
 # - NEWCHECK -- print untested scalar function calls
 
-cpp_defines = map(lambda lib: 'USE_' + lib.upper(), config['link_libraries'])
+cpp_defines = list(map(lambda lib: 'USE_' + lib.upper(), config['link_libraries']))
 cpp_defines += [('KIND_TYPES', 'kind_types'),
                 ('DREALKIND', 'dp'),
                 ('QREALKIND', 'qp'),
@@ -168,7 +182,7 @@ else:
 lib_src_dirs = {}
 lib_obj_dirs = {}
 lib_mod_dirs = {}
-for libname in ['olcommon', 'rambo', 'qcdloop', 'oneloop', 'cuttools', 'samurai', 'collier', 'openloops']:
+for libname in ['olcommon', 'rambo', 'qcdloop', 'oneloop', 'cuttools', 'collier', 'openloops', 'trred']:
     lib_src_dirs[libname] = os.path.join(config['lib_src_dir'], libname, 'src')
     lib_obj_dirs[libname] = os.path.join(config['lib_src_dir'], libname, 'obj')
     lib_mod_dirs[libname] = os.path.join(config['lib_src_dir'], libname, 'mod')
@@ -183,24 +197,27 @@ olcommon_mp_src = ['common.F90']
 rambo_dp_src = ['rambo.f']
 
 # QCDLoop
+#qcdloop_dp_src = [
+    #'aacbc.f', 'aaccc.f', 'aacinv.f', 'aaxbx.f', 'aaxcx.f', 'aaxdx.f', 'aaxex.f', 'aaxinv.f',
+    #'auxCD.f', 'ddilog.f', 'ff2dl2.f', 'ffabcd.f', 'ffca0.f', 'ffcb0.f', 'ffcb1.f', 'ffcb2.f',
+    #'ffcb2p.f', 'ffcc0.f', 'ffcc0p.f', 'ffcc1.f', 'ffcdb0.f', 'ffcel2.f', 'ffcel3.f', 'ffcel4.f',
+    #'ffcel5.f', 'ffceta.f', 'ffcli2.f', 'ffcrr.f', 'ffcxr.f', 'ffcxs3.f', 'ffcxs4.f', 'ffcxyz.f',
+    #'ffdcc0.f', 'ffdcxs.f', 'ffdel2.f', 'ffdel3.f', 'ffdel4.f', 'ffdel5.f', 'ffdel6.f', 'ffdl2i.f',
+    #'ffdl5p.f', 'ffdxc0.f', 'ffinit_mine.f', 'ffrcvr.f', 'fftran.f', 'ffxb0.f', 'ffxb1.f', 'ffxb2p.f',
+    #'ffxc0.f', 'ffxc0i.f', 'ffxc0p.f', 'ffxc1.f', 'ffxd0.f', 'ffxd0h.f', 'ffxd0i.f', 'ffxd0p.f',
+    #'ffxd1.f', 'ffxdb0.f', 'ffxdbd.f', 'ffxdi.f', 'ffxdpv.f', 'ffxe0.f', 'ffxe1.f', 'ffxf0.f',
+    #'ffxf0h.f', 'ffxli2.f', 'ffxxyz.f', 'npoin.f', 'qlbox1.f', 'qlbox10.f', 'qlbox11.f', 'qlbox12.f',
+    #'qlbox13.f', 'qlbox14.f', 'qlbox15.f', 'qlbox16.f', 'qlbox2.f', 'qlbox3.f', 'qlbox4.f', 'qlbox5.f',
+    #'qlbox6.f', 'qlbox7.f', 'qlbox8.f', 'qlbox9.f', 'qlcLi2omx2.f', 'qlcLi2omx3.f', 'qlfndd.f',
+    #'qlfunctions.f', 'qlI1.f', 'qlI2.f', 'qlI2fin.f', 'qlI3.f', 'qlI3fin.f', 'qlI3sub.f', 'qlI4.f',
+    #'qlI4array.f', 'qlI4DNS41.f', 'qlI4fin.f', 'qlI4sub0m.f', 'qlI4sub1m.f', 'qlI4sub2m.f',
+    #'qlI4sub2ma.f', 'qlI4sub2mo.f', 'qlI4sub3m.f', 'qlinit.f', 'qlkfn.f', 'qlLi2omprod.f',
+    #'qlLi2omrat.f', 'qlLi2omx.f', 'qlLi2omx2.f', 'qllnomrat4.f', 'qllnrat.f', 'qlratgam.f',
+    #'qlratreal.f', 'qlsnglsort.f', 'qlspencer.f', 'qltri1.f', 'qltri2.f', 'qltri3.f', 'qltri4.f',
+    #'qltri5.f', 'qltri6.f', 'qltrisort.f', 'qlxpicheck.f', 'qlYcalc.f', 'qlzero.f', 'spence.f']
 qcdloop_dp_src = [
-    'aacbc.f', 'aaccc.f', 'aacinv.f', 'aaxbx.f', 'aaxcx.f', 'aaxdx.f', 'aaxex.f', 'aaxinv.f',
-    'auxCD.f', 'ddilog.f', 'ff2dl2.f', 'ffabcd.f', 'ffca0.f', 'ffcb0.f', 'ffcb1.f', 'ffcb2.f',
-    'ffcb2p.f', 'ffcc0.f', 'ffcc0p.f', 'ffcc1.f', 'ffcdb0.f', 'ffcel2.f', 'ffcel3.f', 'ffcel4.f',
-    'ffcel5.f', 'ffceta.f', 'ffcli2.f', 'ffcrr.f', 'ffcxr.f', 'ffcxs3.f', 'ffcxs4.f', 'ffcxyz.f',
-    'ffdcc0.f', 'ffdcxs.f', 'ffdel2.f', 'ffdel3.f', 'ffdel4.f', 'ffdel5.f', 'ffdel6.f', 'ffdl2i.f',
-    'ffdl5p.f', 'ffdxc0.f', 'ffinit_mine.f', 'ffrcvr.f', 'fftran.f', 'ffxb0.f', 'ffxb1.f', 'ffxb2p.f',
-    'ffxc0.f', 'ffxc0i.f', 'ffxc0p.f', 'ffxc1.f', 'ffxd0.f', 'ffxd0h.f', 'ffxd0i.f', 'ffxd0p.f',
-    'ffxd1.f', 'ffxdb0.f', 'ffxdbd.f', 'ffxdi.f', 'ffxdpv.f', 'ffxe0.f', 'ffxe1.f', 'ffxf0.f',
-    'ffxf0h.f', 'ffxli2.f', 'ffxxyz.f', 'npoin.f', 'qlbox1.f', 'qlbox10.f', 'qlbox11.f', 'qlbox12.f',
-    'qlbox13.f', 'qlbox14.f', 'qlbox15.f', 'qlbox16.f', 'qlbox2.f', 'qlbox3.f', 'qlbox4.f', 'qlbox5.f',
-    'qlbox6.f', 'qlbox7.f', 'qlbox8.f', 'qlbox9.f', 'qlcLi2omx2.f', 'qlcLi2omx3.f', 'qlfndd.f',
-    'qlfunctions.f', 'qlI1.f', 'qlI2.f', 'qlI2fin.f', 'qlI3.f', 'qlI3fin.f', 'qlI3sub.f', 'qlI4.f',
-    'qlI4array.f', 'qlI4DNS41.f', 'qlI4fin.f', 'qlI4sub0m.f', 'qlI4sub1m.f', 'qlI4sub2m.f',
-    'qlI4sub2ma.f', 'qlI4sub2mo.f', 'qlI4sub3m.f', 'qlinit.f', 'qlkfn.f', 'qlLi2omprod.f',
-    'qlLi2omrat.f', 'qlLi2omx.f', 'qlLi2omx2.f', 'qllnomrat4.f', 'qllnrat.f', 'qlratgam.f',
-    'qlratreal.f', 'qlsnglsort.f', 'qlspencer.f', 'qltri1.f', 'qltri2.f', 'qltri3.f', 'qltri4.f',
-    'qltri5.f', 'qltri6.f', 'qltrisort.f', 'qlxpicheck.f', 'qlYcalc.f', 'qlzero.f', 'spence.f']
+    'box.cc', 'bubble.cc', 'cache.cc', 'qcdloop.cc', 'tadpole.cc', 'tools.cc', 'topology.cc',
+    'triangle.cc', 'types.cc', 'wrapper.cc']
 
 # OneLOop -- contains both, dp and qp routines
 oneloop_dp_src = ['avh_olo_qp.f90']
@@ -210,8 +227,12 @@ openloops_mp_src = [
     'contractions.F90', 'converter.F90', 'counterterms.F90', 'helicity.F90',
     'i-operator.F90', 'kinematics.F90', 'laststep.F90', 'loopmom_tensor.F90',
     'looproutines.F90', 'Lpropagators.F90', 'Lvertices.F90', 'parameters.F90',
-    'parameters_init.F90', 'renormalisation_qcd.F90',
-    'propagators.F90', 'vertices.F90', 'wavefunctions.F90']
+    'parameters_init.F90', 'renormalisation_ew.F90', 'renormalisation_qcd.F90',
+    'propagators.F90', 'vertices.F90', 'wavefunctions.F90',
+    'helbookkeeping.F90','Hhelicity.F90','Hcontractions.F90', 'Hcounterterms.F90',
+    'Hpropagators.F90', 'Hvertices.F90', 'Hlaststep.F90', 'HLvertices.F90',
+    'HLpropagators.F90',
+    'otf_reduction.F90','loopreduction.F90','loophandling.F90']
 
 openloops_dp_src = [
     'helicity_init.F90', 'init_ui.F90', 'stability.F90', 'tensor_handling.F90']
@@ -228,16 +249,6 @@ cuttools_dp_src = [
     'cts_combinatorics.f90', 'cts_constants.f90', 'cts_cutroutines.f90', 'cts_cuttools.f90',
     'cts_dynamics.f90', 'cts_kinematics.f90', 'cts_loopfunctions.f90', 'cts_tensors.f90',
     'cts_type.f90', 'mpnumdummy.f90']
-
-# Samurai
-samurai_dp_src = [
-    'constants.f90', 'kinematic.f90', 'ltest.f90', 'maccu.f90', 'madds.f90',
-    'mcgs.f90', 'mfunctions.f90', 'mgetbase.f90', 'mgetc1.f90', 'mgetc2.f90',
-    'mgetc3.f90', 'mgetc4.f90', 'mgetc5.f90', 'mgetkin.f90', 'mgetqs.f90',
-    'mglobal.f90', 'mmasters.f90', 'mmisavholo.f90', 'mmisgolem.f90',
-    'mmishighrank.f90', 'mmislooptools.f90', 'mmisqcdloop.f90', 'mrestore.f90',
-    'msamurai.f90', 'mtens.f90', 'mtests.f90', 'ncuts.f90', 'notfirst.f90',
-    'options.f90', 'precision.f90', 'save.f90']
 
 # Collier
 if config['collier_legacy']:
@@ -268,13 +279,23 @@ else:
         'coli_d0reg.F', 'coli_stat.F90', 'reductionAB.F90', 'reductionC.F90',
         'reductionD.F90', 'reductionEFG.F90', 'reductionTN.F90',
         # DDlib/
-        'DD_global.F90', 'DD_2pt.F', 'DD_3pt.F', 'DD_4pt.F', 'DD_5pt.F',
-        'DD_6pt.F', 'DD_aux.F', 'DD_to_COLLIER.F',
+        'DD_global.F90', 'DD_2pt.F', 'DD_3pt.F', 'DD_4pt.F',
+        'DD_5pt.F', 'DD_6pt.F', 'DD_aux.F', 'DD_to_COLLIER.F',
+        # dd-qp
+        'DD_global_qp.f90', 'DD_2pt_qp.f', 'DD_3pt_qp.f', 'DD_4pt_qp.f',
+        'DD_5pt_qp.f', 'DD_6pt_qp.f', 'DD_aux_qp.f', 'DD_interface_qp.f90',
         # tensors/
         'BuildTensors.F90', 'InitTensors.F90', 'TensorReduction.F90',
         # ./
         'COLLIER.F90', 'collier_aux.F90', 'collier_coefs.F90',
         'collier_global.F90', 'collier_init.F90', 'collier_tensors.F90']
+
+# tr_red
+tr_dp_src = ['b0.f90', 'c0_000.f90', 'c0_m00.f90', 'triangle_expansion.f90',
+             'b0_mm.f90', 'c0_0mm.f90',  'c0_mmm.f90',  'triangle_aux.f90',
+             'triangle_reduction.f90', 'trred.f90']
+tr_src_mp = []
+
 
 if compile_libraries:
     cpp_container = CPPContainer(scons_cmd = scons_cmd,
@@ -310,6 +331,7 @@ if 'qcdloop' in compile_libraries:
                             target_dir = config['generic_lib_dir'],
                             src_dir = lib_obj_dirs['qcdloop'],
                             mod_dir = '',
+                            cpp_paths = [lib_src_dirs['qcdloop']],
                             dp_src = qcdloop_dp_src)
 
 if 'oneloop' in compile_libraries:
@@ -332,17 +354,6 @@ if 'cuttools' in compile_libraries:
                              src_dir = lib_obj_dirs['cuttools'],
                              dp_src = cuttools_dp_src)
 
-if 'samurai' in compile_libraries:
-    VariantDir(lib_obj_dirs['samurai'],
-               lib_src_dirs['samurai'], duplicate = 0)
-    samurai_lib = OLLibrary(name = 'samurai',
-                            target_dir = config['generic_lib_dir'],
-                            mod_dependencies = ['oneloop'],
-                            linklibs = [ll for ll in config['link_libraries']
-                                        if ll == 'qcdloop'],
-                            src_dir = lib_obj_dirs['samurai'],
-                            dp_src = samurai_dp_src)
-
 if 'collier' in compile_libraries:
     collier_lib = OLLibrary(name = 'collier',
                             target_dir = config['generic_lib_dir'],
@@ -356,14 +367,27 @@ if 'collier' in compile_libraries:
     cpp_container.add(src_dir = lib_src_dirs['collier'],
                       dp_src = collier_inc_dp)
 
+if 'trred' in compile_libraries:
+    trred_lib = OLLibrary(name = 'trred',
+                          target_dir = config['generic_lib_dir'],
+                          mod_dependencies = ['olcommon'],
+                          src_dir = lib_src_dirs['trred'],
+                          mp_src = tr_src_mp,
+                          dp_src = tr_dp_src,
+                          to_cpp = cpp_container)
+
+    # collier: preprocess include files, but don't add them to the list of source files
+    cpp_container.add(src_dir = lib_src_dirs['trred'],
+                      dp_src = tr_dp_src)
+
 if 'openloops' in compile_libraries:
     openloops_lib = OLLibrary(
         name = 'openloops',
         target_dir = config['generic_lib_dir'],
-        mod_dependencies = list(set(config['link_libraries'])
+        mod_dependencies = sorted(list(set(config['link_libraries'])
             & set(['olcommon', 'collier', 'cuttools',
-                   'samurai', 'oneloop', 'rambo'])),
-        linklibs = list(set(config['link_libraries']) & set(['rambo'])),
+                   'oneloop', 'rambo', 'trred']))),
+        linklibs = sorted(list(set(config['link_libraries']) & set(['rambo']))),
         src_dir = lib_src_dirs['openloops'],
         mp_src = openloops_mp_src,
         dp_src = openloops_dp_src,
@@ -380,11 +404,13 @@ else:
 env = Environment(tools = ['default', 'textfile'] + [config['fortran_tool']],
                   ENV = imported_env,
                   CCFLAGS = config['ccflags'] + config['generic_optimisation'],
+                  CXXFLAGS = config['cxxflags'],
                   FORTRANFLAGS = config['f77_flags'] + config['generic_optimisation'],
                   F90FLAGS = config['f90_flags'] + config['generic_optimisation'],
                   LINKFLAGS = config['link_flags'],
                   LIBPATH = [config['generic_lib_dir']],
-                  RPATH = [Literal('\$$ORIGIN')],
+                  DOLLAR = '\$$',
+                  RPATH = [HashableLiteral('\$$ORIGIN')],
                   F90 = config['fortran_compiler'],
                   FORTRAN = config['fortran_compiler'],
                   CC = config['cc'])
@@ -393,7 +419,7 @@ if config['fortran_tool'] == 'gfortran':
     # SCons bug: FORTRANMODDIRPREFIX is missing in gfortran tool
     env.Replace(FORTRANMODDIRPREFIX = '-J')
     # determine gfortran version;
-    # do not use CCVERSION, because mit might not be from gcc
+    # do not use CCVERSION, because it might not be from gcc
     gfort_exitcode = 1
     try:
         gfort_proc = subprocess.Popen(
@@ -404,15 +430,15 @@ if config['fortran_tool'] == 'gfortran':
     except OSError:
         pass
     if not gfort_exitcode: # else ignore and continue without version check
-        if tuple(map(int, gfort_out.strip().split('.')[:2])) < (4,6):
-            print ('ERROR: This OpenLoops version requires gfortran 4.6 ' +
-                   'or later (found %s)' % env.subst('$CCVERSION'))
+        if tuple(map(int, gfort_out.decode('utf-8').strip().split('.')[:2])) < (4,6):
+            print('ERROR: This OpenLoops version requires gfortran 4.6 ' +
+                  'or later (found %s)' % env.subst('$CCVERSION'))
             Exit(1)
 
 if compile_libraries:
     if not GetOption('clean'):
         if not cpp_container.run():
-            print '*** cpp failed ***'
+            print('*** cpp failed ***')
             Exit(1)
 
 env_noautomatic = env.Clone()
@@ -450,11 +476,11 @@ if 'cuttools' in compile_libraries:
     Default('cuttools')
     Clean(libcuttools, [lib_obj_dirs['cuttools'], lib_mod_dirs['cuttools']])
 
-if 'samurai' in compile_libraries:
-    libsamurai = samurai_lib.compile(env = env, shared = config['shared_libraries'])
-    env.Alias('samurai', libsamurai)
-    Default('samurai')
-    Clean(libsamurai, [lib_obj_dirs['samurai'], lib_mod_dirs['samurai']])
+if 'trred' in compile_libraries:
+    libtrred = trred_lib.compile(env = env, shared = config['shared_libraries'])
+    env.Alias('trred', libtrred)
+    Default('trred')
+    Clean(libtrred, [lib_obj_dirs['trred'], lib_mod_dirs['trred']])
 
 if 'collier' in compile_libraries:
     libcollier = collier_lib.compile(env = env, shared = config['shared_libraries'])
@@ -470,7 +496,7 @@ if 'openloops' in compile_libraries:
 
 if GetOption('clean') and compile_libraries:
     if not cpp_container.run(clean = True):
-        print '*** cpp cleanup failed ***'
+        print('*** cpp cleanup failed ***')
         Exit(1)
 
 
@@ -498,7 +524,7 @@ def split_processlist(loops, procs):
     collections = [coll[:-1] + '.coll' for coll in proclist if coll.endswith('/')]
     collections.extend([coll for coll in proclist if coll.endswith('.coll')])
     proclist = [(loops, proc) for proc in proclist
-                if not (proc.endswith('/') or coll.endswith('.coll'))]
+                if not (proc.endswith('/') or proc.endswith('.coll'))]
     for coll in collections:
         coll_repo = False
         for repo in config['process_repositories']:
@@ -533,14 +559,16 @@ def split_processlist(loops, procs):
                         process_coll.extend(process_coll_add)
                 first_repo = False
             if not found_collection:
-                print 'ERROR: process collection ' + coll + ' not found.'
+                print('ERROR: process collection ' + coll + ' not found.')
                 Exit(1)
         proclist += [(loops, proc) for proc in process_coll]
     return proclist
 
 
-def get_auto_loops((loops, processlib)):
+def get_auto_loops(loops_processlib):
     """Determine 'auto' loops specifications from version.info in the process source directory."""
+    loops = loops_processlib[0]
+    processlib = loops_processlib[1]
     if loops == 'auto':
         loops = OLToolbox.import_dictionary(
             os.path.join(config['process_src_dir'], processlib, 'version.info'),
@@ -548,7 +576,7 @@ def get_auto_loops((loops, processlib)):
                 'ERROR: auto loops specification not available for ' + processlib)
         )['loops']
         if loops == 'auto' or loops not in OLBaseConfig.loops_specifications:
-            print 'ERROR: invalid loops specification for', processlib
+            print('ERROR: invalid loops specification for', processlib)
             Exit(1)
     return (loops, processlib)
 
@@ -595,7 +623,7 @@ def revoke_processes():
         if os.path.isdir(processlib_src_dir):
             version_info = OLToolbox.import_dictionary(os.path.join(processlib_src_dir, 'version.info'), fatal = False)
             if version_info and 'hash' in version_info:
-                print 'revoking', proc
+                print('revoking', proc)
                 Execute(Delete(processlib_src_dir))
                 if os.path.isdir(processlib_obj_dir):
                     Execute(Delete(processlib_obj_dir))
@@ -620,7 +648,7 @@ def download_processes(processes):
             force_download_flag + processes +
             ['='.join(arg) for arg in commandline_options])
     if err:
-        print 'ERROR: process downloader failed.'
+        print('ERROR: process downloader failed.')
         Exit(1)
 
 
@@ -631,7 +659,7 @@ def generate_process(loops, processlib):
           ['-f', config['code_generator_script'],
            'PROC=' + processlib, 'LOOPS=' + loops] +
           ['='.join(arg) for arg in commandline_options]) != 0:
-        print 'ERROR: code generator failed.'
+        print('ERROR: code generator failed.')
         Exit(1)
 
 
@@ -642,21 +670,21 @@ if config['process_update']:
     process_list.extend(find_process_src(generate_process_true))
 
 if download_process_true:
-    proc_ls = list(set([proc for loops, proc in process_list]))
+    proc_ls = sorted(list(set([proc for loops, proc in process_list])))
     if proc_ls or config['process_update']:
         revoke_processes()
         download_processes(proc_ls)
 
 process_list = map(get_auto_loops, process_list)
 
-process_list = list(set(process_list))
+process_list = sorted(list(set(process_list)))
 
-env.Append(RPATH = [Literal('\$$ORIGIN/../lib')])
+env.Append(RPATH = [HashableLiteral('\$$ORIGIN/../lib')])
 
 
 for (loops, processlib) in process_list:
 
-    print 'process library:', processlib + '_' + loops
+    print('process library:', processlib + '_' + loops)
 
     # process library name and directories
     processlib_name = 'openloops_' + processlib.lower() + '_' + loops
@@ -701,7 +729,7 @@ for (loops, processlib) in process_list:
 
         # preprocess process library source files
         if not process_cpp_container.run():
-            print '***', processlib, 'cpp failed ***'
+            print('***', processlib, 'cpp failed ***')
             Exit(1)
 
         # delete all libraries for the process

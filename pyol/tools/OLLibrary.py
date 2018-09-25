@@ -1,20 +1,21 @@
-
-# Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-#
-# This file is part of OpenLoops.
-#
-# OpenLoops is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# OpenLoops is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+#!******************************************************************************!
+#! Copyright (C) 2014-2018 OpenLoops Collaboration. For authors see authors.txt !
+#!                                                                              !
+#! This file is part of OpenLoops.                                              !
+#!                                                                              !
+#! OpenLoops is free software: you can redistribute it and/or modify            !
+#! it under the terms of the GNU General Public License as published by         !
+#! the Free Software Foundation, either version 3 of the License, or            !
+#! (at your option) any later version.                                          !
+#!                                                                              !
+#! OpenLoops is distributed in the hope that it will be useful,                 !
+#! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+#! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+#! GNU General Public License for more details.                                 !
+#!                                                                              !
+#! You should have received a copy of the GNU General Public License            !
+#! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+#!******************************************************************************!
 
 
 import os
@@ -102,8 +103,10 @@ class CPPContainer:
 
 class OLLibrary:
     """OpenLoops library class"""
-    def __init__(self, name, target_dir = '', mod_dir = '@mod', mod_dependencies = [], linklibs = [],
-                 src_dir = '', mp_src = [], dp_src = [], version_src = [], py_src = [], to_cpp = False):
+    def __init__(self, name, target_dir = '', mod_dir = '@mod', cpp_paths = [],
+                 mod_dependencies = [], linklibs = [],
+                 src_dir = '', mp_src = [], dp_src = [],
+                 version_src = [], py_src = [], to_cpp = False):
         self.libname = name
         self.target_dir = target_dir
         if mod_dir == '@mod':
@@ -113,9 +116,10 @@ class OLLibrary:
                 self.mod_dir = os.path.join('mod')
         else:
             self.mod_dir = mod_dir
+        self.cpp_paths = cpp_paths
         self.mod_dependencies = list(mod_dependencies)
-        self.linklibs = list(set(
-            linklibs + [dep.lower() for dep in mod_dependencies]))
+        self.linklibs = sorted(list(set(
+            linklibs + [dep.lower() for dep in mod_dependencies])))
         self.src = []
         self.add(src_dir = src_dir, mp_src = list(mp_src), dp_src = list(dp_src),
                  version_src = list(version_src), py_src = list(py_src), to_cpp = to_cpp)
@@ -161,6 +165,7 @@ class OLLibrary:
                 modified_env = env.Clone(FORTRANMODDIR = self.mod_dir,
                                          FORTRANPATH = f_path,
                                          F90PATH = f90_path,
+                                         CPPPATH = self.cpp_paths,
                                          **envm)
                 unprocessed_src = []
                 for sf in src:
@@ -181,6 +186,7 @@ class OLLibrary:
                                          FORTRANMODDIR = self.mod_dir,
                                          FORTRANPATH = f_path,
                                          F90PATH = f90_path,
+                                         CPPPATH = self.cpp_paths,
                                          LIBS = self.linklibs)
         else:
             self.lib = env.StaticLibrary(os.path.join(self.target_dir, self.libname.lower()),
@@ -188,6 +194,7 @@ class OLLibrary:
                                          FORTRANMODDIR = self.mod_dir,
                                          FORTRANPATH = f_path,
                                          F90PATH = f90_path,
+                                         CPPPATH = self.cpp_paths,
                                          LIBS = self.linklibs)
 
         return self.lib

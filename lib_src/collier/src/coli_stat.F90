@@ -26,7 +26,8 @@ module coli_stat
 #ifdef GM
   integer, parameter :: nmethodC=6, nmethodD=7
 #else
-  integer, parameter :: nmethodC=6, nmethodD=6
+!  integer, parameter :: nmethodC=6, nmethodD=6
+  integer, parameter :: nmethodC=7, nmethodD=7
 #endif
   integer, parameter :: kcountC=2**nmethodC
   integer, parameter :: kcountD=2**nmethodD
@@ -65,11 +66,12 @@ contains
 
     integer :: i
     double precision :: normC,normD
-    character :: stringC(0:ncountC)*24  !  4*nmethodC
+    character :: stringC(0:ncountC)*32  !  4*nmethodC
 #ifdef GM
-    character :: stringD(0:ncountD)*28  !  4*nmethodD
+    character :: stringD(0:ncountD)*36  !  4*nmethodD
 #else
-    character :: stringD(0:ncountD)*24  !  4*nmethodD
+!    character :: stringD(0:ncountD)*24  !  4*nmethodD
+    character :: stringD(0:ncountD)*32  !  4*nmethodD
 #endif
 
 !    if (nout.ne.0) then 
@@ -80,8 +82,8 @@ contains
 !     end if
 !    end if 
 
-    normC = float(max(CCount(0),1))
-    normD = float(max(DCount(0),1))
+    normC = dble(max(CCount(0),1))
+    normD = dble(max(DCount(0),1))
 
 !    write(*,*) 'printstat C',CCount
 !    write(*,*) 'printstat D',DCount
@@ -101,6 +103,7 @@ contains
       if (mod(i,16)-mod(i,8).eq.8) stringC(i)(13:16) = ' gc '
       if (mod(i,32)-mod(i,16).eq.16) stringC(i)(17:20) = ' sm '
       if (mod(i,64)-mod(i,32).eq.32) stringC(i)(21:24) = ' gr '
+      if (mod(i,128)-mod(i,64).eq.64) stringC(i)(25:28) = 'smf '
       CCount(2**nmethodC+CCountoffset0)=CCount(2**nmethodC+CCountoffset0)+CCount(i+CCountoffset0)
       CCount(2**nmethodC+CCountoffset1)=CCount(2**nmethodC+CCountoffset1)+CCount(i+CCountoffset1)
       CCount(2**nmethodC+CCountoffset2)=CCount(2**nmethodC+CCountoffset2)+CCount(i+CCountoffset2)
@@ -121,8 +124,9 @@ contains
       if (mod(i,16)-mod(i,8).eq.8) stringD(i)(13:16) = ' gc '
       if (mod(i,32)-mod(i,16).eq.16) stringD(i)(17:20) = ' sm '
       if (mod(i,64)-mod(i,32).eq.32) stringD(i)(21:24) = ' gr '
+      if (mod(i,128)-mod(i,64).eq.64) stringD(i)(25:28) = 'smf '
 #ifdef GM
-      if (mod(i,128)-mod(i,64).eq.64) stringD(i)(25:28) = ' gm '
+      if (mod(i,256)-mod(i,128).eq.128) stringD(i)(29:32) = ' gm '
 #endif
       DCount(2**nmethodD+DCountoffset0)=DCount(2**nmethodD+DCountoffset0)+DCount(i+DCountoffset0)
       DCount(2**nmethodD+DCountoffset1)=DCount(2**nmethodD+DCountoffset1)+DCount(i+DCountoffset1)
@@ -142,6 +146,8 @@ contains
 
 
     write(nstatsout_coli,300) (CCount(i),dble(CCount(i))/normC*1d2,i=1,nmethodC),    &
+        CCount(8),dble(CCount(8))/normC*1d2,     &
+        CCount(9),dble(CCount(9))/normC*1d2,     &
         (CCount(i),dble(CCount(i))/normC*1d2,i=11,10+nmethodC),               &
         CCount(19),dble(CCount(19))/normC*1d2,     &
         CCount(0),dble(CCount(0))/normC*1d2
@@ -152,13 +158,17 @@ contains
     &       ' #calls C gc  1 = ',i20,' or ',F10.5,' %'/              &
     &       ' #calls C sm  1 = ',i20,' or ',F10.5,' %'/              &
     &       ' #calls C gr  1 = ',i20,' or ',F10.5,' %'/              &
+    &       ' #calls C smf 1 = ',i20,' or ',F10.5,' %'/              &
 !    &       ' #calls C gm  1 = ',i20,' or ',F10.5,' %'/              &
+    &       ' #calls C pvs+1 = ',i20,' or ',F10.5,' %'/              &
+    &       ' #calls C pvs 1 = ',i20,' or ',F10.5,' %'/              &
     &       ' #calls C pv1 2 = ',i20,' or ',F10.5,' %'/              &
     &       ' #calls C pv2 2 = ',i20,' or ',F10.5,' %'/              &
     &       ' #calls C g   2 = ',i20,' or ',F10.5,' %'/              &
     &       ' #calls C gc  2 = ',i20,' or ',F10.5,' %'/              &
     &       ' #calls C sm  2 = ',i20,' or ',F10.5,' %'/              &
     &       ' #calls C gr  2 = ',i20,' or ',F10.5,' %'/              &
+    &       ' #calls C smf 2 = ',i20,' or ',F10.5,' %'/              &
 !    &       ' #calls C gm  2 = ',i20,' or ',F10.5,' %'/              &
     &       ' #calls C all m = ',i20,' or ',F10.5,' %'/              &
     &       ' #calls C       = ',i20,' or ',F10.5,' %'/)
@@ -170,7 +180,7 @@ contains
     end do
     write(nstatsout_coli,310)   stringC(0),CCount(0),dble(CCount(0))/normC*1d2
 
-310 format(' #calls C ',a24 ,' = ',i20,' or ',F10.5,' %')
+310 format(' #calls C ',a32 ,' = ',i16,' or ',F10.5,' %')
 
     write(nstatsout_coli,400) (DCount(i),dble(DCount(i))/normD*1d2,i=1,nmethodD),    &
         (DCount(i),dble(DCount(i))/normD*1d2,i=11,10+nmethodD),               &
@@ -183,6 +193,7 @@ contains
     &       ' #calls D gc  1 = ',i20,' or ',F10.5,' %'/              &
     &       ' #calls D sm  1 = ',i20,' or ',F10.5,' %'/              &
     &       ' #calls D gr  1 = ',i20,' or ',F10.5,' %'/              &
+    &       ' #calls D smf 1 = ',i20,' or ',F10.5,' %'/              &
 #ifdef GM
     &       ' #calls D gm  1 = ',i20,' or ',F10.5,' %'/              &
 #endif
@@ -192,6 +203,7 @@ contains
     &       ' #calls D gc  2 = ',i20,' or ',F10.5,' %'/              &
     &       ' #calls D sm  2 = ',i20,' or ',F10.5,' %'/              &
     &       ' #calls D gr  2 = ',i20,' or ',F10.5,' %'/              &
+    &       ' #calls D smf 2 = ',i20,' or ',F10.5,' %'/              &
 #ifdef GM
     &       ' #calls D gm  2 = ',i20,' or ',F10.5,' %'/              &
 #endif
@@ -207,9 +219,9 @@ contains
     write(nstatsout_coli,410)   stringD(0),DCount(0),dble(DCount(0))/normD*1d2
 
 #ifdef GM
-410 format(' #calls D ',a28 ,' = ',i20,' or ',F10.5,' %')
+410 format(' #calls D ',a36 ,' = ',i16,' or ',F10.5,' %')
 #else
-410 format(' #calls D ',a24 ,' = ',i20,' or ',F10.5,' %')
+410 format(' #calls D ',a32 ,' = ',i16,' or ',F10.5,' %')
 #endif
 
     write(nstatsout_coli,110) reqacc_coli
@@ -275,6 +287,3 @@ contains
 
 
 end module coli_stat
-
-
-

@@ -32,10 +32,12 @@
 !
 !
 !  global variables:
-!  NCoefs, use_cache_system, use_cache
+!  NCoefs, use_cache_system, use_cache_system_save, use_cache
 ! 
 !  functions and subroutines:
-!  InitCacheSystem, 
+!  InitCacheSystem_cll, AddNewCache_cll, SetCacheMode_cll, 
+!  SwitchOnCacheSystem_cll, SwitchOffCacheSystem_cll, 
+!  SwitchOnCache_cll, SwitchOffCache_cll, SetCacheLevel_cll
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -50,7 +52,7 @@ module cache
   implicit none
 
   ! variables/parameters accessed in COLI/DD
-  logical :: use_cache_system=.false.
+  logical :: use_cache_system=.true.,use_cache_system_save=.true.
   integer, allocatable :: use_cache(:)
   ! internal variables of the cache-system
   integer :: ninfout_cache, infoutlev_cache
@@ -61,6 +63,7 @@ module cache
   integer, allocatable :: casa(:,:), new_casa(:,:), cara(:,:), new_cara(:,:), CachePoint(:,:,:)
   integer, allocatable :: nval_max(:), narg_max(:), rankcached(:)
   integer :: ncache_max=0, ncall_max, ncalc_max, id_max, ncache, ncall, maxnval, nval_tmp, tencache, nval_local, id_local
+  integer :: ncache_ext=0
   
 
 contains
@@ -90,14 +93,19 @@ contains
 
     if (mnc.lt.0) then
       use_cache_system = .false.
+      use_cache_system_save = use_cache_system
       return
     else if (mnc.eq.0) then
       use_cache_system = .true.
+      use_cache_system_save = use_cache_system
+      ncache_ext = 0      
       ncache_max = 1
       onlyinternal = .true.
     else
       use_cache_system = .true.
-      ncache_max = mnc
+      use_cache_system_save = use_cache_system
+      ncache_ext = mnc
+      ncache_max = ncache_ext
       onlyinternal = .false.    
     end if  
 
@@ -213,6 +221,232 @@ contains
 
 
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !  subroutine AddNewCache_cll(ncache_out,Nmax)
+  !
+  !  add a new cache:
+  !  ncache_out = number assigned to cache (output!)
+  !  Nmax: N-point tensor integrals cached for N<=Nmax
+  !
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  subroutine AddNewCache_cll(ncache_out,Nmax)
+
+    integer, intent(in) :: Nmax
+    integer, intent(out) :: ncache_out
+    integer :: ncache,s1,s2
+    integer, allocatable :: intaux1(:),intaux2(:,:),intaux3(:,:,:)
+    logical :: onlyinternal,infwri
+    character(len=*),parameter :: fmt90 = "(A15,I3,A28,I3)"
+
+    if (Nmax.le.0) then
+      ncache_out = 0
+      infwri = .false.
+      if (infoutlev_cache.ge.1) call InfOut_cache('InitCacheSystem_cll','Nmax has to be a positive integer',infwri)    
+      if(infwri) write(ninfout_cache,*) '--> cache has not been added!'    
+      return
+    end if
+
+    use_cache_system = .true.
+    use_cache_system_save = use_cache_system
+    ncache_ext = ncache_ext+1
+    ncache_max = ncache_ext
+    onlyinternal = .false.
+    
+    if (allocated(use_cache)) then
+      if (allocated(intaux1)) then
+        deallocate(intaux1)
+      end if
+      allocate(intaux1(ncache_max-1))
+      intaux1 = use_cache
+      deallocate(use_cache)
+    end if
+    allocate(use_cache(ncache_max))
+    use_cache(1:ncache_max-1) = intaux1
+    use_cache(ncache_max) = Nmax
+    
+    if (allocated(use_cache_cp)) then
+      if (allocated(intaux1)) then
+        deallocate(intaux1)
+      end if
+      allocate(intaux1(ncache_max-1))
+      intaux1 = use_cache_cp
+      deallocate(use_cache_cp)
+    end if
+    allocate(use_cache_cp(ncache_max))
+    use_cache_cp(1:ncache_max-1) = intaux1
+    use_cache_cp(ncache_max) = Nmax
+
+    if (allocated(cache_mode)) then
+      if (allocated(intaux1)) then
+        deallocate(intaux1)
+      end if
+      allocate(intaux1(ncache_max-1))
+      intaux1 = cache_mode   
+      deallocate(cache_mode)
+    end if
+    allocate(cache_mode(ncache_max))
+    cache_mode(1:ncache_max-1) = intaux1
+    cache_mode(ncache_max) = -99
+
+    if (allocated(cache_mode_cp)) then
+      if (allocated(intaux1)) then
+        deallocate(intaux1)
+      end if
+      allocate(intaux1(ncache_max-1))
+      intaux1 = cache_mode_cp   
+      deallocate(cache_mode_cp)
+    end if
+    allocate(cache_mode_cp(ncache_max))
+    cache_mode_cp(1:ncache_max-1) = intaux1
+    cache_mode_cp(ncache_max) = -99
+
+    if (allocated(nevent)) then
+      if (allocated(intaux1)) then
+        deallocate(intaux1)
+      end if
+      allocate(intaux1(ncache_max-1))    
+      intaux1 = nevent      
+      deallocate(nevent)
+    end if
+    allocate(nevent(ncache_max))
+    nevent(1:ncache_max-1) = intaux1
+    nevent(ncache_max) = 0
+
+    if (allocated(ncalc)) then
+      if (allocated(intaux1)) then
+        deallocate(intaux1)
+      end if
+      allocate(intaux1(ncache_max-1))  
+      intaux1 = ncalc   
+      deallocate(ncalc)
+    end if
+    allocate(ncalc(ncache_max))
+    ncalc(1:ncache_max-1) = intaux1
+    ncalc(ncache_max) = 0
+
+    if (allocated(narg_max)) then
+      if (allocated(intaux1)) then
+        deallocate(intaux1)
+      end if
+      allocate(intaux1(ncache_max-1))
+      intaux1 = narg_max   
+      deallocate(narg_max)
+    end if
+    allocate(narg_max(ncache_max))
+    narg_max(1:ncache_max-1) = intaux1
+    narg_max(ncache_max) = 0
+
+    if (allocated(nval_max)) then
+      if (allocated(intaux1)) then
+        deallocate(intaux1)
+      end if
+      allocate(intaux1(ncache_max-1))
+      intaux1 = nval_max   
+      deallocate(nval_max)
+    end if
+    allocate(nval_max(ncache_max))
+    nval_max(1:ncache_max-1) = intaux1
+    nval_max(ncache_max) = 0
+
+    if (allocated(casa)) then
+      if (allocated(intaux2)) then
+        deallocate(intaux2)
+      end if
+      s1 = size(casa,1)
+      allocate(intaux2(s1,ncache_max-1))
+      intaux2 = casa
+      deallocate(casa)
+    else
+      s1 = 1
+    end if
+    allocate(casa(s1,ncache_max))
+    casa(1:s1,1:ncache_max-1) = intaux2
+    casa(1:s1,ncache_max) = 0
+
+    if (allocated(new_casa)) then
+      if (allocated(intaux2)) then
+        deallocate(intaux2)
+      end if
+      s1 = size(new_casa,1)
+      allocate(intaux2(s1,ncache_max-1))
+      intaux2 = new_casa
+      deallocate(new_casa)
+    else
+      s1 = 1
+    end if
+    allocate(new_casa(s1,ncache_max))
+    new_casa(1:s1,1:ncache_max-1) = intaux2
+    new_casa(1:s1,ncache_max) = 0
+
+    if (allocated(cara)) then
+      if (allocated(intaux2)) then
+        deallocate(intaux2)
+      end if
+      s1 = size(cara,1)
+      allocate(intaux2(s1,ncache_max-1))
+      intaux2 = cara
+      deallocate(cara)
+    else
+      s1 = 1
+    end if
+    allocate(cara(s1,ncache_max))
+    cara(1:s1,1:ncache_max-1) = intaux2
+    cara(1:s1,ncache_max) = 0
+
+    if (allocated(new_cara)) then
+      if (allocated(intaux2)) then
+        deallocate(intaux2)
+      end if
+      s1 = size(new_cara,1)
+      allocate(intaux2(s1,ncache_max-1))
+      intaux2 = new_cara      
+      deallocate(new_cara)
+    end if
+    allocate(new_cara(s1,ncache_max))
+    new_cara(1:s1,1:ncache_max-1) = intaux2
+    new_cara(1:s1,ncache_max) = 0    
+
+    if (allocated(CachePoint)) then
+      if (allocated(intaux3)) then
+        deallocate(intaux3)
+      end if
+      s1 = size(CachePoint,1)-1
+      s2 = size(CachePoint,2)
+      allocate(intaux3(0:s1,s2,ncache_max-1))
+      intaux3 = CachePoint
+      deallocate(CachePoint)
+    else
+      s1 = 0
+      s2 = 1
+    end if
+    allocate(CachePoint(0:s1,s2,ncache_max))
+    CachePoint(0:s1,1:s2,1:ncache_max-1) = intaux3
+    CachePoint(0:s1,1:s2,ncache_max) = 0
+
+    if (allocated(nopt)) then
+      if (allocated(intaux1)) then
+        deallocate(intaux1)
+      end if
+      allocate(intaux1(ncache_max-1))
+      intaux1 = nopt
+      deallocate(nopt)
+    end if
+    allocate(nopt(ncache_max))
+    nopt(1:ncache_max-1) = intaux1
+    nopt(ncache_max) = 10
+
+    infwri = .false.
+    ncache_out = ncache_max
+    if (infoutlev_cache.ge.1) call InfOut_cache('AddNewCache_cll','new cache added',infwri)    
+    if(infwri) write(ninfout_cache,fmt90) 'COLLIER-Cache: cache', ncache_out, ' initialized at level', Nmax
+
+  end subroutine AddNewCache_cll
+
+
+
+
+
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !  subroutine Setninfout_cache(ninfout)
   !
@@ -292,7 +526,7 @@ contains
       do i=1,ncache_max
         call SetCacheMode_cll(i,2)
       end do
-      if (infoutlev_cache.ge.2) call InfOut_cache('SwitchOffCacheSystem_cll','cache system switched on',infwri) 
+      if (infoutlev_cache.ge.2) call InfOut_cache('SwitchOnCacheSystem_cll','cache system switched on',infwri) 
     end if
 
   end subroutine SwitchOnCacheSystem_cll
@@ -398,7 +632,7 @@ contains
        if (infoutlev_cache.ge.1) call InfOut_cache('SwitchOnCacheSystem0_cll','cache has not been initialized',infwri)    
        if(infwri)  write(ninfout_cache,*) '--> it cannot be switched on'         
     else  
-      use_cache_system = .true.
+      use_cache_system = use_cache_system_save
       if (infoutlev_cache.ge.2) call InfOut_cache('SwitchOnCacheSystem0_cll', &
                                                 'cache system (+internal cache) switched on',infwri)         
     end if

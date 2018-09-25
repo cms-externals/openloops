@@ -208,11 +208,9 @@ contains
 
     character(len=*),parameter :: fmtr = "(A8,i2)"
     character(len=*),parameter :: fmt7 = "(A7,'dcmplx(',d25.18,' ,',d25.18,' )')"
-    character(len=*),parameter :: fmt9 = "(A8,i2,A7,'dcmplx(',d25.18,' ,',d25.18,' )')"
-    character(len=*),parameter :: fmt11 = "(A8,i2,A7,'dcmplx(',d25.18,' ,',d25.18,' )')"
+    character(len=*),parameter :: fmt9 = "(A9,i2,A6,'dcmplx(',d25.18,' ,',d25.18,' )')"
+    character(len=*),parameter :: fmt11 = "(A9,i2,A6,'dcmplx(',d25.18,' ,',d25.18,' )')"
     character(len=*),parameter :: fmt12 = "(A8,i1,A2,i2,A4,'dcmplx(',d25.18,' ,',d25.18,' )')"
-    character(len=*),parameter :: fmt15 = "(A8,i2,A7,'dcmplx(',d25.18,' ,',d25.18,' )')"
-    character(len=*),parameter :: fmt16 = "(A8,i1,A2,i2,A4,'dcmplx(',d25.18,' ,',d25.18,' )')"
     character(len=*),parameter :: fmt26 = "(A26,i2)"
     character(len=*),parameter :: fmt29 = "(A29,i2)"
 
@@ -327,10 +325,10 @@ contains
         write(nout,fmt26) 'master call: TN_cll, N = ', masterN_cll
         write(nout,fmtr) 'rmax = ', masterR_cll
         do i=1,BinomTable(2,masterN_cll)
-          write(nout,fmt11) 'MomInv(',i,') = ',masterArgs_cll(i)
+          write(nout,fmt11) 'MomInv( ',i,') = ',masterArgs_cll(i)
         end do
         do i=0,masterN_cll-1
-          write(nout,fmt9) 'mass2(',i,') = ',masterArgs_cll(BinomTable(2,masterN_cll)+i+1)
+          write(nout,fmt9) 'masses2(',i,') = ',masterArgs_cll(BinomTable(2,masterN_cll)+i+1)
         end do
       case ('Aten_cll')
         write(nout,*) 'master call:  Aten_cll'
@@ -345,10 +343,10 @@ contains
           end do
         end do
         do i=1,1
-          write(nout,fmt11) 'MomInv(',i,')     = ',masterArgs_cll(4+i)
+          write(nout,fmt11) 'MomInv( ',i,')     = ',masterArgs_cll(4+i)
         end do
         do i=0,1
-          write(nout,fmt9) 'mass2(',i,')     = ',masterArgs_cll(6+i)
+          write(nout,fmt9) 'masses2(',i,')   = ',masterArgs_cll(6+i)
         end do
       case ('Cten_cll')
         write(nout,*) 'MASTER CALL:  Cten_cll'
@@ -359,10 +357,10 @@ contains
           end do
         end do
         do i=1,3
-          write(nout,fmt11) 'MomInv(',i,') = ',masterArgs_cll(8+i)
+          write(nout,fmt11) 'MomInv( ',i,') = ',masterArgs_cll(8+i)
         end do
         do i=0,2
-          write(nout,fmt9) 'mass2(',i,') = ',masterArgs_cll(12+i)
+          write(nout,fmt9) 'masses2(',i,') = ',masterArgs_cll(12+i)
         end do
       case ('Dten_cll')
         write(nout,*) 'MASTER CALL: Dten_cll'
@@ -373,10 +371,10 @@ contains
           end do
         end do
         do i=1,6
-          write(nout,fmt11) 'MomInv(',i,') = ',masterArgs_cll(12+i)
+          write(nout,fmt11) 'MomInv( ',i,') = ',masterArgs_cll(12+i)
         end do
         do i=0,3
-          write(nout,fmt9) 'mass2(',i,') = ',masterArgs_cll(19+i)
+          write(nout,fmt9) 'masses2(',i,') = ',masterArgs_cll(19+i)
         end do
       case('Eten_cll')
         write(nout,*) 'master call: Eten_cll'
@@ -387,10 +385,10 @@ contains
           end do
         end do
         do i=1,10
-          write(nout,fmt11) 'MomInv(',i,') = ',masterArgs_cll(16+i)
+          write(nout,fmt11) 'MomInv( ',i,') = ',masterArgs_cll(16+i)
         end do
         do i=0,4
-          write(nout,fmt9) 'mass2(',i,') = ',masterArgs_cll(27+i)
+          write(nout,fmt9) 'masses2(',i,') = ',masterArgs_cll(27+i)
         end do
       case ('Ften_cll')
         write(nout,*) 'master call: Ften_cll'
@@ -401,10 +399,10 @@ contains
           end do
         end do
         do i=1,15
-          write(nout,fmt11) 'MomInv(',i,') = ',masterArgs_cll(20+i)
+          write(nout,fmt11) 'MomInv( ',i,') = ',masterArgs_cll(20+i)
         end do
         do i=0,5
-          write(nout,fmt9) 'mass2(',i,') = ',masterArgs_cll(36+i)
+          write(nout,fmt9) 'masses2(',i,') = ',masterArgs_cll(36+i)
         end do
       case ('Gten_cll')
         write(nout,*) 'master call: Gten_cll'
@@ -415,10 +413,10 @@ contains
           end do
         end do
         do i=1,21
-          write(nout,fmt11) 'MomInv(',i,') = ',masterArgs_cll(24+i)
+          write(nout,fmt11) 'MomInv( ',i,') = ',masterArgs_cll(24+i)
         end do
         do i=0,6
-          write(nout,fmt9) 'mass2(',i,') = ',masterArgs_cll(46+i)
+          write(nout,fmt9) 'masses2(',i,') = ',masterArgs_cll(46+i)
         end do
       case ('TNten_cll')
         write(nout,fmt29) 'master call: TNten_cll, N = ', masterN_cll
@@ -430,10 +428,10 @@ contains
           end do
         end do
         do i=1,BinomTable(2,N)
-          write(nout,fmt11) 'MomInv(',i,') = ',masterArgs_cll(4*(N-1)+i)
+          write(nout,fmt11) 'MomInv( ',i,') = ',masterArgs_cll(4*(N-1)+i)
         end do
         do i=0,N-1
-          write(nout,fmt9) 'mass2(',i,') = ',masterArgs_cll(4*(N-1)+BinomTable(2,N)+i+1)
+          write(nout,fmt9) 'masses2(',i,') = ',masterArgs_cll(4*(N-1)+BinomTable(2,N)+i+1)
         end do
       case ('A0_cll')
         write(nout,*) 'master call:  A0_cll'

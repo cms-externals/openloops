@@ -55,8 +55,10 @@ c local variables
 c LH: variables for cache system
         complex*16 xcache(10), fct(Ncoefmax4)
         integer n0,n1,n2,n3,n123,cntmax,r2cache
-        logical nocalc/.false./, wrica/.false./
-        save wrica
+c        logical nocalc/.false./, wrica/.false./
+c        save wrica
+         logical :: nocalc = .false.
+         logical, save :: wrica = .false.
 #endif
 
 c       outlevel=2
@@ -378,6 +380,8 @@ c     &                +abs(m02)+abs(m12)+abs(m22)+abs(m32) )/10d0
 
 c determine indices k,l for expansions
           maxtz_kl = 0d0
+          k = 1
+          l = 1
           do i1=1,3
           do i2=i1,3
             if (abs(tz3(i1,i2)).ge.maxtz_kl) then
@@ -418,6 +422,8 @@ c determine index j=jg for Gram
 
 c determine indices i=igc,j=jgc for Gram/Cayley 
           maxtx3ij = 0d0
+          igc = 1
+          jgc = 1
           do i1=1,3
           do i2=i1,3
             if (abs(tx3(i1,i2)).ge.maxtx3ij) then
@@ -848,10 +854,10 @@ c     &      (abs(m12/0.303804900000000052D+05-1d0).lt.1d-7).and.
 c     &      (abs(m22/0.303804900000000052D+05-1d0).lt.1d-7).and.
 c     &      (abs(m32/0.303804900000000052D+05-1d0).lt.1d-7) ) then
 c
-c	write(*,*) r2,D(0,4,0,0),qmethod(id),qmethod_new(id)
-c	write(*,*) 'xxxxxxxxxxx'
-c	stop
-c	endif
+c       write(*,*) r2,D(0,4,0,0),qmethod(id),qmethod_new(id)
+c       write(*,*) 'xxxxxxxxxxx'
+c       stop
+c       endif
 
         end
 
@@ -1179,13 +1185,13 @@ c Duv_{00...} from conventional PaVe reduction -- Eq.(5.10)
           if (i0.lt.2) then
             Duv(i0/2+1,i1,i2,i3) = 0d0
           else
-            Duv(i0/2+1,i1,i2,i3) = 1d0/dfloat(2*r)*( 
+            Duv(i0/2+1,i1,i2,i3) = 1d0/dble(2*r)*( 
      &            Cuv0(i0/2,i1,i2,i3) + 2d0*m02*Duv(i0/2,i1,i2,i3) 
      &          + f(1)*Duv(i0/2,i1+1,i2,i3) + f(2)*Duv(i0/2,i1,i2+1,i3) 
      &          + f(3)*Duv(i0/2,i1,i2,i3+1) )
           endif
 c alternative PaVe reduction of D_{00...} -- Eq.(5.16)
-          D(i0/2+1,i1,i2,i3) = 1d0/dfloat(2*r)*( 
+          D(i0/2+1,i1,i2,i3) = 1d0/dble(2*r)*( 
      &            4d0*Duv(i0/2+1,i1,i2,i3) + C0(i0/2,i1,i2,i3) 
      &          + detx3/tx3(0,0)*D(i0/2,i1,i2,i3) )
           do n=1,3
@@ -1193,10 +1199,10 @@ c alternative PaVe reduction of D_{00...} -- Eq.(5.16)
             l(2) = i2-del(n,2)
             l(3) = i3-del(n,3)
             D(i0/2+1,i1,i2,i3) = D(i0/2+1,i1,i2,i3) 
-     &          - tx3(0,n)/tx3(0,0)/dfloat(2*r)*Sh(n,i0/2,i1,i2,i3)
+     &          - tx3(0,n)/tx3(0,0)/dble(2*r)*Sh(n,i0/2,i1,i2,i3)
             if (i(n).gt.0) then
               D(i0/2+1,i1,i2,i3) = D(i0/2+1,i1,i2,i3)
-     &          + tx3(0,n)/tx3(0,0)*i(n)/dfloat(r)*D(i0/2+1,l(1),l(2),l(3))
+     &          + tx3(0,n)/tx3(0,0)*i(n)/dble(r)*D(i0/2+1,l(1),l(2),l(3))
             endif
           enddo
 105     continue
@@ -1405,7 +1411,7 @@ c Duv_{00...} from PaVe reduction -- Eq.(5.10)
             if (i0.le.2) then
               Duv(i0/2,i1,i2,i3) = 0d0
             else
-              Duv(i0/2,i1,i2,i3) = 1d0/2d0/dfloat(r-1)*( 
+              Duv(i0/2,i1,i2,i3) = 1d0/2d0/dble(r-1)*( 
      &              Cuv0(i0/2-1,i1,i2,i3) + 2d0*m02*Duv(i0/2-1,i1,i2,i3) 
      &            + f(1)*Duv(i0/2-1,i1+1,i2,i3) + f(2)*Duv(i0/2-1,i1,i2+1,i3) 
      &            + f(3)*Duv(i0/2-1,i1,i2,i3+1) )
@@ -1447,7 +1453,7 @@ c D_{00...} from iteration Eq.(5.40)
         i(1) = i1
         i(2) = i2
         i(3) = i3
-          D(i0/2,i1,i2,i3) = 1d0/2d0/dfloat(i0+2*i1+2*i2+2*i3)*(
+          D(i0/2,i1,i2,i3) = 1d0/2d0/dble(i0+2*i1+2*i2+2*i3)*(
      &      4d0*Duv(i0/2,i1,i2,i3) 
      &      - detz3/tz3(k,l)
      &          *D(i0/2-1,i1+del(k,1)+del(l,1),i2+del(k,2)+del(l,2),
@@ -1460,7 +1466,7 @@ crrr terms rearranged - end
      &      )
           do n=1,3
             D(i0/2,i1,i2,i3) = D(i0/2,i1,i2,i3) 
-     &        + 1d0/2d0/dfloat(i0+2*i1+2*i2+2*i3)*(
+     &        + 1d0/2d0/dble(i0+2*i1+2*i2+2*i3)*(
      &           tz3(n,l)/tz3(k,l)
      &            *Sh(n,i0/2-1,i1+del(k,1),i2+del(k,2),i3+del(k,3))
      &           - Sh(n,i0/2-1,i1+del(n,1),i2+del(n,2),i3+del(n,3)) )
@@ -1469,28 +1475,28 @@ crrr terms rearranged - end
           do 102 m=1,3
           if ((k.eq.n).or.(l.eq.m)) goto 102
             D(i0/2,i1,i2,i3) = D(i0/2,i1,i2,i3) 
-     &        + 1d0/2d0/dfloat(i0+2*i1+2*i2+2*i3)*(
+     &        + 1d0/2d0/dble(i0+2*i1+2*i2+2*i3)*(
      &        - ttz3(k,n,l,m)/tz3(k,l)*f(n)*Sh(m,i0/2-1,i1,i2,i3) 
 crrr     &        + ttz3(k,n,l,m)/tz3(k,l)*f(n)*f(m)*D(i0/2-1,i1,i2,i3) 
      &        )
 
             if (i(n).ne.0) D(i0/2,i1,i2,i3) = D(i0/2,i1,i2,i3) 
-     &        - i(n)/dfloat(i0+2*i1+2*i2+2*i3)*ttz3(k,n,l,m)/tz3(k,l)
+     &        - i(n)/dble(i0+2*i1+2*i2+2*i3)*ttz3(k,n,l,m)/tz3(k,l)
      &          *(Sh(m,i0/2,i1-del(1,n),i2-del(2,n),i3-del(3,n))
      &            -f(m)*D(i0/2,i1-del(1,n),i2-del(2,n),i3-del(3,n)))
             if (i(m).ne.0) D(i0/2,i1,i2,i3) = D(i0/2,i1,i2,i3) 
-     &        + i(m)/dfloat(i0+2*i1+2*i2+2*i3)*ttz3(k,n,l,m)/tz3(k,l)
+     &        + i(m)/dble(i0+2*i1+2*i2+2*i3)*ttz3(k,n,l,m)/tz3(k,l)
      &          *f(n)*D(i0/2,i1-del(1,m),i2-del(2,m),i3-del(3,m))
             if (i(n)*i(m).ne.0) then
               if (n.ne.m) then
                 D(i0/2,i1,i2,i3) = D(i0/2,i1,i2,i3) 
-     &            +2d0*i(n)*i(m)/dfloat(i0+2*i1+2*i2+2*i3)
+     &            +2d0*i(n)*i(m)/dble(i0+2*i1+2*i2+2*i3)
      &              *ttz3(k,n,l,m)/tz3(k,l)
      &              *D(i0/2+1,i1-del(1,m)-del(1,n),i2-del(2,m)-del(2,n),
      &                      i3-del(3,m)-del(3,n))
               elseif (i(n).gt.1) then
                 D(i0/2,i1,i2,i3) = D(i0/2,i1,i2,i3) 
-     &            + 2d0*i(n)*(i(n)-1)/dfloat(i0+2*i1+2*i2+2*i3)
+     &            + 2d0*i(n)*(i(n)-1)/dble(i0+2*i1+2*i2+2*i3)
      &              *ttz3(k,n,l,m)/tz3(k,l)
      &              *D(i0/2+1,i1-2*del(1,n),i2-2*del(2,n),i3-2*del(3,n))
               endif
@@ -1718,7 +1724,7 @@ c Duv_{00...} from PaVe reduction -- Eq.(5.10)
             if (i0.lt.4) then
               Duv(i0/2,i1,i2,i3) = 0d0
             else
-              Duv(i0/2,i1,i2,i3) = 1d0/2d0/dfloat(i0+i1+i2+i3-1)*( 
+              Duv(i0/2,i1,i2,i3) = 1d0/2d0/dble(i0+i1+i2+i3-1)*( 
      &              Cuv0(i0/2-1,i1,i2,i3) + 2d0*m02*Duv(i0/2-1,i1,i2,i3) 
      &            + f(1)*Duv(i0/2-1,i1+1,i2,i3) + f(2)*Duv(i0/2-1,i1,i2+1,i3) 
      &            + f(3)*Duv(i0/2-1,i1,i2,i3+1) )
@@ -1982,7 +1988,7 @@ c Duv_{00...} from PaVe reduction -- Eq.(5.10)
             if (i0.le.2) then
               Duv(i0/2,i1,i2,i3) = 0d0
             else
-              Duv(i0/2,i1,i2,i3) = 1d0/2d0/dfloat(r-1)*( 
+              Duv(i0/2,i1,i2,i3) = 1d0/2d0/dble(r-1)*( 
      &          Cuv0(i0/2-1,i1,i2,i3) + 2d0*m02*Duv(i0/2-1,i1,i2,i3) 
      &        + f(1)*Duv(i0/2-1,i1+1,i2,i3) + f(2)*Duv(i0/2-1,i1,i2+1,i3) 
      &        + f(3)*Duv(i0/2-1,i1,i2,i3+1) )
@@ -2031,21 +2037,21 @@ c D_{00...} from iteration Eq.(5.40)
         h(m2) = i2
 
 c coefficients D_{00...} from Eq.(5.49)
-          D(i0/2,h(1),h(2),h(3)) = 1d0/2d0/dfloat(il+1)/tz3(k,l)*(
+          D(i0/2,h(1),h(2),h(3)) = 1d0/2d0/dble(il+1)/tz3(k,l)*(
      &      tx3(k,0)*D(i0/2-1,h(1)+del(1,l),h(2)+del(2,l),h(3)+del(3,l))
      &      - detz3*D(i0/2-1,h(1)+del(1,l)+del(1,k),
      &                h(2)+del(2,l)+del(2,k),h(3)+del(3,l)+del(3,k)) )
           do n=1,3
             D(i0/2,h(1),h(2),h(3)) = D(i0/2,h(1),h(2),h(3))
-     &        + 1d0/2d0/dfloat(il+1)/tz3(k,l)*tz3(k,n)
+     &        + 1d0/2d0/dble(il+1)/tz3(k,l)*tz3(k,n)
      &          *Sh(n,i0/2-1,h(1)+del(1,l),h(2)+del(2,l),h(3)+del(3,l))
           enddo
           if (h(m1).gt.0) D(i0/2,h(1),h(2),h(3)) = D(i0/2,h(1),h(2),h(3)) 
-     &      - 1d0/dfloat(il+1)/tz3(k,l)*h(m1)*tz3(k,m1)
+     &      - 1d0/dble(il+1)/tz3(k,l)*h(m1)*tz3(k,m1)
      &          *D(i0/2,h(1)-del(1,m1)+del(1,l),h(2)-del(2,m1)+del(2,l),
      &                h(3)-del(3,m1)+del(3,l))
           if (h(m2).gt.0) D(i0/2,h(1),h(2),h(3)) = D(i0/2,h(1),h(2),h(3)) 
-     &      - 1d0/dfloat(il+1)/tz3(k,l)*h(m2)*tz3(k,m2)
+     &      - 1d0/dble(il+1)/tz3(k,l)*h(m2)*tz3(k,m2)
      &          *D(i0/2,h(1)-del(1,m2)+del(1,l),h(2)-del(2,m2)+del(2,l),
      &                h(3)-del(3,m2)+del(3,l))
 102     continue
@@ -2295,6 +2301,7 @@ c        neither p2(0,2) nor p2(1,3) small
 
 60      continue
 c try next permutation of propagators
+
         if (perm.gt.24) then
           if (cout_on.and.(cout.le.coutmax)) then
             write(outchannel,*) 
@@ -2302,6 +2309,8 @@ c try next permutation of propagators
             call DD_debugoutput()
           endif
           stopflag = min(-10,stopflag)
+          D0dd = 0d0
+          return
         endif
         perm = perm+1
         call D0args(p2(0,1),p2(1,2),p2(2,3),p2(0,3),

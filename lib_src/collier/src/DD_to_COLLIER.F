@@ -70,3 +70,19 @@ c local variables
         val = stopflag
 
         end
+**********************************************************************
+        subroutine SetErrFlag_dd(val)
+**********************************************************************
+*       set error flag of DD
+*---------------------------------------------------------------------
+*       07.07.2017 Ansgar Denner
+**********************************************************************
+        use DD_global
+        implicit real*8 (a-z)
+
+c local variables
+        integer val
+
+        stopflag = val
+
+        end

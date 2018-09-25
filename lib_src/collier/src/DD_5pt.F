@@ -43,8 +43,10 @@ c local variables
 c LH: variables for cache system
         complex*16 xcache(15), fct(NCoefmax5)
         integer n0,n1,n2,n3,n4,n1234,cnt,cntmax,r2cache
-        logical nocalc/.false./, wrica/.false./
-        save wrica
+c        logical nocalc/.false./, wrica/.false./
+c        save wrica
+         logical :: nocalc = .false.
+         logical, save :: wrica =.false.
 #endif
 
         if (id.eq.0) then

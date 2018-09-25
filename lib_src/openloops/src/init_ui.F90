@@ -1,24 +1,25 @@
-
-! Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-!
-! This file is part of OpenLoops.
-!
-! OpenLoops is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! OpenLoops is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-! GNU General Public License for more details.
-!
-! You should have received a copy of the GNU General Public License
-! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+!******************************************************************************!
+! Copyright (C) 2014-2018 OpenLoops Collaboration. For authors see authors.txt !
+!                                                                              !
+! This file is part of OpenLoops.                                              !
+!                                                                              !
+! OpenLoops is free software: you can redistribute it and/or modify            !
+! it under the terms of the GNU General Public License as published by         !
+! the Free Software Foundation, either version 3 of the License, or            !
+! (at your option) any later version.                                          !
+!                                                                              !
+! OpenLoops is distributed in the hope that it will be useful,                 !
+! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+! GNU General Public License for more details.                                 !
+!                                                                              !
+! You should have received a copy of the GNU General Public License            !
+! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+!******************************************************************************!
 
 
 module ol_init
-  use KIND_TYPES, only: DREALKIND
+  use KIND_TYPES, only: DREALKIND, QREALKIND
   use, intrinsic :: iso_c_binding, only: c_char, c_double, c_int
   use ol_iso_c_utilities, only: c_f_string
   use ol_debug, only: ol_fatal, ol_msg, ol_error, set_verbose, get_verbose, do_not_stop
@@ -27,6 +28,7 @@ module ol_init
   public :: set_init_error_fatal
   public :: set_parameter, get_parameter, parameters_flush, tree_parameters_flush
   public :: register_cleanup, cleanup
+  public :: set_if_modified
 
   logical, save :: setparameter_tree_was_called = .true.
   logical, save :: setparameter_loop_was_called = .true.
@@ -41,12 +43,15 @@ module ol_init
   integer, save :: n_cleanup_routines = 0
 
   interface set_if_modified
-    module procedure set_if_modified_int, set_if_modified_double, set_if_modified_cmplx
+    module procedure set_if_modified_bool, set_if_modified_int, set_if_modified_double, &
+                     set_if_modified_cmplx, set_if_modified_cmplxcmplx, &
+                     set_if_modified_string, set_if_modified_quad
   end interface set_if_modified
 
   interface set_parameter
-    module procedure setparameter_int, setparameter_string, &
-      & setparameter_single, setparameter_double, setparameter_dcomplex
+    module procedure setparameter_int, setparameter_string,    &
+                     setparameter_single, setparameter_double, &
+                     setparameter_dcomplex, setparameter_quad
   end interface set_parameter
 
   interface get_parameter
@@ -68,39 +73,83 @@ module ol_init
     init_error_fatal = flag
   end subroutine set_init_error_fatal_c
 
+  subroutine set_if_modified_bool(current, new)
+    implicit none
+    logical, intent(inout) :: current
+    logical, intent(in) :: new
+    if (current .neqv. new) then
+      current = new
+      setparameter_tree_was_called = .true.
+      setparameter_loop_was_called = .true.
+    end if
+  end subroutine set_if_modified_bool
+
   subroutine set_if_modified_int(current, new)
-    use ol_parameters_decl_/**/DREALKIND, only: parameters_changed
     implicit none
     integer, intent(inout) :: current
     integer, intent(in) :: new
     if (current /= new) then
       current = new
-      parameters_changed = 1
+      setparameter_tree_was_called = .true.
+      setparameter_loop_was_called = .true.
     end if
   end subroutine set_if_modified_int
 
   subroutine set_if_modified_double(current, new)
-    use ol_parameters_decl_/**/DREALKIND, only: parameters_changed
     implicit none
     real(DREALKIND), intent(inout) :: current
     real(DREALKIND), intent(in) :: new
     if (current /= new) then
       current = new
-      parameters_changed = 1
+      setparameter_tree_was_called = .true.
+      setparameter_loop_was_called = .true.
     end if
   end subroutine set_if_modified_double
 
+  subroutine set_if_modified_quad(current, new)
+    implicit none
+    real(QREALKIND), intent(inout) :: current
+    real(QREALKIND), intent(in) :: new
+    if (current /= new) then
+      current = new
+      setparameter_tree_was_called = .true.
+      setparameter_loop_was_called = .true.
+    end if
+  end subroutine set_if_modified_quad
+
+
   subroutine set_if_modified_cmplx(current, new)
-    use ol_parameters_decl_/**/DREALKIND, only: parameters_changed
     implicit none
     complex(DREALKIND), intent(inout) :: current
     real(DREALKIND), intent(in) :: new
     if (current /= new) then
       current = new
-      parameters_changed = 1
+      setparameter_tree_was_called = .true.
+      setparameter_loop_was_called = .true.
     end if
   end subroutine set_if_modified_cmplx
 
+  subroutine set_if_modified_cmplxcmplx(current, new)
+    implicit none
+    complex(DREALKIND), intent(inout) :: current
+    complex(DREALKIND), intent(in) :: new
+    if (current /= new) then
+      current = new
+      setparameter_tree_was_called = .true.
+      setparameter_loop_was_called = .true.
+    end if
+  end subroutine set_if_modified_cmplxcmplx
+
+  subroutine set_if_modified_string(current, new)
+    implicit none
+    character(*), intent(inout) :: current
+    character(*), intent(in) :: new
+    if (trim(current) /= trim(new)) then
+      current = new
+      setparameter_tree_was_called = .true.
+      setparameter_loop_was_called = .true.
+    end if
+  end subroutine set_if_modified_string
 
   subroutine setparameter_int(param, val, err)
     ! Set an OpenLoops integer parameter.
@@ -111,16 +160,15 @@ module ol_init
     use ol_parameters_decl_/**/DREALKIND
     use ol_loop_parameters_decl_/**/DREALKIND
     use ol_generic, only: to_lowercase, to_string
+!    use nll_ppvj, only: nll_order, nll_ll, nll_add
     implicit none
     character(*), intent(in) :: param
     integer, intent(in)  :: val
     integer, intent(out), optional :: err
 
     error = 0
-    setparameter_tree_was_called = .true.
-    setparameter_loop_was_called = .true.
 
-    call ol_msg(4, "setparameter_int: " // trim(param) // " " // to_string(val))
+    call ol_msg(5, "setparameter_int: " // trim(param) // " " // to_string(val))
 
     select case (to_lowercase(param))
 
@@ -131,10 +179,13 @@ module ol_init
         else
           call set_if_modified(ew_renorm_switch, 3)
         end if
+        auto_preset = .false.
       case ("redlib2")
         call set_if_modified(a_switch_rescue, val)
+        auto_preset = .false.
       case ("redlib3", "redlib_qp")
         call set_if_modified(redlib_qp, val)
+        auto_preset = .false.
       case ("redlib", "redlibs")
         ! set libraries equal
         call set_if_modified(a_switch, val)
@@ -145,6 +196,7 @@ module ol_init
         else
           call set_if_modified(ew_renorm_switch, 3)
         end if
+        auto_preset = .false.
       case ("stability_mode")
 #ifndef USE_qp
         if (val == 13 .or. val == 14 .or. val == 22 .or. val == 23 .or. &
@@ -157,6 +209,7 @@ module ol_init
 #else
         call set_if_modified(stability_mode, val)
 #endif
+        auto_preset = .false.
       case ("deviation_mode")
         call set_if_modified(deviation_mode, val)
         if (val /= 1 .and. val /= 2) then
@@ -181,13 +234,13 @@ module ol_init
       case ("nc", "ncolours", "ncolors")
         ! affects only renormalisation, r2, and ir-subtraction
         call set_if_modified(nc, val)
-      case ("coupling_qcd_0", "coupling_qcd_t")
+      case ("coupling_qcd_0", "coupling_qcd_t", "coupling_qcd_tree")
         coupling_qcd(0) = val
-      case ("coupling_qcd_1", "coupling_qcd_l")
+      case ("coupling_qcd_1", "coupling_qcd_l", "coupling_qcd_loop")
         coupling_qcd(1) = val
-      case ("coupling_ew_0", "coupling_ew_t")
+      case ("coupling_ew_0", "coupling_ew_t", "coupling_ew_tree")
         coupling_ew(0) = val
-      case ("coupling_ew_1", "coupling_ew_l")
+      case ("coupling_ew_1", "coupling_ew_l", "coupling_ew_loop")
         coupling_ew(1) = val
         call set_if_modified(do_ew_renorm, 1)
       case ("add_associated_ew")
@@ -203,6 +256,16 @@ module ol_init
         coupling_qcd(0) = val
         coupling_qcd(1) = 0
         call set_if_modified(do_ew_renorm, 1)
+      case ("loop_order_ew")
+        coupling_ew = -1
+        coupling_qcd = -1
+        loop_order_ew = val
+      case ("loop_order_qcd")
+        coupling_ew = -1
+        coupling_qcd = -1
+        loop_order_qcd = val
+      case ("olmode")
+        OLmode = val
       case ("ct_on")
         call set_if_modified(ct_is_on, val)
       case ("r2_on")
@@ -214,17 +277,19 @@ module ol_init
       case ("ckmorder")
         call set_if_modified(CKMORDER, val)
         if (val > 0) then
-          model = "sm_ckm"
+          call set_if_modified(model, "sm_ckm")
           if (flavour_mapping_on /= 0) then
-            flavour_mapping_on=2
+            flavour_mapping_on = 2
           end if
         end if
       case ("ioperator_mode")
         call set_if_modified(ioperator_mode, val)
       case ("polecheck")
         if (val == 1) then
+          call set_if_modified(coli_cache_use, 0)
           call set_if_modified(polecheck_is, val)
         else if (val == 2) then
+          call set_if_modified(coli_cache_use, 0)
           call set_if_modified(polecheck_is, 1)
           call set_if_modified(do_ew_renorm, 1)
           call set_if_modified(ir_is_on, 2)
@@ -253,14 +318,16 @@ module ol_init
         else
           flavour_mapping_on = val
         end if
-      case ("max_point")
-        maxpoint = val
-      case ("max_rank")
-        maxrank = val
+      case ("max_point", "maxpoint")
+        call set_if_modified(maxpoint, val)
+      case ("max_rank", "maxrank")
+        call set_if_modified(maxrank, val)
       case ("me_cache")
         use_me_cache = val
       case ("ew_renorm")
         call set_if_modified(do_ew_renorm, val)
+      case ("qcd_renorm")
+        call set_if_modified(do_qcd_renorm, val)
       case ("ew_renorm_switch")
         call set_if_modified(ew_renorm_switch, val)
       case ("ew_scheme")
@@ -279,17 +346,23 @@ module ol_init
         call set_if_modified(cms_on, val)
       case ("select_pol_v")
           call ol_error(1,"select_pol_V is deprecated use direct polarization selection instead.")
+!       case ("nll_order")
+!         call set_if_modified(nll_order, val)
+!       case ("nll_add")
+!         call set_if_modified(nll_add, val)
+!       case ("nll_ll")
+!         call set_if_modified(nll_ll, val)
       case ("cll_tenred")
         call set_if_modified(cll_tenred, val)
       case ("cll_channels")
-        cll_channels = val
+        call set_if_modified(cll_channels, val)
       case ("cll_log")
-        cll_log = val
+        call set_if_modified(cll_log, val)
       case ("olo_verbose")
-        if (olo_verbose /= val) reset_opp = .true.
+        if (olo_verbose /= val) reset_olo = .true.
         call set_if_modified(olo_verbose, val)
       case ("olo_unit")
-        if (olo_outunit /= val) reset_opp = .true.
+        if (olo_outunit /= val) reset_olo = .true.
         call set_if_modified(olo_outunit, val)
       case ("cuttools_idig")
         if (oppidig /= val) cuttools_not_init = .true.
@@ -297,20 +370,13 @@ module ol_init
       case ("cuttools_scaloop")
         if (oppscaloop /= val) cuttools_not_init = .true.
         call set_if_modified(oppscaloop, val)
-      case ("samurai_isca")
-        if (set_isca /= val) samurai_not_init = .true.
-        call set_if_modified(set_isca, val)
-      case ("samurai_verbosity")
-        if (set_verbosity /= val) samurai_not_init = .true.
-        set_verbosity = val
-      case ("samurai_itest")
-        if (set_itest /= val) samurai_not_init = .true.
-        call set_if_modified(set_itest, val)
       case ("dd_red_mode")
         if (dd_red_mode /= val) dd_not_init = .true.
         call set_if_modified(dd_red_mode, val)
       case ("use_coli_cache")
         call set_if_modified(coli_cache_use, val)
+      case ("no_collier_stop")
+        if (val == 1) call set_if_modified(no_collier_stop, .true.)
       case ("ol_params_verbose", "parameters_verbose")
         parameters_verbose = val
       case ("verbose")
@@ -335,9 +401,17 @@ module ol_init
         end if
       case ("check_collection")
         if (val == 1) then
-          check_collection  = .true.
+          check_collection = .true.
         else
           check_collection = .false.
+        end if
+      case ("auto_preset")
+        if (val == 1) then
+          auto_preset = .true.
+        elseif (val == 0) then
+          auto_preset = .false.
+        else
+          call ol_error("auto_preset not available:" // trim(to_string(val)))
         end if
       case ("preset")
         if (val == 1) then
@@ -363,9 +437,15 @@ module ol_init
           call set_if_modified(redlib_qp, 5)
           call set_if_modified(stability_mode, 22)
           call set_if_modified(ew_renorm_switch, 1)
+        else if (val == 5) then
+          call set_if_modified(a_switch, 1)
+          call set_if_modified(redlib_qp, 5)
+          call set_if_modified(stability_mode, 14)
+          call set_if_modified(ew_renorm_switch, 1)
         else
           call ol_error("preset not available:" // trim(to_string(val)))
         end if
+        auto_preset = .false.
       case default
         error = 1
         if (.not. forwarded_init) then
@@ -496,12 +576,6 @@ module ol_init
         val = oppidig
       case ("cuttools_scaloop")
         val = oppscaloop
-      case ("samurai_isca")
-        val = set_isca
-      case ("samurai_verbosity")
-        val = set_verbosity
-      case ("samurai_itest")
-        val = set_itest
       case ("dd_red_mode")
         val = dd_red_mode
       case ("use_coli_cache")
@@ -555,10 +629,8 @@ module ol_init
     integer, intent(out), optional :: err
 
     error = 0
-    setparameter_tree_was_called = .true.
-    setparameter_loop_was_called = .true.
 
-    call ol_msg(4, "setparameter_double: " // trim(param) // " " // to_string(val))
+    call ol_msg(5, "setparameter_double: " // trim(param) // " " // to_string(val))
 
     select case (to_lowercase(param))
 
@@ -591,7 +663,7 @@ module ol_init
           return
         else
           if (scalefactor /= val) reset_scalefactor = .true.
-          scalefactor = val
+          call set_if_modified(scalefactor, val)
         end if
       case ("rescalefactor")
         call set_if_modified(rescalefactor, val)
@@ -759,6 +831,52 @@ module ol_init
           call ol_msg("Warning: non-diagonal CKM matrix can only be used with ckmorder /= 0")
         end if
         call set_if_modified(VCKMbt, val)
+      case("vckmidu")
+        if (trim(model) /= "sm_ckm" .or. ckmorder == 0) then
+          call ol_msg("Warning: non-diagonal CKM matrix can only be used with ckmorder /= 0")
+        end if
+        call set_if_modified(VCKMdu, VCKMdu+CI*val)
+      case("vckmisu")
+        if (trim(model) /= "sm_ckm" .or. ckmorder == 0) then
+          call ol_msg("Warning: non-diagonal CKM matrix can only be used with ckmorder /= 0")
+        end if
+        call set_if_modified(VCKMsu, VCKMsu+CI*val)
+      case("vckmibu")
+        if (trim(model) /= "sm_ckm" .or. ckmorder == 0) then
+          call ol_msg("Warning: non-diagonal CKM matrix can only be used with ckmorder /= 0")
+        end if
+        call set_if_modified(VCKMbu, VCKMbu+CI*val)
+      case("vckmidc")
+        if (trim(model) /= "sm_ckm" .or. ckmorder == 0) then
+          call ol_msg("Warning: non-diagonal CKM matrix can only be used with ckmorder /= 0")
+        end if
+        call set_if_modified(VCKMdc, VCKMdc+CI*val)
+      case("vckmisc")
+        if (trim(model) /= "sm_ckm" .or. ckmorder == 0) then
+          call ol_msg("Warning: non-diagonal CKM matrix can only be used with ckmorder /= 0")
+        end if
+        call set_if_modified(VCKMsc, VCKMsc+CI*val)
+      case("vckmibc")
+        if (trim(model) /= "sm_ckm" .or. ckmorder == 0) then
+          call ol_msg("Warning: non-diagonal CKM matrix can only be used with ckmorder /= 0")
+        end if
+        call set_if_modified(VCKMbc, VCKMbc+CI*val)
+      case("vckmidt")
+        if (trim(model) /= "sm_ckm" .or. ckmorder == 0) then
+          call ol_msg("Warning: non-diagonal CKM matrix can only be used with ckmorder /= 0")
+        end if
+        call set_if_modified(VCKMdt, VCKMdt+CI*val)
+      case("vckmist")
+        if (trim(model) /= "sm_ckm" .or. ckmorder == 0) then
+          call ol_msg("Warning: non-diagonal CKM matrix can only be used with ckmorder /= 0")
+        end if
+        call set_if_modified(VCKMst, VCKMst+CI*val)
+      case("vckmibt")
+        if (trim(model) /= "sm_ckm" .or. ckmorder == 0) then
+          call ol_msg("Warning: non-diagonal CKM matrix can only be used with ckmorder /= 0")
+        end if
+        call set_if_modified(VCKMbt, VCKMbt+CI*val)
+
       case("vckmdiag")
         if (trim(model) /= "sm_ckm" .or. ckmorder == 0) then
           call ol_msg("Warning: non-diagonal CKM matrix can only be used with ckmorder /= 0")
@@ -867,7 +985,6 @@ module ol_init
         call set_if_modified(HPOepsWqq(2), val)
       case("epswbt", "hpoepswbt")
         call set_if_modified(HPOepsWqq(3), val)
-
       case ("fact_uv")
         call set_if_modified(x_uv, 1/val)
       case ("fact_ir")
@@ -905,7 +1022,7 @@ module ol_init
         if (opplimitvalue /= val) cuttools_not_init = .true.
         call set_if_modified(opplimitvalue, val)
       case ("opp_threshold")
-        if (oppthrs /= val) reset_opp = .true.
+        if (oppthrs /= val) reset_olo = .true.
         call set_if_modified(oppthrs, val)
       case ("dd_c_threshold")
         if (c_pv_threshold /= val) dd_not_init = .true.
@@ -918,6 +1035,8 @@ module ol_init
 
       case ("lambda_hhh")
         call set_if_modified(lambdaHHH, val)
+      case ("lambda_hhhh")
+        call set_if_modified(lambdaHHHH, val)
       case ("lambda_hww")
         call set_if_modified(lambdaHWW, val)
       case ("lambda_hzz")
@@ -949,6 +1068,54 @@ module ol_init
     end if
   end subroutine setparameter_double
 
+
+
+  subroutine setparameter_quad(param, val, err)
+    ! Set an OpenLoops quad precision parameter.
+    ! Must be flushed by parameters_flush() to take effect.
+    ! Calls are passed to ol_setparameter_int() if param doesn't match and val==int(val)
+    ! [in]  param: parameter name
+    ! [in]  val: double precision value
+    ! sets error flag: 0=ok, 1=ignored
+    use ol_parameters_decl_/**/QREALKIND
+    use ol_loop_parameters_decl_/**/QREALKIND
+    use ol_generic, only: to_lowercase, to_string
+    implicit none
+    character(*), intent(in) :: param
+    real(QREALKIND), intent(in) :: val
+    integer, intent(out), optional :: err
+
+    error = 0
+    setparameter_tree_was_called = .true.
+    setparameter_loop_was_called = .true.
+
+     !call ol_msg(5, "setparameter_quad: " // trim(param) // " " // to_string(val))
+
+    select case (to_lowercase(param))
+      case ("scalefactor")
+        call set_if_modified(scalefactor, val) ! quad
+      case ("mu", "renscale")
+        call set_if_modified(mureg_unscaled, val)
+        call set_if_modified(muren_unscaled, val)
+      case ("muren")
+        call set_if_modified(muren_unscaled, val)
+      case ("mureg")
+        call set_if_modified(mureg_unscaled, val)
+      case default
+        call ol_error(1, "ol_setparameter_quad ignored unknown parameter '" // trim(param) // "'")
+        error = 1
+
+    end select
+
+    if (present(err)) then
+      err = error
+    else
+      if (init_error_fatal == 2 .and. error /= 0) then
+        call ol_fatal("unknown parameter '" // trim(param) // "' in ol_setparameter_quad")
+        return
+      end if
+    end if
+  end subroutine setparameter_quad
 
 
   subroutine setparameter_single(param, val, err)
@@ -1167,10 +1334,8 @@ module ol_init
     integer :: i
 
     error = 0
-    setparameter_tree_was_called = .true.
-    setparameter_loop_was_called = .true.
 
-    call ol_msg(4, "setparameter_string: " // trim(param)  // " " // trim(val))
+    call ol_msg(5, "setparameter_string: " // trim(param)  // " " // trim(val))
 
     if (len(val) > max_parameter_length) then
       call ol_fatal("ol_setparameter_string: " // trim(param) // " value must not exceed " // &
@@ -1189,13 +1354,6 @@ module ol_init
         end if
       case ("tmp_dir")
         tmp_dir = val
-      case ("samurai_imeth")
-        if (len(val) > 4) then
-          call ol_fatal("ol_setparameter_string: " // trim(param) // " value must not exceed 4 characters")
-          return
-        end if
-        if (set_imeth /= val) samurai_not_init = .true.
-        set_imeth = val
       case ("allowed_libs", "allowed_libraries", "allowedlibs", "allowedlibraries")
         if (len(val) > max_parameter_length-2) then
           ! needs a leading and a trailing space
@@ -1219,31 +1377,31 @@ module ol_init
       case ("model")
         select case (to_lowercase(trim(val)))
           case ("sm", "smdiag", "sm_yuksel")
-            model = "sm"
+            call set_if_modified(model, "sm")
             call set_if_modified(nf, 6)
           case ("smckm", "smnondiag", "sm_ckm")
-            model = "sm_ckm"
+            call set_if_modified(model, "sm_ckm")
             call set_if_modified(nf, 6)
             if (flavour_mapping_on /= 0) then
               call set_if_modified(flavour_mapping_on, 2)
             end if
           case ("sm_vaux")
-            model = "sm_vaux"
+            call set_if_modified(model, "sm_vaux")
             call set_if_modified(nf, 6)
             call set_if_modified(cms_on, 0)
           case ("heft", "sm+ehc")
-            model = "heft"
+            call set_if_modified(model, "heft")
             call set_if_modified(nf, 5)
           case ("2hdm1", "thdm1", "2hdmi", "thdmi")
-            model = "2hdm"
-            thdm_type = 1
+            call set_if_modified(model, "2hdm")
+            call set_if_modified(thdm_type, 1)
             call set_if_modified(nf, 6)
           case ("2hdm", "thdm", "2hdm2", "thdm2", "2hdmii", "thdmii")
-            model = "2hdm"
-            thdm_type = 2
+            call set_if_modified(model, "2hdm")
+            call set_if_modified(thdm_type, 2)
             call set_if_modified(nf, 6)
           case ("hpoprodmfv_ufo", "hpoprodmfv_ufo_fixed", "higgspo")
-            model = "higgspo"
+            call set_if_modified(model, "higgspo")
             call set_if_modified(nf, 6)
         case default
           call ol_error(1, "unknown model: " // trim(val) // ", model set to: " // trim(model))
@@ -1281,8 +1439,10 @@ module ol_init
 
   subroutine parameters_flush() bind(c,name="ol_parameters_flush")
     use ol_parameters_init_/**/DREALKIND, only: parameters_init, loop_parameters_init
+    use ol_parameters_init_/**/QREALKIND, only: parameters_init_qp=>parameters_init, &
+                                                loop_parameters_init_qp=>loop_parameters_init
     implicit none
-    if (setparameter_loop_was_called) then
+    if (setparameter_tree_was_called .or. setparameter_loop_was_called) then
       call parameters_init()
       call loop_parameters_init()
       setparameter_tree_was_called = .false.
@@ -1320,8 +1480,7 @@ module ol_init
     cleanup_routines(n_cleanup_routines)%clean => sub
   end subroutine register_cleanup
 
-  ! deprectaed: C binding for Sherpa
-  subroutine cleanup() bind(c,name="ol_finish_")
+  subroutine cleanup()
     implicit none
     integer :: k
     do k = 1, n_cleanup_routines
@@ -1400,60 +1559,5 @@ module ol_init
     call c_f_string(val, f_val, max_parameter_length)
     call set_parameter(trim(f_param), trim(f_val))
   end subroutine setparameter_string_c
-
-
-  ! ======================================== !
-  ! Interfaces for compatibility with Sherpa !
-  ! ======================================== !
-
-  subroutine ol_setparameter_int_c(param, val, err) bind(c,name="ol_setparameter_int_c_")
-    implicit none
-    character(kind=c_char), dimension(*), intent(in) :: param
-    integer(c_int), intent(in)  :: val
-    integer(c_int), intent(out) :: err
-    call setparameter_int_c(param, val)
-    err = error
-  end subroutine ol_setparameter_int_c
-
-  subroutine ol_getparameter_int_c(param, val, err) bind(c,name="ol_getparameter_int_c_")
-    implicit none
-    character(kind=c_char), dimension(*), intent(in) :: param
-    integer(c_int), intent(out) :: val
-    integer(c_int), intent(out) :: err
-    call getparameter_int_c(param, val)
-    err = error
-  end subroutine ol_getparameter_int_c
-
-  subroutine ol_setparameter_double_c(param, val, err) bind(c,name="ol_setparameter_double_c_")
-    implicit none
-    character(kind=c_char), dimension(*), intent(in) :: param
-    real(c_double), intent(in)  :: val
-    integer(c_int), intent(out) :: err
-    call setparameter_double_c(param, val)
-    err = error
-  end subroutine ol_setparameter_double_c
-
-  subroutine ol_getparameter_double_c(param, val, err) bind(c,name="ol_getparameter_double_c_")
-    implicit none
-    character(kind=c_char), dimension(*), intent(in) :: param
-    real(c_double), intent(out) :: val
-    integer(c_int), intent(out) :: err
-    call getparameter_double_c(param, val)
-    err = error
-  end subroutine ol_getparameter_double_c
-
-  subroutine ol_setparameter_string_c(param, val, err) bind(c,name="ol_setparameter_string_c_")
-    implicit none
-    character(kind=c_char), dimension(*), intent(in) :: param
-    character(kind=c_char), dimension(*), intent(in) :: val
-    integer(c_int), intent(out) :: err
-    call setparameter_string_c(param, val)
-    err = error
-  end subroutine ol_setparameter_string_c
-
-  subroutine ol_parameters_flush() bind(c,name="ol_parameters_flush_")
-    implicit none
-    call parameters_flush()
-  end subroutine ol_parameters_flush
 
 end module ol_init

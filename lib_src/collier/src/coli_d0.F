@@ -9,7 +9,7 @@
 
 
 
-
+#include "global_coli.h"
 
 c#define QCONT
 
@@ -55,7 +55,7 @@ c#define QCONT
       use coli_aux2
 #endif
       implicit   none
-      complex*16 D0_coli
+      complex*16 :: D0_coli
       complex*16 p12,p23,p34,p14,p13,p24
       complex*16 m12,m22,m32,m42
       complex*16 ps12,ps23,ps34,ps14,ps13,ps24
@@ -2361,7 +2361,7 @@ c     (permutation 1 <-> 2  for  m -> k )
       endif
 
 
-      D02m0_coli = D02m0_coli/(a*(x(1)-x(2)))
+      if (D02m0_coli.ne.cd0) D02m0_coli = D02m0_coli/(a*(x(1)-x(2)))
 
 
 
