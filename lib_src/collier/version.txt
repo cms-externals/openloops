@@ -1,0 +1,6 @@
+
+Collier legacy version from 19.03.2014.
+
+Collier version 1.2 from 20.10.2017.
+
+27.03.2018: added a quad precision port of DD.
