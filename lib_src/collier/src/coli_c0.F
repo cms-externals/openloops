@@ -7,7 +7,7 @@
 !!  COLLIER is licenced under the GNU GPL version 3, see COPYING for details.
 !!
 
-
+#include "global_coli.h"
 
 #define QCONT
 
@@ -1441,7 +1441,7 @@ c-> 15.01.07:  iy2y3,iy2y4,iy1y3,iy1y4 introduced
 
 
           C0m0_coli = cln_coli(-x1,-ix1)**2 +  cln_coli(-x2,ix1)**2
-     &         - cdlog(mm22/mm32)**2
+     &         - log(mm22/mm32)**2
           C0m0_coli = C0m0_coli/(2d0*p23)
         endif
       endif

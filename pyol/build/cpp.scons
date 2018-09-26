@@ -1,3 +1,21 @@
+#!******************************************************************************!
+#! Copyright (C) 2014-2018 OpenLoops Collaboration. For authors see authors.txt !
+#!                                                                              !
+#! This file is part of OpenLoops.                                              !
+#!                                                                              !
+#! OpenLoops is free software: you can redistribute it and/or modify            !
+#! it under the terms of the GNU General Public License as published by         !
+#! the Free Software Foundation, either version 3 of the License, or            !
+#! (at your option) any later version.                                          !
+#!                                                                              !
+#! OpenLoops is distributed in the hope that it will be useful,                 !
+#! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+#! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+#! GNU General Public License for more details.                                 !
+#!                                                                              !
+#! You should have received a copy of the GNU General Public License            !
+#! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+#!******************************************************************************!
 
 # OpenLoops multi-precision preprocessor
 #
@@ -37,7 +55,7 @@ cpp_flags = ['--traditional-cpp', '-P']
 
 def split_and_clean(ls):
     """Create a list from a comma separated string and remove empty elements."""
-    return filter(lambda el: len(el) != 0, ls.split(','))
+    return list(filter(lambda el: len(el) != 0, ls.split(',')))
 
 mp_src      = split_and_clean(ARGUMENTS.get('mp_src',      ''))
 dp_src      = split_and_clean(ARGUMENTS.get('dp_src',      ''))

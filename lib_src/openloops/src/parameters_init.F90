@@ -1,23 +1,25 @@
-
-! Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-!
-! This file is part of OpenLoops.
-!
-! OpenLoops is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! OpenLoops is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-! GNU General Public License for more details.
-!
-! You should have received a copy of the GNU General Public License
-! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+!******************************************************************************!
+! Copyright (C) 2014-2018 OpenLoops Collaboration. For authors see authors.txt !
+!                                                                              !
+! This file is part of OpenLoops.                                              !
+!                                                                              !
+! OpenLoops is free software: you can redistribute it and/or modify            !
+! it under the terms of the GNU General Public License as published by         !
+! the Free Software Foundation, either version 3 of the License, or            !
+! (at your option) any later version.                                          !
+!                                                                              !
+! OpenLoops is distributed in the hope that it will be useful,                 !
+! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+! GNU General Public License for more details.                                 !
+!                                                                              !
+! You should have received a copy of the GNU General Public License            !
+! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+!******************************************************************************!
 
 
 module ol_parameters_init_/**/REALKIND
+  use ol_debug
   implicit none
   contains
 
@@ -44,16 +46,8 @@ end subroutine masspowers
 
 #ifdef PRECISION_dp
 
-subroutine parameters_init(Mass_E, Mass_M, Mass_L, Mass_U, Mass_D, Mass_S, Mass_C, Width_C, Mass_B, Width_B, Mass_T, Width_T, &
-                           Mass_W, Width_W, Mass_Z, Width_Z, Mass_H, Width_H, Coupl_Alpha_QED, Coupl_Alpha_QCD, &
-                           last_switch, amp_switch, amp_switch_rescue, &
-                           use_coli_cache, check_Ward_tree, check_Ward_loop, out_symmetry, leading_colour)
-  ! Assign values of physical input patameters.
-  ! Use this subroutine with named arguments, e.g. parameters_init(Mass_B=0._/**/REALKIND) to set
-  ! the bottom-quark mass to zero without changing other parameters.
-  !
-  ! Direct calls of this routine are deprecated. Use set_parameter() interface in module openloops/ol_init instead!
-  !
+subroutine parameters_init()
+  ! Initialise parameters for tree amplitudes.
 #ifdef USE_IFORT
   use IFPORT
 #endif
@@ -65,16 +59,6 @@ subroutine parameters_init(Mass_E, Mass_M, Mass_L, Mass_U, Mass_D, Mass_S, Mass_
 #endif
   use ol_version, only: splash_todo, print_welcome
   implicit none
-  real(REALKIND), intent(in), optional :: Mass_E, Mass_M,  Mass_L ! physical (real) lepton masses
-  real(REALKIND), intent(in), optional :: Mass_U, Mass_D,  Mass_S ! physical (real) light-quark masses
-  real(REALKIND), intent(in), optional :: Mass_C, Width_C, Mass_B, Width_B, Mass_T, Width_T ! physical (real) heavy-quark masses and widths
-  real(REALKIND), intent(in), optional :: Mass_W, Width_W, Mass_Z, Width_Z, Mass_H, Width_H ! physical (real) boson masses and widths
-  real(REALKIND), intent(in), optional :: Coupl_Alpha_QED, Coupl_Alpha_QCD ! Coupling constants
-  integer,  intent(in), optional :: last_switch, amp_switch, amp_switch_rescue ! set mode for check_last_[...] and loop_amp
-  integer,  intent(in), optional :: use_coli_cache
-  integer,  intent(in), optional :: check_Ward_tree, check_Ward_loop
-  integer,  intent(in), optional :: out_symmetry
-  integer,  intent(in), optional :: leading_colour
 
   if (parameters_status == 0) then
     pid_string = trim(to_string(getpid())) // "-" // random_string(4)
@@ -84,71 +68,10 @@ subroutine parameters_init(Mass_E, Mass_M, Mass_L, Mass_U, Mass_D, Mass_S, Mass_
     call print_welcome()
   end if
 
-  ! Mode switches
-  if (present(last_switch))       l_switch        = last_switch
-  if (present(amp_switch))        a_switch        = amp_switch
-  if (present(amp_switch_rescue)) a_switch_rescue = amp_switch_rescue
-
 #if defined(COLLIER_LEGACY) && defined(USE_COLLIER)
   if (a_switch == 1) TI_library = 1 ! use COLI
   if (a_switch == 7) TI_library = 2 ! use DD
 #endif
-
-  if (present(use_coli_cache)) coli_cache_use = use_coli_cache
-  if (present(check_Ward_tree)) Ward_tree = check_Ward_tree
-  if (present(check_Ward_loop)) Ward_loop = check_Ward_loop
-  if (present(out_symmetry)) out_symmetry_on = out_symmetry
-  if (present(leading_colour)) LeadingColour = leading_colour
-  ! Check for optional arguments
-  if (present(Coupl_Alpha_QED)) alpha_QED = Coupl_Alpha_QED
-  if (present(Coupl_Alpha_QCD)) alpha_QCD = Coupl_Alpha_QCD
-  if (present(Mass_W))  rMW_unscaled = Mass_W
-  if (present(Mass_Z))  rMZ_unscaled = Mass_Z
-  if (present(Mass_H))  rMH_unscaled = Mass_H
-  if (present(Width_C)) wMC_unscaled = Width_C
-  if (present(Width_B)) wMB_unscaled = Width_B
-  if (present(Width_T)) wMT_unscaled = Width_T
-  if (present(Width_W)) wMW_unscaled = Width_W
-  if (present(Width_W)) wMY_unscaled = Width_W
-  if (present(Width_Z)) wMZ_unscaled = Width_Z
-  if (present(Width_Z)) wMX_unscaled = Width_Z
-  if (present(Width_H)) wMH_unscaled = Width_H
-  if (present(Mass_E))  then
-    rME_unscaled = Mass_E
-    rYE_unscaled = Mass_M
-  end if
-  if (present(Mass_M))  then
-    rMM_unscaled = Mass_M
-    rYM_unscaled = Mass_M
-  end if
-  if (present(Mass_L))  then
-    rML_unscaled = Mass_L
-    rYL_unscaled = Mass_L
-  end if
-  if (present(Mass_U))  then
-    rMU_unscaled = Mass_U
-    rYU_unscaled = Mass_U
-  end if
-  if (present(Mass_D))  then
-    rMD_unscaled = Mass_D
-    rYD_unscaled = Mass_D
-  end if
-  if (present(Mass_S))  then
-    rMS_unscaled = Mass_S
-    rYS_unscaled = Mass_S
-  end if
-  if (present(Mass_C))  then
-    rMC_unscaled = Mass_C
-    rYC_unscaled = Mass_C
-  end if
-  if (present(Mass_B))  then
-    rMB_unscaled = Mass_B
-    rYB_unscaled = Mass_B
-  end if
-  if (present(Mass_T))  then
-    rMT_unscaled = Mass_T
-    rYT_unscaled = Mass_T
-  end if
 
   ! set mass of V-auxiliary fields
   rMX_unscaled = rMZ_unscaled
@@ -213,7 +136,7 @@ subroutine parameters_init()
   use KIND_TYPES, only: REALKIND
   use ol_parameters_decl_/**/REALKIND
   use ol_parameters_decl_/**/DREALKIND, only: &
-    & model, parameters_verbose, scalefactor_dp => scalefactor, cms_on => cms_on, ew_scheme => ew_scheme, &
+    & model, parameters_verbose, cms_on => cms_on, ew_scheme => ew_scheme, &
     & parameters_status_dp => parameters_status,  alpha_QCD_dp => alpha_QCD, &
     & alpha_QED_0_dp => alpha_QED_0, alpha_QED_MZ_dp => alpha_QED_MZ, Gmu_dp => Gmu, &
     & rME_dp => rME, wME_dp => wME, rMM_dp => rMM, wMM_dp => wMM, rML_dp => rML, wML_dp => wML, &
@@ -225,66 +148,72 @@ subroutine parameters_init()
     & rYC_dp => rYC, rYB_dp => rYB, wYB_dp => wYB, rYT_dp => rYT, wYT_dp => wYT, &
     & rMA0_dp => rMA0, wMA0_dp => wMA0, rMHH_dp => rMHH, wMHH_dp => wMHH, rMHp_dp => rMHp, wMHp_dp => wMHp, &
     & thdmTB_dp => thdmTB, thdmSBA_dp => thdmSBA, thdmL5_dp => thdmL5
+  use ol_parameters_decl_/**/QREALKIND, only: scalefactor
   implicit none
 
-  scalefactor = scalefactor_dp
+  rMX_unscaled = rMZ_unscaled
+  rMY_unscaled = rMW_unscaled
+
+  rME = scalefactor * rME_unscaled
+  wME = scalefactor * wME_unscaled
+  rYE = scalefactor * rYE_unscaled
+  rMM = scalefactor * rMM_unscaled
+  wMM = scalefactor * wMM_unscaled
+  rYM = scalefactor * rYM_unscaled
+  rML = scalefactor * rML_unscaled
+  wML = scalefactor * wML_unscaled
+  rYL = scalefactor * rYL_unscaled
+  rMU = scalefactor * rMU_unscaled
+  wMU = scalefactor * wMU_unscaled
+  rYU = scalefactor * rYU_unscaled
+  rMD = scalefactor * rMD_unscaled
+  wMD = scalefactor * wMD_unscaled
+  rYD = scalefactor * rYD_unscaled
+  rMS = scalefactor * rMS_unscaled
+  wMS = scalefactor * wMS_unscaled
+  rYS = scalefactor * rYS_unscaled
+  rMC = scalefactor * rMC_unscaled
+  wMC = scalefactor * wMC_unscaled
+  rYC = scalefactor * rYC_unscaled
+  rMB = scalefactor * rMB_unscaled
+  wMB = scalefactor * wMB_unscaled
+  rYB = scalefactor * rYB_unscaled
+  wYB = scalefactor * wYB_unscaled
+  rMT = scalefactor * rMT_unscaled
+  wMT = scalefactor * wMT_unscaled
+  rYT = scalefactor * rYT_unscaled
+  wYT = scalefactor * wYT_unscaled
+  rMW = scalefactor * rMW_unscaled
+  wMW = scalefactor * wMW_unscaled
+  rMZ = scalefactor * rMZ_unscaled
+  wMZ = scalefactor * wMZ_unscaled
+  rMX = scalefactor * rMX_unscaled
+  wMX = scalefactor * wMX_unscaled
+  rMY = scalefactor * rMY_unscaled
+  wMY = scalefactor * wMY_unscaled
+  rMH = scalefactor * rMH_unscaled
+  wMH = scalefactor * wMH_unscaled
+
+  rMA0 = scalefactor * rMA0_unscaled
+  wMA0 = scalefactor * wMA0_unscaled
+  rMHH = scalefactor * rMHH_unscaled
+  wMHH = scalefactor * wMHH_unscaled
+  rMHp = scalefactor * rMHp_unscaled
+  wMHp = scalefactor * wMHp_unscaled
+
+  MREG = scalefactor * MREG_unscaled
+
+  Gmu  = Gmu_unscaled / scalefactor**2
 
   alpha_QED_0  = alpha_QED_0_dp
   alpha_QED_MZ = alpha_QED_MZ_dp
-  Gmu          = Gmu_dp
   alpha_QCD    = alpha_QCD_dp
-
-  rME = rME_dp
-  wME = wME_dp
-  rMM = rMM_dp
-  wMM = wMM_dp
-  rML = rML_dp
-  wML = wML_dp
-  rMU = rMU_dp
-  wMU = wMU_dp
-  rMD = rMD_dp
-  wMD = wMD_dp
-  rMS = rMS_dp
-  wMS = wMS_dp
-  rMC = rMC_dp
-  wMC = wMC_dp
-  rMB = rMB_dp
-  wMB = wMB_dp
-  rMT = rMT_dp
-  wMT = wMT_dp
-  rMW = rMW_dp
-  wMW = wMW_dp
-  rMZ = rMZ_dp
-  wMZ = wMZ_dp
-  rMX = rMX_dp
-  wMX = wMX_dp
-  rMY = rMY_dp
-  wMY = wMY_dp
-  rMH = rMH_dp
-  wMH = wMH_dp
-
-  rYE = rYE_dp
-  rYM = rYM_dp
-  rYL = rYL_dp
-  rYU = rYU_dp
-  rYD = rYD_dp
-  rYS = rYS_dp
-  rYC = rYC_dp
-  rYB = rYB_dp
-  wYB = wYB_dp
-  rYT = rYT_dp
-  wYT = wYT_dp
 
   thdmTB = thdmTB_dp
   thdmSBA = thdmSBA_dp
   thdmL5 = thdmL5_dp
 
-  rMA0 = rMA0_dp
-  wMA0 = wMA0_dp
-  rMHH = rMHH_dp
-  wMHH = wMHH_dp
-  rMHp = rMHp_dp
-  wMHp = wMHp_dp
+
 
 ! ifdef PRECISION_dp
 #endif
@@ -343,7 +272,13 @@ subroutine parameters_init()
   if (ew_scheme == 0) then ! alpha(0) OS scheme
     alpha_QED = alpha_QED_0
   else if (ew_scheme == 1) then ! Gmu scheme
-    alpha_QED = sqrt2/pi*Gmu*abs(MW2*sw2)
+    if (cms_on == 1 ) then
+      alpha_QED = sqrt2/pi*Gmu*abs(MW2*sw2)
+    else if (cms_on == 2) then
+      alpha_QED = sqrt2/pi*Gmu*rMW2*(1.-rMW2/rMZ2)
+    else
+      alpha_QED = sqrt2/pi*Gmu*rMW2*sw2
+    end if
   else if (ew_scheme == 2) then ! alpha(MZ) scheme
     alpha_QED = alpha_QED_MZ
   end if
@@ -397,6 +332,7 @@ subroutine parameters_init()
     call parameters_write()
   end if
 
+   call ol_msg(4, "Parameters initialized")
 end subroutine parameters_init
 
 
@@ -532,7 +468,7 @@ end subroutine model_higgspo_parameters_init
 
 subroutine ensure_mp_init()
   ! synchronise non-dp parameters with dp if they are not up to date
-  ! should be called after parameters_init()
+  ! should be called after tree_parameters_flush()
   ! and in tree matrix element routines before anything is done
 #ifndef PRECISION_dp
   use ol_parameters_decl_/**/REALKIND, only: parameters_status
@@ -623,7 +559,7 @@ end subroutine channel_off
 
 
 subroutine init_kin_arrays(Npart)
-  use ol_momenta_decl_/**/REALKIND, only: Q, QInvariantsMatrix
+  use ol_momenta_decl_/**/REALKIND, only: Q, L, QInvariantsMatrix
   use ol_external_decl_/**/REALKIND, only: P_ex, binom2, crossing, inverse_crossing, gf_array, Ward_array
   use ol_external_decl_/**/REALKIND, only: allocatedNpart
   implicit none
@@ -635,6 +571,8 @@ subroutine init_kin_arrays(Npart)
     end if
     allocate(Q(5,0:2**Npart-1))
     Q = 0
+    allocate(L(6,0:2**Npart-1))
+    L = 0
     allocate(QInvariantsMatrix(Npart,Npart))
     QInvariantsMatrix = 0
 
@@ -658,10 +596,11 @@ end subroutine init_kin_arrays
 
 subroutine clean_kin_arrays
   use ol_external_decl_/**/REALKIND, only: allocatedNpart
-  use ol_momenta_decl_/**/REALKIND, only: Q, QInvariantsMatrix
+  use ol_momenta_decl_/**/REALKIND, only: Q, L, QInvariantsMatrix
   use ol_external_decl_/**/REALKIND, only: P_ex, binom2, crossing, inverse_crossing, gf_array, Ward_array
   implicit none
   if (allocated(Q)) deallocate(Q)
+  if (allocated(L)) deallocate(L)
   if (allocated(QInvariantsMatrix)) deallocate(QInvariantsMatrix)
   if (allocated(binom2)) deallocate(binom2)
   if (allocated(P_ex)) deallocate(P_ex)
@@ -700,18 +639,9 @@ end subroutine tensorrank_init
 
 #ifdef PRECISION_dp
 ! **********************************************************************
-subroutine loop_parameters_init(renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, pole2_IR, polenorm_swi, &
-                                N_quarks, nq_nondecoupled, &
-                                opp_rootsvalue, opp_limitvalue, opp_thrs, opp_idig, opp_scaloop, &
-                                sam_isca, sam_verbosity, sam_itest, fermion_loops, nonfermion_loops, &
-                                CT_on, R2_on, IR_on, polecheck, set_C_PV_threshold, &
-                                set_D_PV_threshold, set_dd_red_mode)
+subroutine loop_parameters_init(pole1_UV, pole1_IR, pole2_IR, CT_on, IR_on)
 ! **********************************************************************
-! Assign values of dimensional regularisation parameters. Use this subroutine
-! with named arguments, e.g. parameters_init(pole1_UV=0._/**/REALKIND) to set the
-! single UV pole to zero without changing other parameters. Always use this
-! routine to change parameters, otherwise factors which contain these
-! parameters will not be recalculated.
+! Initialise parameters for loop amplitudes.
 ! **********************************************************************
 ! renscale = renormalisation scale
 ! ----------------------------------------------------------------------
@@ -755,106 +685,46 @@ subroutine loop_parameters_init(renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, 
   use ol_parameters_decl_/**/REALKIND
   use ol_loop_parameters_decl_/**/REALKIND
   use ol_qcd_renormalisation_/**/REALKIND, only: qcd_renormalisation
-!   use ol_ew_renormalisation_/**/REALKIND, only: ew_renormalisation
+  use ol_ew_renormalisation_/**/REALKIND, only: ew_renormalisation
 #ifdef USE_COLLIER
 #ifdef COLLIER_LEGACY
   use dd_init_/**/REALKIND, only: dd_setmode, dd_setparam
 #else
   use collier, only: init_cll, initcachesystem_cll, setmode_cll, setmuuv2_cll, &
     & setmuir2_cll, setdeltauv_cll, setdeltair_cll, settenred_cll, setaccuracy_cll, &
-    & initmonitoring_cll
+    & initmonitoring_cll, SwitchOffErrStop_cll
 #endif
 #endif
 #ifdef USE_ONELOOP
-  use avh_olo, only: olo_scale, olo_onshell, olo_unit
-#endif
-#ifdef USE_SAMURAI
-  use msamurai, only: initsamurai
+  use avh_olo, only: olo_scale_prec, olo_onshell, olo_unit
 #endif
   implicit none
-
-  real(REALKIND), intent(in), optional :: renscale, fact_UV, fact_IR, pole1_UV, pole1_IR, pole2_IR
-  integer,        intent(in), optional :: polenorm_swi, N_quarks, nq_nondecoupled
-
-  ! DD parameters
-  real(REALKIND), intent(in), optional :: set_C_PV_threshold, set_D_PV_threshold
-  integer,        intent(in), optional :: set_dd_red_mode
-
-  ! CutTools parameters
-  real(REALKIND), intent(in), optional :: opp_rootsvalue, opp_limitvalue, opp_thrs
-  integer,        intent(in), optional :: opp_idig, opp_scaloop
-
-  ! Samurai parameters
-  integer,        intent(in), optional :: sam_isca, sam_verbosity, sam_itest
-  ! Switches for counter terms and R2
-  integer,        intent(in), optional :: fermion_loops, nonfermion_loops, polecheck
-  integer,        intent(in), optional :: CT_on, R2_on, IR_on
+#ifdef USE_QCDLOOP
+  interface
+    subroutine qlshowsplash()
+      implicit none
+    end subroutine qlshowsplash
+    subroutine qlcachesize(sz)
+      implicit none
+      integer, intent(in) :: sz
+    end subroutine qlcachesize
+  end interface
+#endif
+  ! keep these optional arguments for compatibility with old process libraries
+  real(REALKIND), intent(in), optional :: pole1_UV, pole1_IR, pole2_IR
+  integer,        intent(in), optional :: CT_on, IR_on
 
   real(REALKIND) :: mp2(10)
 
-  if (present(renscale)) then
-    if (mureg_unscaled /= renscale) reset_mureg = .true.
-    mureg_unscaled = renscale
-    muren_unscaled = renscale
-  end if
-  if (present(fact_UV))         x_UV          = fact_UV
-  if (present(fact_IR))         x_IR          = fact_IR
-  if (present(pole1_UV))        de1_UV        = pole1_UV
-  if (present(pole1_IR))        de1_IR        = pole1_IR
-  if (present(pole2_IR))        de2_i_IR      = pole2_IR
-  if (present(polenorm_swi))    norm_swi      = polenorm_swi
-  if (present(N_quarks))        nf            = N_quarks
-  if (present(nq_nondecoupled)) nq_nondecoupl = nq_nondecoupled
-
-  if (present(set_C_PV_threshold)) C_PV_threshold = set_C_PV_threshold
-  if (present(set_D_PV_threshold)) D_PV_threshold = set_D_PV_threshold
-  if (present(set_dd_red_mode))    dd_red_mode    = set_dd_red_mode
-
-  if (present(opp_rootsvalue)) then
-    if (opprootsvalue_unscaled /= opp_rootsvalue) cuttools_not_init = .true.
-    opprootsvalue_unscaled = opp_rootsvalue
-  end if
-  if (present(opp_limitvalue)) then
-    if (opplimitvalue /= opp_limitvalue) cuttools_not_init = .true.
-    opplimitvalue = opp_limitvalue
-  end if
-  if (present(opp_thrs)) then
-    if (oppthrs /= opp_thrs) reset_opp = .true.
-    oppthrs = opp_thrs
-  end if
-  if (present(opp_idig)) then
-    if (oppidig /= opp_idig) cuttools_not_init = .true.
-    oppidig = opp_idig
-  end if
-  if (present(opp_scaloop)) then
-    if (oppscaloop /= opp_scaloop) cuttools_not_init = .true.
-    oppscaloop = opp_scaloop
-  end if
-  if (present(sam_isca)) then
-    if (set_isca /= sam_isca) samurai_not_init = .true.
-    set_isca = sam_isca
-  end if
-  if (present(sam_verbosity)) then
-    if (set_verbosity /= sam_verbosity) samurai_not_init = .true.
-    set_verbosity = sam_verbosity
-  end if
-  if (present(sam_itest)) then
-    if (set_itest /= sam_itest) samurai_not_init = .true.
-    set_itest = sam_itest
-  end if
-
-  if (present(fermion_loops))    SwF = fermion_loops
-  if (present(nonfermion_loops)) SwB = nonfermion_loops
-
-
+  if (present(pole1_UV)) de1_UV   = pole1_UV
+  if (present(pole1_IR)) de1_IR   = pole1_IR
+  if (present(pole2_IR)) de2_i_IR = pole2_IR
   if (present(CT_on)) CT_is_on = CT_on
-  if (present(R2_on)) R2_is_on = R2_on
   if (present(IR_on)) IR_is_on = IR_on
-  if (present(polecheck)) polecheck_is = polecheck
 
   if (reset_scalefactor) then
     reset_mureg = .true.
-    reset_opp = .true.
+    reset_olo = .true.
     reset_scalefactor = .false.
   end if
 
@@ -885,16 +755,23 @@ subroutine loop_parameters_init
   ! non-dp initialisation: synchronise with dp parameters
   use ol_tensor_storage_/**/REALKIND, only: tensor_storage_maxrank
   use ol_parameters_decl_/**/REALKIND, only: pi2_6
+  use ol_parameters_decl_/**/REALKIND, only: reset_scalefactor
   use ol_loop_parameters_decl_/**/REALKIND
+  use ol_loop_parameters_decl_/**/QREALKIND, only: scalefactor, mureg
+  use ol_loop_parameters_decl_/**/DREALKIND, only: reset_mureg, reset_olo
   use ol_loop_parameters_decl_/**/DREALKIND, only: &
     & loop_parameters_status_dp => loop_parameters_status, norm_swi, a_switch, a_switch_rescue, redlib_qp, &
     & dd_qp_not_init, tensorlib_qp_not_init, mureg_dp => mureg, muren_dp => muren, fact_UV_dp => x_UV, fact_IR_dp => x_IR, &
-    & pole1_UV_dp => de1_UV, pole1_IR_dp => de1_IR, pole2_IR_dp => de2_i_IR, do_ew_renorm, maxrank
+    & pole1_UV_dp => de1_UV, pole1_IR_dp => de1_IR, pole2_IR_dp => de2_i_IR, do_ew_renorm, do_qcd_renorm, maxrank
 #if defined(USE_COLLIER) && defined(COLLIER_LEGACY)
   use dd_init_/**/REALKIND, only: dd_setmode, dd_setparam
 #endif
   use ol_qcd_renormalisation_/**/REALKIND, only: qcd_renormalisation
-!   use ol_ew_renormalisation_/**/REALKIND, only: ew_renormalisation
+  use ol_ew_renormalisation_/**/REALKIND, only: ew_renormalisation
+  use ol_loop_parameters_decl_/**/DREALKIND, only: opprootsvalue, opprootsvalue_unscaled
+#ifdef USE_ONELOOP
+  use avh_olo, only: olo_scale_prec, olo_onshell, olo_unit
+#endif
   implicit none
 
   if (norm_swi == 0) then
@@ -903,8 +780,18 @@ subroutine loop_parameters_init
     de2_i_shift = pi2_6
   end if
 
-  mureg    = mureg_dp
-  muren    = muren_dp
+  if (reset_scalefactor) then
+    reset_mureg = .true.
+    reset_olo = .true.
+    reset_scalefactor = .false.
+  end if
+
+  opprootsvalue = scalefactor * opprootsvalue_unscaled
+  mureg = scalefactor * mureg_unscaled
+  muren = scalefactor * muren_unscaled
+  muyc = scalefactor * muyc_unscaled
+  muyb = scalefactor * muyb_unscaled
+  muyt = scalefactor * muyt_unscaled
 
   x_UV     = fact_UV_dp
   x_IR     = fact_IR_dp
@@ -1012,6 +899,7 @@ subroutine loop_parameters_init
     call setdeltair_cll(de1_IR,de2_1_IR)
     call settenred_cll(cll_tenred)
     call setaccuracy_cll(cll_pvthr,cll_accthr,cll_mode3thr)
+    if (no_collier_stop) call SwitchOffErrStop_cll
     if (cll_log == 2) call initmonitoring_cll()
   end if
 ! #ifdef COLLIER_LEGACY
@@ -1030,20 +918,11 @@ subroutine loop_parameters_init
 !     write(*,*) 'ERROR: CutTools is deactivated.'
 #endif
   end if
-  ! Initialisation of Samurai
-  if ((a_switch == 6 .or. a_switch_rescue == 6) .and. samurai_not_init) then
-#if defined(USE_SAMURAI) && defined(PRECISION_dp)
-    call initsamurai(set_imeth, set_isca, set_verbosity, set_itest)
-    samurai_not_init = .false.
-! #else
-!     write(*,*) 'ERROR: Samurai is deactivated.'
-#endif
-  end if
   ! Set AvH OneLOop parameters
   if (a_switch == 5 .or. a_switch == 6 .or. a_switch_rescue == 5 .or. a_switch_rescue == 6) then
 #ifdef USE_ONELOOP
-    ! Silencing with stdout_off() not necessary, because CutTools/Samurai already called olo routines.
-    if (reset_opp) then
+    ! Silencing with stdout_off() not necessary, because CutTools already called olo routines.
+    if (reset_olo) then
       if (nosplash) call stdout_off()
       call olo_unit(-1)
       if (nosplash) call stdout_on()
@@ -1056,14 +935,16 @@ subroutine loop_parameters_init
       end if
       if (olo_verbose > 3) call olo_unit(olo_outunit, "printall")
       call olo_onshell(oppthrs)
-      reset_opp = .false.
+      reset_olo = .false.
     end if
     if (reset_mureg) then
-      call olo_scale(mureg)
+      call olo_scale_prec(mureg)
+#ifndef USE_qp
       reset_mureg = .false.
+#endif
     end if
 ! #else
-!     write(*,*) 'ERROR: CutTools and Samurai are both deactivated.'
+!     write(*,*) 'ERROR: CutTools is deactivated.'
 #endif
   end if
 
@@ -1096,14 +977,21 @@ subroutine loop_parameters_init
     call dd_setparam(de1_UV, mu2_UV, de2_1_IR, de1_IR, mu2_IR, [0,0,0,0,0,0,0,0,0,0]*0._qp)
 #endif
   end if
-
+#ifdef USE_ONELOOP
+    if (reset_mureg) then
+      call olo_scale_prec(mureg)
+      reset_mureg = .false.
+    end if
+#endif
 ! ifdef PRECISION_dp
 #endif
 
-  call qcd_renormalisation
-!   if (do_ew_renorm /= 0) then
-!     call ew_renormalisation
-!   end if
+  if (do_qcd_renorm /= 0) then
+    call qcd_renormalisation
+  end if
+  if (do_ew_renorm /= 0) then
+    call ew_renormalisation
+  end if
 
   ! Increment number of time this function has been called:
 #ifdef PRECISION_dp
@@ -1112,13 +1000,14 @@ subroutine loop_parameters_init
   loop_parameters_status = loop_parameters_status_dp
 #endif
 
+  call ol_msg(4, "Loop parameters initialized")
 end subroutine loop_parameters_init
 
 
 
 subroutine ensure_mp_loop_init()
   ! synchronise non-dp parameters with dp if they are not up to date
-  ! should be called after loop_parameters_init()
+  ! should be called after parameters_flush()
   ! and in loop matrix element routines before anything is done
 #ifndef PRECISION_dp
   use ol_parameters_decl_/**/REALKIND, only: parameters_status
@@ -1278,7 +1167,6 @@ subroutine parameters_write(filename)
   write(outid,*) '===================================================='
 #endif
 ! opp_rootsvalue, opp_limitvalue, opp_thrs, opp_idig, opp_scaloop
-! sam_isca, sam_verbosity, sam_itest
 ! set_C_PV_threshold, set_D_PV_threshold, set_dd_red_mode
 
   if (outid == 10) then

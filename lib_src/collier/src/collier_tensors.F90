@@ -17,7 +17,7 @@
 !       *                                         *
 !       *    by A.Denner, S.Dittmaier, L.Hofer    *
 !       *                                         *
-!       *               version 1.0               *
+!       *               version 1.2               *
 !       *                                         *    
 !       *******************************************
 ! 
@@ -106,14 +106,33 @@ contains
     double complex,intent(in) :: masses2(0:0)
     double complex, intent(out) :: TA(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: TAuv(0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex :: TA2(0:rmax,0:rmax,0:rmax,0:rmax), TAuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double precision, intent(out), optional :: TAerr(0:rmax)
+    double complex :: TA2(0:rmax,0:rmax,0:rmax,0:rmax), TAuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double complex :: CA(0:rmax/2), CAuv(0:rmax/2)
     double precision :: CAerr(0:rmax),TAerr_aux(0:rmax),TAerr_aux2(0:rmax)
     double complex :: args(1)    
     double precision :: TAdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TAacc(0:rmax)
     integer :: r,n0,n1,n2,n3
+    logical :: eflag
     
+    if (1.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Aten_cll','Nmax_cll smaller 1',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 1'
+      call PropagateErrFlag_cll
+      return
+    end if
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Aten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
     args(1) = masses2(0)
     call SetMasterFname_cll('Aten_cll')
     call SetMasterN_cll(1)
@@ -255,9 +274,41 @@ contains
 
     integer, intent(in) :: rmax
     double complex,intent(in) :: masses2(0:0)
-    double complex, intent(out) :: TA(RtS(rmax)),TAuv(RtS(rmax))
-    double complex :: TA2(RtS(rmax)),TAuv2(RtS(rmax))    
+    double complex, intent(out) :: TA(:),TAuv(:)
     double precision, intent(out), optional :: TAerr(0:rmax)
+    integer :: r,i
+    logical :: eflag
+
+    if (1.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Aten_cll','Nmax_cll smaller 1',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 1'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Aten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call Aten_list_checked_cll(TA,TAuv,masses2,rmax,TAerr)
+
+  end subroutine Aten_list_cll
+
+
+  subroutine Aten_list_checked_cll(TA,TAuv,masses2,rmax,TAerr)
+
+    integer, intent(in) :: rmax
+    double complex,intent(in) :: masses2(0:0)
+    double complex, intent(out) :: TA(RtS(rmax)),TAuv(RtS(rmax))
+    double precision, intent(out), optional :: TAerr(0:rmax)
+    double complex :: TA2(RtS(rmax)),TAuv2(RtS(rmax))    
     double complex :: CA(0:rmax/2), CAuv(0:rmax/2)
     double precision :: CAerr(0:rmax), TAerr_aux(0:rmax), TAerr_aux2(0:rmax)
     double complex :: args(1)
@@ -380,7 +431,7 @@ contains
       end if
     end if
 
-  end subroutine Aten_list_cll
+  end subroutine Aten_list_checked_cll
 
 
 
@@ -397,14 +448,33 @@ contains
     double complex,intent(in) :: m02
     double complex, intent(out) :: TA(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: TAuv(0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex :: TA2(0:rmax,0:rmax,0:rmax,0:rmax), TAuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double precision, intent(out), optional :: TAerr(0:rmax)
+    double complex :: TA2(0:rmax,0:rmax,0:rmax,0:rmax), TAuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double complex :: CA(0:rmax/2), CAuv(0:rmax/2)
     double precision :: CAerr(0:rmax),TAerr_aux(0:rmax),TAerr_aux2(0:rmax)
     double complex :: args(1),masses2(0:0)
     double precision :: TAdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TAacc(0:rmax)
     integer :: r,n0,n1,n2,n3
+    logical :: eflag
     
+    if (1.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Aten_cll','Nmax_cll smaller 1',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 1'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Aten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
     args(1) = m02
     masses2(0) = m02
     call SetMasterFname_cll('Aten_cll')
@@ -547,14 +617,47 @@ contains
 
     integer, intent(in) :: rmax
     double complex,intent(in) :: m02
+    double complex, intent(out) :: TA(:),TAuv(:)
+    double precision, intent(out), optional :: TAerr(0:)
+    integer :: r,i    
+    logical :: eflag
+
+    if (1.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Aten_cll','Nmax_cll smaller 1',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 1'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Aten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call Aten_args_list_checked_cll(TA,TAuv,m02,rmax,TAerr)
+
+  end subroutine Aten_args_list_cll
+
+
+  subroutine Aten_args_list_checked_cll(TA,TAuv,m02,rmax,TAerr)
+
+    integer, intent(in) :: rmax
+    double complex,intent(in) :: m02
     double complex, intent(out) :: TA(RtS(rmax)),TAuv(RtS(rmax))
-    double complex :: TA2(RtS(rmax)),TAuv2(RtS(rmax))    
     double precision, intent(out), optional :: TAerr(0:rmax)
+    double complex :: TA2(RtS(rmax)),TAuv2(RtS(rmax))    
     double complex :: CA(0:rmax/2), CAuv(0:rmax/2)
     double precision :: CAerr(0:rmax), TAerr_aux(0:rmax), TAerr_aux2(0:rmax)
     double complex :: args(1),masses2(0:0)
     double precision :: TAdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TAacc(0:rmax)
     integer :: r,i    
+    logical :: eflag
 
     args(1) = m02
     masses2(0) = m02
@@ -673,7 +776,7 @@ contains
       end if
     end if
 
-  end subroutine Aten_args_list_cll
+  end subroutine Aten_args_list_checked_cll
 
 
 
@@ -690,14 +793,33 @@ contains
     double complex, intent(in) :: MomVec(0:3,1), MomInv(1), masses2(0:1)
     double complex, intent(out) :: TB(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: TBuv(0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex :: TB2(0:rmax,0:rmax,0:rmax,0:rmax), TBuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double precision, intent(out), optional :: TBerr(0:rmax)
+    double complex :: TB2(0:rmax,0:rmax,0:rmax,0:rmax), TBuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double complex :: CB(0:rmax/2,0:rmax), CBuv(0:rmax/2,0:rmax)
     double precision :: CBerr(0:rmax), TBerr_aux(0:rmax), TBerr_aux2(0:rmax)
     double complex :: args(7)
     double precision :: TBdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TBacc(0:rmax)
     integer :: r,n0,n1,n2,n3    
+    logical :: eflag
 
+    if (2.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Bten_cll','Nmax_cll smaller 2',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 2'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Bten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+ 
     ! set ID of master call
     args(1:4) = MomVec(0:,1)
     args(5) = MomInv(1)
@@ -840,14 +962,47 @@ contains
 
     integer, intent(in) :: rmax
     double complex, intent(in) :: MomVec(0:3,1), MomInv(1), masses2(0:1)
-    double complex, intent(out) :: TB(RtS(rmax)), TBuv(RtS(rmax))
-    double complex :: TB2(RtS(rmax)), TBuv2(RtS(rmax))    
+    double complex, intent(out) :: TB(:), TBuv(:)
     double precision, intent(out), optional :: TBerr(0:rmax)
+    integer :: r,i    
+    logical :: eflag
+
+    if (2.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Bten_cll','Nmax_cll smaller 2',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 2'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Bten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call Bten_list_checked_cll(TB,TBuv,MomVec,MomInv,masses2,rmax,TBerr)
+
+  end subroutine Bten_list_cll
+
+
+  subroutine Bten_list_checked_cll(TB,TBuv,MomVec,MomInv,masses2,rmax,TBerr)
+
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: MomVec(0:3,1), MomInv(1), masses2(0:1)
+    double complex, intent(out) :: TB(RtS(rmax)), TBuv(RtS(rmax))
+    double precision, intent(out), optional :: TBerr(0:rmax)
+    double complex :: TB2(RtS(rmax)), TBuv2(RtS(rmax))    
     double complex :: CB(0:rmax/2,0:rmax), CBuv(0:rmax/2,0:rmax)
     double precision :: CBerr(0:rmax), TBerr_aux(0:rmax), TBerr_aux2(0:rmax) 
     double complex :: args(7)
     double precision :: TBdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TBacc(0:rmax)
     integer :: r,i    
+    logical :: eflag
 
     ! set ID of master call
     args(1:4) = MomVec(0:,1)
@@ -966,7 +1121,7 @@ contains
       end if
     end if
 
-  end subroutine Bten_list_cll
+  end subroutine Bten_list_checked_cll
 
 
 
@@ -984,14 +1139,33 @@ contains
     double complex, intent(in) :: p10,m02,m12
     double complex, intent(out) :: TB(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: TBuv(0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex :: TB2(0:rmax,0:rmax,0:rmax,0:rmax), TBuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double precision, intent(out), optional :: TBerr(0:rmax)
+    double complex :: TB2(0:rmax,0:rmax,0:rmax,0:rmax), TBuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double complex :: masses2(0:1),MomInv(1)
     double complex :: CB(0:rmax/2,0:rmax), CBuv(0:rmax/2,0:rmax)
     double precision :: CBerr(0:rmax),TBerr_aux(0:rmax),TBerr_aux2(0:rmax)
     double complex :: args(7)
     double precision :: TBdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TBacc(0:rmax)
     integer :: r,n0,n1,n2,n3    
+    logical :: eflag
+
+    if (2.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Bten_cll','Nmax_cll smaller 2',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 2'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Bten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
 
     masses2(0) = m02
     masses2(1) = m12
@@ -1140,15 +1314,49 @@ contains
     integer, intent(in) :: rmax
     double complex, intent(in) :: p1vec(0:3)
     double complex, intent(in) :: p10,m02,m12
-    double complex, intent(out) :: TB(RtS(rmax)), TBuv(RtS(rmax))
-    double complex :: TB2(RtS(rmax)), TBuv2(RtS(rmax))    
+    double complex, intent(out) :: TB(:), TBuv(:)
     double precision, intent(out), optional :: TBerr(0:rmax)
+    integer :: r,i    
+    logical :: eflag
+
+    if (2.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Bten_cll','Nmax_cll smaller 2',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 2'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Bten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call Bten_args_list_checked_cll(TB,TBuv,p1vec,p10,m02,m12,rmax,TBerr)
+  
+  end subroutine Bten_args_list_cll
+  
+
+  subroutine Bten_args_list_checked_cll(TB,TBuv,p1vec,p10,m02,m12,rmax,TBerr)
+  
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: p1vec(0:3)
+    double complex, intent(in) :: p10,m02,m12
+    double complex, intent(out) :: TB(RtS(rmax)), TBuv(RtS(rmax))
+    double precision, intent(out), optional :: TBerr(0:rmax)
+    double complex :: TB2(RtS(rmax)), TBuv2(RtS(rmax))    
     double complex :: masses2(0:1),MomInv(1)
     double complex :: CB(0:rmax/2,0:rmax), CBuv(0:rmax/2,0:rmax)
     double precision :: CBerr(0:rmax), TBerr_aux(0:rmax), TBerr_aux2(0:rmax)
     double complex :: args(7)
     double precision :: TBdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TBacc(0:rmax)
     integer :: r,i    
+    logical :: eflag
 
     masses2(0) = m02
     masses2(1) = m12
@@ -1271,7 +1479,7 @@ contains
       end if
     end if
 
-  end subroutine Bten_args_list_cll
+  end subroutine Bten_args_list_checked_cll
 
 
 
@@ -1288,13 +1496,32 @@ contains
     double complex, intent(in) :: MomVec(0:3,2), MomInv(3), masses2(0:2)
     double complex, intent(out) :: TC(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: TCuv(0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex :: TC2(0:rmax,0:rmax,0:rmax,0:rmax), TCuv2(0:rmax,0:rmax,0:rmax,0:rmax)
     double precision, intent(out), optional :: TCerr(0:rmax)
+    double complex :: TC2(0:rmax,0:rmax,0:rmax,0:rmax), TCuv2(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex :: CC(0:rmax/2,0:rmax,0:rmax), CCuv(0:rmax/2,0:rmax,0:rmax)
     double precision :: CCerr(0:rmax), TCerr_aux(0:rmax), TCerr_aux2(0:rmax), TCacc(0:rmax)
     double complex args(14)
     double precision :: TCdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd
     integer :: r,n0,n1,n2,n3    
+    logical :: eflag
+
+    if (3.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Cten_cll','Nmax_cll smaller 3',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 3'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Cten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
 
     ! set ID of master call
     args(1:4) = MomVec(0:,1)
@@ -1442,14 +1669,46 @@ contains
 
     integer, intent(in) :: rmax
     double complex, intent(in) :: MomVec(0:3,2), MomInv(3), masses2(0:2)
-    double complex, intent(out) :: TC(RtS(rmax)), TCuv(RtS(rmax))
-    double complex :: TC2(RtS(rmax)), TCuv2(RtS(rmax))    
+    double complex, intent(out) :: TC(:), TCuv(:)
     double precision, intent(out), optional :: TCerr(0:rmax)
+    logical :: eflag
+
+    if (3.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Cten_cll','Nmax_cll smaller 3',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 3'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Cten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call Cten_list_checked_cll(TC,TCuv,MomVec,MomInv,masses2,rmax,TCerr)
+
+  end subroutine Cten_list_cll
+
+
+  subroutine Cten_list_checked_cll(TC,TCuv,MomVec,MomInv,masses2,rmax,TCerr)
+
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: MomVec(0:3,2), MomInv(3), masses2(0:2)
+    double complex, intent(out) :: TC(RtS(rmax)), TCuv(RtS(rmax))
+    double precision, intent(out), optional :: TCerr(0:rmax)
+    double complex :: TC2(RtS(rmax)), TCuv2(RtS(rmax))    
     double complex :: CC(0:rmax/2,0:rmax,0:rmax), CCuv(0:rmax/2,0:rmax,0:rmax)
     double precision :: CCerr(0:rmax), TCerr_aux(0:rmax), TCerr_aux2(0:rmax)
     double complex :: args(14)
     double precision :: TCdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TCacc(0:rmax)
     integer :: r,i
+    logical :: eflag
 
     ! set ID of master call
     args(1:4) = MomVec(0:,1)
@@ -1572,7 +1831,7 @@ contains
       end if
     end if
 
-  end subroutine Cten_list_cll
+  end subroutine Cten_list_checked_cll
 
 
 
@@ -1590,14 +1849,33 @@ contains
     double complex, intent(in) :: p10,p21,p20,m02,m12,m22
     double complex, intent(out) :: TC(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: TCuv(0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex :: TC2(0:rmax,0:rmax,0:rmax,0:rmax), TCuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double precision, intent(out), optional :: TCerr(0:rmax)
+    double complex :: TC2(0:rmax,0:rmax,0:rmax,0:rmax), TCuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double complex :: MomVec(0:3,2), MomInv(3), masses2(0:2)
     double complex :: CC(0:rmax/2,0:rmax,0:rmax), CCuv(0:rmax/2,0:rmax,0:rmax)
     double precision :: CCerr(0:rmax), TCerr_aux(0:rmax), TCerr_aux2(0:rmax)
     double complex :: args(14)
     double precision :: TCdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TCacc(0:rmax)
     integer :: r,n0,n1,n2,n3    
+    logical :: eflag
+
+    if (3.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Cten_cll','Nmax_cll smaller 3',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 3'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Cten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
 
     MomVec(0:,1) = p1vec
     MomVec(0:,2) = p2vec
@@ -1752,20 +2030,52 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
   subroutine Cten_args_list_cll(TC,TCuv,p1vec,p2vec,p10,p21,p20,m02,m12,m22,rmax,TCerr)
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: p1vec(0:3), p2vec(0:3)
+    double complex, intent(in) :: p10,p21,p20,m02,m12,m22
+    double complex, intent(out) :: TC(:), TCuv(:)
+    double precision, intent(out), optional :: TCerr(0:rmax)
+    logical :: eflag
+
+    if (3.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Cten_cll','Nmax_cll smaller 3',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 3'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Cten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+    
+    call Cten_args_list_checked_cll(TC,TCuv,p1vec,p2vec,p10,p21,p20,m02,m12,m22,rmax,TCerr)
+
+  end subroutine Cten_args_list_cll
+
+
+  subroutine Cten_args_list_checked_cll(TC,TCuv,p1vec,p2vec,p10,p21,p20,m02,m12,m22,rmax,TCerr)
 
     integer, intent(in) :: rmax
     double complex, intent(in) :: p1vec(0:3), p2vec(0:3)
     double complex, intent(in) :: p10,p21,p20,m02,m12,m22
     double complex, intent(out) :: TC(RtS(rmax)), TCuv(RtS(rmax))
-    double complex :: TC2(RtS(rmax)), TCuv2(RtS(rmax))    
     double precision, intent(out), optional :: TCerr(0:rmax)
+    double complex :: TC2(RtS(rmax)), TCuv2(RtS(rmax))    
     double complex :: MomVec(0:3,2), MomInv(3), masses2(0:2)
     double complex :: CC(0:rmax/2,0:rmax,0:rmax), CCuv(0:rmax/2,0:rmax,0:rmax)
     double precision :: CCerr(0:rmax), TCerr_aux(0:rmax), TCerr_aux2(0:rmax)
     double complex :: args(14)
     double precision :: TCdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TCacc(0:rmax)
     integer :: r,i    
-    
+    logical :: eflag
+
     MomVec(0:,1) = p1vec
     MomVec(0:,2) = p2vec
     MomInv(1) = p10
@@ -1897,7 +2207,7 @@ contains
       end if
     end if
 
-  end subroutine Cten_args_list_cll
+  end subroutine Cten_args_list_checked_cll
 
 
 
@@ -1914,14 +2224,33 @@ contains
     double complex, intent(in) :: MomVec(0:3,3), MomInv(6), masses2(0:3)
     double complex, intent(out) :: TD(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: TDuv(0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex :: TD2(0:rmax,0:rmax,0:rmax,0:rmax), TDuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double precision, intent(out), optional :: TDerr(0:rmax)
     double complex :: CD(0:rmax/2,0:rmax,0:rmax,0:rmax) 
+    double complex :: TD2(0:rmax,0:rmax,0:rmax,0:rmax), TDuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double complex :: CDuv(0:rmax/2,0:rmax,0:rmax,0:rmax)
     double precision :: CDerr(0:rmax), TDerr_aux(0:rmax), TDerr_aux2(0:rmax)
     double complex :: args(22)
     double precision :: TDdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TDacc(0:rmax)
     integer :: r,n0,n1,n2,n3    
+    logical :: eflag
+
+    if (4.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Dten_cll','Nmax_cll smaller 4',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 4'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Dten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
 
     ! set ID of master call
     args(1:4) = MomVec(0:,1)
@@ -2071,9 +2400,40 @@ contains
     
     integer, intent(in) :: rmax
     double complex, intent(in) :: MomVec(0:3,3), MomInv(6), masses2(0:3)
-    double complex, intent(out) :: TD(RtS(rmax)), TDuv(RtS(rmax))
-    double complex :: TD2(RtS(rmax)), TDuv2(RtS(rmax))    
+    double complex, intent(out) :: TD(:), TDuv(:)
     double precision, intent(out), optional :: TDerr(0:rmax)
+    logical :: eflag
+
+    if (4.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Dten_cll','Nmax_cll smaller 4',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 4'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Dten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+    
+    call Dten_list_checked_cll(TD,TDuv,MomVec,MomInv,masses2,rmax,TDerr)
+
+  end subroutine Dten_list_cll
+
+
+  subroutine Dten_list_checked_cll(TD,TDuv,MomVec,MomInv,masses2,rmax,TDerr)
+    
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: MomVec(0:3,3), MomInv(6), masses2(0:3)
+    double complex, intent(out) :: TD(RtS(rmax)), TDuv(RtS(rmax))
+    double precision, intent(out), optional :: TDerr(0:rmax)
+    double complex :: TD2(RtS(rmax)), TDuv2(RtS(rmax))    
     double complex :: CD(0:rmax/2,0:rmax,0:rmax,0:rmax) 
     double complex :: CDuv(0:rmax/2,0:rmax,0:rmax,0:rmax)
     double precision :: CDerr(0:rmax), TDerr_aux(0:rmax), TDerr_aux2(0:rmax)
@@ -2204,7 +2564,7 @@ contains
       end if
     end if
 
-  end subroutine Dten_list_cll
+  end subroutine Dten_list_checked_cll
 
 
 
@@ -2223,8 +2583,8 @@ contains
     double complex, intent(in) :: p10,p21,p32,p30,p20,p31,m02,m12,m22,m32
     double complex, intent(out) :: TD(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: TDuv(0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex TD2(0:rmax,0:rmax,0:rmax,0:rmax), TDuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double precision, intent(out), optional :: TDerr(0:rmax)
+    double complex TD2(0:rmax,0:rmax,0:rmax,0:rmax), TDuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double complex :: MomVec(0:3,3), MomInv(6), masses2(0:3)
     double complex :: CD(0:rmax/2,0:rmax,0:rmax,0:rmax) 
     double complex :: CDuv(0:rmax/2,0:rmax,0:rmax,0:rmax)
@@ -2232,6 +2592,25 @@ contains
     double complex :: args(22)
     double precision :: TDdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TDacc(0:rmax)
     integer :: r,n0,n1,n2,n3    
+    logical :: eflag
+
+    if (4.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Dten_cll','Nmax_cll smaller 4',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 4'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Dten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
    
     MomVec(0:,1) = p1vec
     MomVec(0:,2) = p2vec
@@ -2398,9 +2777,42 @@ contains
     integer, intent(in) :: rmax
     double complex, intent(in) :: p1vec(0:3), p2vec(0:3), p3vec(0:3)
     double complex, intent(in) :: p10,p21,p32,p30,p20,p31,m02,m12,m22,m32
-    double complex, intent(out) :: TD(RtS(rmax)), TDuv(RtS(rmax))
-    double complex :: TD2(RtS(rmax)), TDuv2(RtS(rmax))    
+    double complex, intent(out) :: TD(:), TDuv(:)
     double precision, intent(out), optional :: TDerr(0:rmax)
+    logical :: eflag
+
+    if (4.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Dten_cll','Nmax_cll smaller 4',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 4'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Dten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+    
+    call Dten_args_list_checked_cll(TD,TDuv,p1vec,p2vec,p3vec,p10,p21,p32,p30,p20,p31,  &
+                       m02,m12,m22,m32,rmax,TDerr)
+
+  end subroutine Dten_args_list_cll
+
+
+  subroutine Dten_args_list_checked_cll(TD,TDuv,p1vec,p2vec,p3vec,p10,p21,p32,p30,p20,p31,  &
+                       m02,m12,m22,m32,rmax,TDerr)
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: p1vec(0:3), p2vec(0:3), p3vec(0:3)
+    double complex, intent(in) :: p10,p21,p32,p30,p20,p31,m02,m12,m22,m32
+    double complex, intent(out) :: TD(RtS(rmax)), TDuv(RtS(rmax))
+    double precision, intent(out), optional :: TDerr(0:rmax)
+    double complex :: TD2(RtS(rmax)), TDuv2(RtS(rmax))    
     double complex :: MomVec(0:3,3), MomInv(6), masses2(0:3)
     double complex :: CD(0:rmax/2,0:rmax,0:rmax,0:rmax)
     double complex :: CDuv(0:rmax/2,0:rmax,0:rmax,0:rmax)
@@ -2547,7 +2959,7 @@ contains
       end if
     end if
 
-  end subroutine Dten_args_list_cll
+  end subroutine Dten_args_list_checked_cll
 
 
 
@@ -2564,15 +2976,34 @@ contains
     double complex, intent(in) :: MomVec(0:3,4), MomInv(10), masses2(0:4)
     double complex, intent(out) :: TE(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: TEuv(0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex :: TE2(0:rmax,0:rmax,0:rmax,0:rmax), TEuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double precision, intent(out), optional :: TEerr(0:rmax)
+    double complex :: TE2(0:rmax,0:rmax,0:rmax,0:rmax), TEuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double complex :: CE(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax) 
     double complex :: CEuv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
     double precision :: CEerr(0:rmax), TEerr_aux(0:rmax), TEerr_aux2(0:rmax)
     double complex :: args(31)
     double precision :: TEdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TEacc(0:rmax)
     integer :: r,n0,n1,n2,n3    
-    
+    logical :: eflag
+
+    if (5.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Eten_cll','Nmax_cll smaller 5',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 5'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Eten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
     ! set ID of master call
     args(1:4) = MomVec(0:,1)
     args(5:8) = MomVec(0:,2)
@@ -2724,16 +3155,49 @@ contains
 
     integer, intent(in) :: rmax
     double complex, intent(in) :: MomVec(0:3,4), MomInv(10), masses2(0:4)
-    double complex, intent(out) :: TE(RtS(rmax)), TEuv(RtS(rmax))
-    double complex :: TE2(RtS(rmax)), TEuv2(RtS(rmax))    
+    double complex, intent(out) :: TE(:), TEuv(:)
     double precision, intent(out), optional :: TEerr(0:rmax)
+    integer :: r,i   
+    logical :: eflag
+
+    if (5.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Eten_cll','Nmax_cll smaller 5',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 5'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Eten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call Eten_list_checked_cll(TE,TEuv,MomVec,MomInv,masses2,rmax,TEerr)
+
+  end subroutine Eten_list_cll
+
+
+  subroutine Eten_list_checked_cll(TE,TEuv,MomVec,MomInv,masses2,rmax,TEerr)
+
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: MomVec(0:3,4), MomInv(10), masses2(0:4)
+    double complex, intent(out) :: TE(RtS(rmax)), TEuv(RtS(rmax))
+    double precision, intent(out), optional :: TEerr(0:rmax)
+    double complex :: TE2(RtS(rmax)), TEuv2(RtS(rmax))    
     double complex :: CE(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax) 
     double complex :: CEuv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
     double precision :: CEerr(0:rmax), TEerr_aux(0:rmax), TEerr_aux2(0:rmax)
     double complex :: args(31)
     double precision :: TEdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TEacc(0:rmax)
     integer :: r,i   
-    
+    logical :: eflag
+
     ! set ID of master call
     args(1:4) = MomVec(0:,1)
     args(5:8) = MomVec(0:,2)
@@ -2860,7 +3324,7 @@ contains
       end if
     end if
 
-  end subroutine Eten_list_cll
+  end subroutine Eten_list_checked_cll
 
 
 
@@ -2881,8 +3345,8 @@ contains
     double complex, intent(in) :: m02,m12,m22,m32,m42
     double complex, intent(out) :: TE(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: TEuv(0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex :: TE2(0:rmax,0:rmax,0:rmax,0:rmax), TEuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double precision, intent(out), optional :: TEerr(0:rmax)
+    double complex :: TE2(0:rmax,0:rmax,0:rmax,0:rmax), TEuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double complex :: MomVec(0:3,4), MomInv(10), masses2(0:4)
     double complex :: CE(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax) 
     double complex :: CEuv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
@@ -2890,6 +3354,25 @@ contains
     double complex :: args(31)
     double precision :: TEdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TEacc(0:rmax)
     integer :: r,n0,n1,n2,n3    
+    logical :: eflag
+
+    if (5.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Eten_cll','Nmax_cll smaller 5',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 5'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Eten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
 
     MomVec(0:,1) = p1vec
     MomVec(0:,2) = p2vec
@@ -3068,8 +3551,8 @@ contains
     double complex, intent(in) :: p10,p21,p32,p43,p40,p20,p31,p42,p30,p41
     double complex, intent(in) :: m02,m12,m22,m32,m42
     double complex, intent(out) :: TE(RtS(rmax)), TEuv(RtS(rmax))
-    double complex :: TE2(RtS(rmax)), TEuv2(RtS(rmax))   
     double precision, intent(out), optional :: TEerr(0:rmax)
+    double complex :: TE2(RtS(rmax)), TEuv2(RtS(rmax))   
     double complex :: MomVec(0:3,4), MomInv(10), masses2(0:4)
     double complex :: CE(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
     double complex :: CEuv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
@@ -3077,6 +3560,51 @@ contains
     double complex :: args(31)
     double precision :: TEdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TEacc(0:rmax)
     integer :: r,i    
+    logical :: eflag
+
+    if (5.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Eten_cll','Nmax_cll smaller 5',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 5'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Eten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call Eten_args_list_checked_cll(TE,TEuv,p1vec,p2vec,p3vec,p4vec, &
+                           p10,p21,p32,p43,p40,p20,p31,p42,p30,p41, &
+                           m02,m12,m22,m32,m42,rmax,TEerr)
+
+  end subroutine Eten_args_list_cll
+
+
+  subroutine Eten_args_list_checked_cll(TE,TEuv,p1vec,p2vec,p3vec,p4vec,p10,p21,p32,p43,  &
+                               p40,p20,p31,p42,p30,p41,m02,m12,m22,m32,m42,rmax,TEerr)
+
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: p1vec(0:3),p2vec(0:3),p3vec(0:3),p4vec(0:3)
+    double complex, intent(in) :: p10,p21,p32,p43,p40,p20,p31,p42,p30,p41
+    double complex, intent(in) :: m02,m12,m22,m32,m42
+    double complex, intent(out) :: TE(RtS(rmax)), TEuv(RtS(rmax))
+    double precision, intent(out), optional :: TEerr(0:rmax)
+    double complex :: TE2(RtS(rmax)), TEuv2(RtS(rmax))   
+    double complex :: MomVec(0:3,4), MomInv(10), masses2(0:4)
+    double complex :: CE(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
+    double complex :: CEuv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
+    double precision :: CEerr(0:rmax), TEerr_aux(0:rmax), TEerr_aux2(0:rmax)
+    double complex :: args(31)
+    double precision :: TEdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TEacc(0:rmax)
+    integer :: r,i    
+    logical :: eflag
 
     MomVec(0:,1) = p1vec
     MomVec(0:,2) = p2vec
@@ -3225,7 +3753,7 @@ contains
       end if
     end if
 
-  end subroutine Eten_args_list_cll
+  end subroutine Eten_args_list_checked_cll
 
 
 
@@ -3242,14 +3770,33 @@ contains
     double complex, intent(in) :: MomVec(0:3,5), MomInv(15), masses2(0:5)
     double complex, intent(out) :: TF(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: TFuv(0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex :: TF2(0:rmax,0:rmax,0:rmax,0:rmax), TFuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double precision, intent(out), optional :: TFerr(0:rmax)
+    double complex :: TF2(0:rmax,0:rmax,0:rmax,0:rmax), TFuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double complex :: CF(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax)
     double complex :: CFuv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax)
     double precision :: CFerr(0:rmax), TFerr_aux(0:rmax), TFerr_aux2(0:rmax) 
     double complex :: args(41)
     double precision :: TFdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TFacc(0:rmax)
     integer :: r,n0,n1,n2,n3    
+    logical :: eflag
+
+    if (6.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Ften_cll','Nmax_cll smaller 6',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 6'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Ften_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
 
     ! set ID of master call
     args(1:4) = MomVec(0:,1)
@@ -3502,15 +4049,47 @@ contains
 
     integer, intent(in) :: rmax
     double complex, intent(in) :: MomVec(0:3,5), MomInv(15), masses2(0:5)
-    double complex, intent(out) :: TF(RtS(rmax)), TFuv(RtS(rmax))
-    double complex :: TF2(RtS(rmax)), TFuv2(RtS(rmax))
+    double complex, intent(out) :: TF(:), TFuv(:)
     double precision, intent(out), optional :: TFerr(0:rmax)
+    logical :: eflag
+
+    if (6.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Ften_cll','Nmax_cll smaller 6',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 6'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Ften_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call Ften_list_checked_cll(TF,TFuv,MomVec,MomInv,masses2,rmax,TFerr)
+
+  end subroutine Ften_list_cll
+
+
+  subroutine Ften_list_checked_cll(TF,TFuv,MomVec,MomInv,masses2,rmax,TFerr)
+
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: MomVec(0:3,5), MomInv(15), masses2(0:5)
+    double complex, intent(out) :: TF(RtS(rmax)), TFuv(RtS(rmax))
+    double precision, intent(out), optional :: TFerr(0:rmax)
+    double complex :: TF2(RtS(rmax)), TFuv2(RtS(rmax))
     double complex :: CF(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax)
     double complex :: CFuv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax)
     double precision :: CFerr(0:rmax), TFerr_aux(0:rmax), TFerr_aux2(0:rmax)
     double complex :: args(41)
     double precision :: TFdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TFacc(0:rmax)
     integer :: r,i    
+    logical :: eflag
 
     ! set ID of master call
     args(1:4) = MomVec(0:,1)
@@ -3727,7 +4306,7 @@ contains
       end if
     end if
 
-  end subroutine Ften_list_cll
+  end subroutine Ften_list_checked_cll
 
 
 
@@ -3750,8 +4329,8 @@ contains
     double complex, intent(in) :: p51,p30,p41,p52,m02,m12,m22,m32,m42,m52
     double complex, intent(out) :: TF(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: TFuv(0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex :: TF2(0:rmax,0:rmax,0:rmax,0:rmax), TFuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double precision, intent(out), optional :: TFerr(0:rmax)
+    double complex :: TF2(0:rmax,0:rmax,0:rmax,0:rmax), TFuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double complex :: MomVec(0:3,5), MomInv(15), masses2(0:5)
     double complex :: CF(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax) 
     double complex :: CFuv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax)
@@ -3759,6 +4338,25 @@ contains
     double complex :: args(41)
     double precision :: TFdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TFacc(0:rmax)
     integer :: r,n0,n1,n2,n3   
+    logical :: eflag
+
+    if (6.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Ften_cll','Nmax_cll smaller 6',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 6'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Ften_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
 
     MomVec(0:,1) = p1vec
     MomVec(0:,2) = p2vec
@@ -4042,9 +4640,47 @@ contains
     double complex, intent(in) :: p5vec(0:3)
     double complex, intent(in) :: p10,p21,p32,p43,p54,p50,p20,p31,p42,p53,p40
     double complex, intent(in) :: p51,p30,p41,p52,m02,m12,m22,m32,m42,m52
-    double complex, intent(out) :: TF(RtS(rmax)),TFuv(RtS(rmax))
-    double complex :: TF2(RtS(rmax)),TFuv2(RtS(rmax))    
+    double complex, intent(out) :: TF(:),TFuv(:)
     double precision, intent(out), optional :: TFerr(0:rmax)
+    logical :: eflag
+
+    if (6.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Ften_cll','Nmax_cll smaller 6',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 6'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Ften_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call Ften_args_list_checked_cll(TF,TFuv,p1vec,p2vec,p3vec,p4vec,p5vec,  &
+                           p10,p21,p32,p43,p54,p50,p20,p31,p42,p53,p40,  &
+                           p51,p30,p41,p52,m02,m12,m22,m32,m42,m52,rmax,TFerr)
+
+  end subroutine Ften_args_list_cll
+
+
+  subroutine Ften_args_list_checked_cll(TF,TFuv,p1vec,p2vec,p3vec,p4vec,p5vec,  &
+                           p10,p21,p32,p43,p54,p50,p20,p31,p42,p53,p40,  &
+                           p51,p30,p41,p52,m02,m12,m22,m32,m42,m52,rmax,TFerr)
+
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: p1vec(0:3),p2vec(0:3),p3vec(0:3),p4vec(0:3)
+    double complex, intent(in) :: p5vec(0:3)
+    double complex, intent(in) :: p10,p21,p32,p43,p54,p50,p20,p31,p42,p53,p40
+    double complex, intent(in) :: p51,p30,p41,p52,m02,m12,m22,m32,m42,m52
+    double complex, intent(out) :: TF(RtS(rmax)),TFuv(RtS(rmax))
+    double precision, intent(out), optional :: TFerr(0:rmax)
+    double complex :: TF2(RtS(rmax)),TFuv2(RtS(rmax))    
     double complex :: MomVec(0:3,5), MomInv(15), masses2(0:5)
     double complex :: CF(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax) 
     double complex :: CFuv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax)
@@ -4052,6 +4688,7 @@ contains
     double complex :: args(41)
     double precision :: TFdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TFacc(0:rmax)
     integer :: r,i    
+    logical :: eflag
 
     MomVec(0:,1) = p1vec
     MomVec(0:,2) = p2vec
@@ -4293,7 +4930,7 @@ contains
       end if
     end if
 
-  end subroutine Ften_args_list_cll
+  end subroutine Ften_args_list_checked_cll
 
 
 
@@ -4311,14 +4948,33 @@ contains
     double complex, intent(out) :: TG(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: TGuv(0:rmax,0:rmax,0:rmax,0:rmax)
     double precision, intent(out), optional :: TGerr(0:rmax)
-    double complex :: TG2(0:rmax,0:rmax,0:rmax,0:rmax), TGuv2(0:rmax,0:rmax,0:rmax,0:rmax)
     double precision :: TGerr_aux(0:rmax), TGerr_aux2(0:rmax)   
+    double complex :: TG2(0:rmax,0:rmax,0:rmax,0:rmax), TGuv2(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex :: CG(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax)
     double complex :: CGuv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax)
     double precision :: CGerr(0:rmax), TGacc(0:rmax)
     double precision :: norm(0:rmax),norm_coli,norm_dd, TGdiff(0:rmax)
     double complex :: args(52)
     integer :: r,n0,n1,n2,n3
+    logical :: eflag
+
+    if (7.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Gten_cll','Nmax_cll smaller 7',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 7'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Gten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
 
     ! set ID of master call
     args(1:4) = MomVec(0:,1)
@@ -4512,6 +5168,37 @@ contains
 
     integer, intent(in) :: rmax
     double complex, intent(in) :: MomVec(0:3,6), MomInv(21), masses2(0:6)
+    double complex, intent(out) :: TG(:),TGuv(:)
+    double precision, intent(out), optional :: TGerr(0:rmax)
+    logical :: eflag
+
+    if (7.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Gten_cll','Nmax_cll smaller 7',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 7'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Gten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call Gten_list_checked_cll(TG,TGuv,MomVec,MomInv,masses2,rmax,TGerr)
+
+  end subroutine Gten_list_cll
+
+
+  subroutine Gten_list_checked_cll(TG,TGuv,MomVec,MomInv,masses2,rmax,TGerr)
+
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: MomVec(0:3,6), MomInv(21), masses2(0:6)
     double complex, intent(out) :: TG(RtS(rmax)),TGuv(RtS(rmax))
     double precision, intent(out), optional :: TGerr(0:rmax)
     double complex :: TG2(RtS(rmax)),TGuv2(RtS(rmax))
@@ -4522,6 +5209,7 @@ contains
     double precision :: norm(0:rmax),norm_coli,norm_dd, TGdiff(0:rmax)
     double complex :: args(52)
     integer :: r,i
+    logical :: eflag
 
     ! set ID of master call
     args(1:4) = MomVec(0:,1)
@@ -4662,7 +5350,7 @@ contains
       end if
     end if
 
-  end subroutine Gten_list_cll
+  end subroutine Gten_list_checked_cll
 
 
 
@@ -4698,6 +5386,25 @@ contains
     double precision :: norm(0:rmax),norm_coli,norm_dd, TGdiff(0:rmax)
     double complex :: args(52)
     integer :: r,n0,n1,n2,n3
+    logical :: eflag
+
+    if (7.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Gten_cll','Nmax_cll smaller 7',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 7'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Gten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
 
     MomVec(0:,1) = p1vec
     MomVec(0:,2) = p2vec
@@ -4923,6 +5630,56 @@ contains
     double precision :: norm(0:rmax), TGdiff(0:rmax), norm_coli, norm_dd
     double complex :: args(52)
     integer :: r,i
+    logical :: eflag
+
+    if (7.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Gten_cll','Nmax_cll smaller 7',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 7'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('Gten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call Gten_args_list_checked_cll(TG,TGuv,p1vec,p2vec,p3vec,p4vec,p5vec,p6vec,  &
+                           p10,p21,p32,p43,p54,p65,p60,p20,p31,p42,p53,  &
+                           p64,p50,p61,p30,p41,p52,p63,p40,p51,p62,  &
+                           m02,m12,m22,m32,m42,m52,m62,rmax,TGerr)
+
+  end subroutine Gten_args_list_cll
+
+
+  subroutine Gten_args_list_checked_cll(TG,TGuv,p1vec,p2vec,p3vec,p4vec,p5vec,p6vec,  &
+                           p10,p21,p32,p43,p54,p65,p60,p20,p31,p42,p53,  &
+                           p64,p50,p61,p30,p41,p52,p63,p40,p51,p62,  &
+                           m02,m12,m22,m32,m42,m52,m62,rmax,TGerr)
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: p1vec(0:3),p2vec(0:3),p3vec(0:3),p4vec(0:3)
+    double complex, intent(in) :: p5vec(0:3),p6vec(0:3)
+    double complex, intent(in) :: p10,p21,p32,p43,p54,p65,p60,p20,p31,p42,p53
+    double complex, intent(in) :: p64,p50,p61,p30,p41,p52,p63,p40,p51,p62
+    double complex, intent(in) :: m02,m12,m22,m32,m42,m52,m62
+    double complex, intent(out) :: TG(RtS(rmax)), TGuv(RtS(rmax))
+    double precision, intent(out), optional :: TGerr(0:rmax)
+    double complex :: TG2(RtS(rmax)), TGuv2(RtS(rmax))
+    double precision :: TGerr_aux(0:rmax), TGerr_aux2(0:rmax)   
+    double complex :: MomVec(0:3,6), MomInv(21), masses2(0:6)
+    double complex :: CG(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax)
+    double complex :: CGuv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax)
+    double precision :: CGerr(0:rmax), TGacc(0:rmax)
+    double precision :: norm(0:rmax), TGdiff(0:rmax), norm_coli, norm_dd
+    double complex :: args(52)
+    integer :: r,i
+    logical :: eflag
 
     MomVec(0:,1) = p1vec
     MomVec(0:,2) = p2vec
@@ -5105,7 +5862,7 @@ contains
       end if
     end if
 
-  end subroutine Gten_args_list_cll
+  end subroutine Gten_args_list_checked_cll
 
 
 
@@ -5119,11 +5876,51 @@ contains
   subroutine TNten_main_cll(TN,TNuv,MomVec,MomInv,masses2,N,rmax,TNerr)
 
     integer, intent(in) :: N,rmax
+    double complex, intent(in) :: MomVec(0:3,max(N-1,1)), MomInv(:), masses2(0:max(N-1,1))
+    double complex, intent(out) :: TN(0:rmax,0:rmax,0:rmax,0:rmax)
+    double complex, intent(out) :: TNuv(0:rmax,0:rmax,0:rmax,0:rmax)
+    double precision, intent(out), optional :: TNerr(0:rmax)
+    logical :: eflag
+
+    if (N.eq.1) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('TNten_cll','subroutine called with wrong number of arguments for N=1',eflag)
+      call PropagateErrFlag_cll
+      return
+    end if
+
+    if (N.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('TN_cll','argument N larger than Nmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'N        =',N
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= ',N
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('TN_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+    
+    call TNten_main_checked_cll(TN,TNuv,MomVec,MomInv,masses2,N,rmax,TNerr)
+
+  end subroutine TNten_main_cll
+
+
+  subroutine TNten_main_checked_cll(TN,TNuv,MomVec,MomInv,masses2,N,rmax,TNerr)
+
+    integer, intent(in) :: N,rmax
     double complex, intent(in) :: MomVec(0:3,max(N-1,1)), MomInv(BinomTable(2,N)), masses2(0:max(N-1,1))
     double complex, intent(out) :: TN(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: TNuv(0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex :: TN2(0:rmax,0:rmax,0:rmax,0:rmax), TNuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double precision, intent(out), optional :: TNerr(0:rmax)
+    double complex :: TN2(0:rmax,0:rmax,0:rmax,0:rmax), TNuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double complex :: CN(NCoefs(rmax,N))
     double complex :: CNuv(NCoefs(rmax,N)) 
     double precision :: CNerr(0:rmax), TNerr_aux(0:rmax), TNerr_aux2(0:rmax)
@@ -5372,7 +6169,7 @@ contains
       end if
     end if
 
-  end subroutine TNten_main_cll
+  end subroutine TNten_main_checked_cll
 
 
 
@@ -5386,10 +6183,49 @@ contains
   subroutine TNten_list_cll(TN,TNuv,MomVec,MomInv,masses2,N,rmax,TNerr)
 
     integer, intent(in) :: N,rmax
+    double complex, intent(in) :: MomVec(0:3,max(N-1,1)), MomInv(:), masses2(0:max(N-1,1))
+    double complex, intent(out) :: TN(:),TNuv(:)
+    double precision, intent(out), optional :: TNerr(0:rmax)
+    logical :: eflag
+      
+    if (N.eq.1) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('TNten_cll','subroutine called with wrong number of arguments for N=1',eflag)
+      call PropagateErrFlag_cll
+      return
+    end if
+    if (N.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('TNten_cll','argument N larger than Nmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'N        =',N
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= ',N
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('TNten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+    
+    call TNten_list_checked_cll(TN,TNuv,MomVec,MomInv,masses2,N,rmax,TNerr)
+
+  end subroutine TNten_list_cll
+
+
+
+  subroutine TNten_list_checked_cll(TN,TNuv,MomVec,MomInv,masses2,N,rmax,TNerr)
+
+    integer, intent(in) :: N,rmax
     double complex, intent(in) :: MomVec(0:3,max(N-1,1)), MomInv(BinomTable(2,N)), masses2(0:max(N-1,1))
     double complex, intent(out) :: TN(RtS(rmax)),TNuv(RtS(rmax))
-    double complex :: TN2(RtS(rmax)),TNuv2(RtS(rmax))    
     double precision, intent(out), optional :: TNerr(0:rmax)
+    double complex :: TN2(RtS(rmax)),TNuv2(RtS(rmax))    
     double complex :: CN(NCoefs(rmax,N)),CNuv(NCoefs(rmax,N))
     double precision :: CNerr(0:rmax), TNerr_aux(0:rmax), TNerr_aux2(0:rmax)
     double complex :: args(4*(N-1)+BinomTable(2,N)+N)
@@ -5397,11 +6233,11 @@ contains
     integer :: r,i
     logical :: eflag
       
-    if (N.eq.1) then
-      call SetErrFlag_cll(-10)
-      call ErrOut_cll('TNten_cll','subroutine called with wrong number of arguments for N=1',eflag)
-      return
-    end if
+!    if (N.eq.1) then
+!      call SetErrFlag_cll(-10)
+!      call ErrOut_cll('TNten_cll','subroutine called with wrong number of arguments for N=1',eflag)
+!      return
+!    end if
 
     do i=1,N-1
       args(4*i-3:4*i) = MomVec(0:,i)
@@ -5619,7 +6455,7 @@ contains
       end if
     end if
 
-  end subroutine TNten_list_cll
+  end subroutine TNten_list_checked_cll
 
 
 
@@ -5636,8 +6472,8 @@ contains
     double complex,intent(in) :: masses2(0:0)
     double complex, intent(out) :: TA(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: TAuv(0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex :: TA2(0:rmax,0:rmax,0:rmax,0:rmax), TAuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double precision, intent(out), optional :: TAerr(0:rmax)
+    double complex :: TA2(0:rmax,0:rmax,0:rmax,0:rmax), TAuv2(0:rmax,0:rmax,0:rmax,0:rmax)    
     double complex :: CA(0:rmax/2), CAuv(0:rmax/2)
     double precision :: CAerr(0:rmax),TAerr_aux(0:rmax),TAerr_aux2(0:rmax)
     double complex :: args(1)    
@@ -5649,6 +6485,24 @@ contains
       call SetErrFlag_cll(-10)
       call ErrOut_cll('TNten_cll','subroutine called with inconsistent arguments',eflag)
     end if
+    if (N.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('TNten_cll','argument N larger than Nmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'N        =',N
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= ',N
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('TNten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
 
     args(1) = masses2(0)
     call SetMasterFname_cll('TNten_cll')
@@ -5795,13 +6649,8 @@ contains
 
     integer, intent(in) :: rmax,N
     double complex,intent(in) :: masses2(0:0)
-    double complex, intent(out) :: TA(RtS(rmax)),TAuv(RtS(rmax))
-    double complex :: TA2(RtS(rmax)),TAuv2(RtS(rmax))    
+    double complex, intent(out) :: TA(:),TAuv(:)
     double precision, intent(out), optional :: TAerr(0:rmax)
-    double complex :: CA(0:rmax/2), CAuv(0:rmax/2)
-    double precision :: CAerr(0:rmax), TAerr_aux(0:rmax), TAerr_aux2(0:rmax)
-    double complex :: args(1)
-    double precision :: TAdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TAacc(0:rmax)
     integer :: r,i
     logical :: eflag
 
@@ -5809,6 +6658,43 @@ contains
       call SetErrFlag_cll(-10)
       call ErrOut_cll('TNten_cll','subroutine called with inconsistent arguments',eflag)
     end if
+    if (N.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('TNten_cll','argument N larger than Nmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'N        =',N
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= ',N
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('TNten_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call T1ten_list_checked_cll(TA,TAuv,masses2,N,rmax,TAerr)
+
+  end subroutine T1ten_list_cll
+
+
+  subroutine T1ten_list_checked_cll(TA,TAuv,masses2,N,rmax,TAerr)
+
+    integer, intent(in) :: rmax,N
+    double complex,intent(in) :: masses2(0:0)
+    double complex, intent(out) :: TA(RtS(rmax)),TAuv(RtS(rmax))
+    double precision, intent(out), optional :: TAerr(0:rmax)
+    double complex :: TA2(RtS(rmax)),TAuv2(RtS(rmax))    
+    double complex :: CA(0:rmax/2), CAuv(0:rmax/2)
+    double precision :: CAerr(0:rmax), TAerr_aux(0:rmax), TAerr_aux2(0:rmax)
+    double complex :: args(1)
+    double precision :: TAdiff(0:rmax),norm(0:rmax),norm_coli,norm_dd,TAacc(0:rmax)
+    integer :: r,i
+    logical :: eflag
 
     args(1) = masses2(0)
     call SetMasterFname_cll('TNten_cll')
@@ -5929,7 +6815,7 @@ contains
       end if
     end if
 
-  end subroutine T1ten_list_cll
+  end subroutine T1ten_list_checked_cll
 
 
 

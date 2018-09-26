@@ -57,8 +57,10 @@ c local variables
 c LH: variables for cache system
         complex*16 xcache(6), fct(NCoefmax3)
         integer n0,n1,n2,cntmax,r2cache
-        logical nocalc/.false./, wrica/.false./
-        save wrica
+c        logical nocalc/.false./, wrica/.false./
+c        save wrica
+         logical :: nocalc = .false.
+         logical, save :: wrica =.false.
 #endif
 
 c       if (id.eq.18) then
@@ -523,6 +525,8 @@ c some criteria / parameter for expansions
 
 c determine indices k,l for expansions
             maxtz_kl = 0d0
+            k = 1
+            l = 1
             do i1=1,2
             do i2=i1,2  
               if (abs(tz2(i1,i2)).ge.maxtz_kl) then 
@@ -557,6 +561,8 @@ c determine indices i=igc,j=jgc for Gram/Cayley
 
 c determine indices i=igc,j=jgc for Gram/Cayley
             maxtx2ij = 0d0
+            igc = 1
+            jgc = 1
             do i1=1,2
             do i2=i1,2
               if (abs(tx2(i1,i2)).ge.maxtx2ij) then
@@ -576,6 +582,7 @@ c determine indices i=igc,j=jgc for Gram/Cayley
 
 c determine index k=ksm for small-momentum expansion
             maxf = 0d0
+            ksm = 1
             do i1=1,2
               if (abs(f(i1)).ge.maxf) then
                 maxf = abs(f(i1))
@@ -1523,22 +1530,22 @@ c Cuv_{00...} from conventional PaVe reduction -- Eq.(5.10)
             Cuv(0,i1+1,i2) = 0d0 
             Cuv(0,i1,i2+1) = 0d0 
           endif
-          Cuv(i0/2+1,i1,i2) = 1d0/dfloat(2*r+2)*( 
+          Cuv(i0/2+1,i1,i2) = 1d0/dble(2*r+2)*( 
      &            Buv0(i0/2,i1,i2) + 2d0*m02*Cuv(i0/2,i1,i2) 
      &          + f(1)*Cuv(i0/2,i1+1,i2) + f(2)*Cuv(i0/2,i1,i2+1) )
 
 c alternative PaVe reduction of C_{00...} -- Eq.(5.16)
-          C(i0/2+1,i1,i2) = 1d0/dfloat(2*r+2)*( 
+          C(i0/2+1,i1,i2) = 1d0/dble(2*r+2)*( 
      &            4d0*Cuv(i0/2+1,i1,i2) + B0(i0/2,i1,i2) 
      &          + detx2/tx2(0,0)*C(i0/2,i1,i2) )
           do n=1,2
             l(1) = i1-del(n,1)
             l(2) = i2-del(n,2)
             C(i0/2+1,i1,i2) = C(i0/2+1,i1,i2) 
-     &           - tx2(0,n)/tx2(0,0)/dfloat(2*r+2)*Sh(n,i0/2,i1,i2)
+     &           - tx2(0,n)/tx2(0,0)/dble(2*r+2)*Sh(n,i0/2,i1,i2)
             if (i(n).gt.0) then
               C(i0/2+1,i1,i2) = C(i0/2+1,i1,i2)
-     &           + tx2(0,n)/tx2(0,0)*i(n)/dfloat(r+1)*C(i0/2+1,l(1),l(2))
+     &           + tx2(0,n)/tx2(0,0)*i(n)/dble(r+1)*C(i0/2+1,l(1),l(2))
             endif
           enddo
 105     continue
@@ -1713,7 +1720,7 @@ c Cuv_{00...} from PaVe reduction -- Eq.(5.10)
           if (i0.eq.0) then
             Cuv(i0/2,i1,i2) = 0
           else
-            Cuv(i0/2,i1,i2) = 1d0/2d0/dfloat(r)*( 
+            Cuv(i0/2,i1,i2) = 1d0/2d0/dble(r)*( 
      &              Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
      &            + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
           endif
@@ -1961,7 +1968,7 @@ c Cuv_{00...} from PaVe reduction -- Eq.(5.10)
           if (i0.lt.2) then
             Cuv(i0/2,i1,i2) = 0d0
           else
-            Cuv(i0/2,i1,i2) = 1d0/2d0/dfloat(i0+i1+i2)*( 
+            Cuv(i0/2,i1,i2) = 1d0/2d0/dble(i0+i1+i2)*( 
      &              Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
      &            + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
           endif
@@ -2169,7 +2176,7 @@ c Cuv_{00...} from PaVe reduction -- Eq.(5.10)
           if (i0.eq.0) then
             Cuv(i0/2,i1,i2) = 0d0
           else
-            Cuv(i0/2,i1,i2) = 1d0/2d0/dfloat(r)*( 
+            Cuv(i0/2,i1,i2) = 1d0/2d0/dble(r)*( 
      &              Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
      &            + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
           endif
@@ -2219,14 +2226,14 @@ c C_{00...} from iteration Eq.(5.40)
         h(m) = im
 
 c coefficients C_{00...} from Eq.(5.49)
-          C(i0/2,h(1),h(2)) = 1d0/2d0/dfloat(il+1)/tz2(k,l)*(
+          C(i0/2,h(1),h(2)) = 1d0/2d0/dble(il+1)/tz2(k,l)*(
      &        tz2(k,1)*Sh3(1,i0/2-1,h(1)+del(1,l),h(2)+del(2,l))
      &      + tz2(k,2)*Sh3(2,i0/2-1,h(1)+del(1,l),h(2)+del(2,l))
      &      + tx2(k,0)*C(i0/2-1,h(1)+del(1,l),h(2)+del(2,l))
      &      - detz2*C(i0/2-1,h(1)+del(1,l)+del(1,k),
      &                     h(2)+del(2,l)+del(2,k))              )
           if (im.gt.0) C(i0/2,h(1),h(2)) = C(i0/2,h(1),h(2)) 
-     &      + 1d0/2d0/dfloat(il+1)/tz2(k,l)*(
+     &      + 1d0/2d0/dble(il+1)/tz2(k,l)*(
      &          - 2d0*im*tz2(k,m)*C(i0/2,h(1)-del(1,m)+del(1,l),
      &                              h(2)-del(2,m)+del(2,l))     )
 
@@ -2403,7 +2410,7 @@ c Cuv_{00...} from PaVe reduction -- Eq.(5.10)
           if (i0.eq.0) then
             Cuv(i0/2,i1,i2) = 0d0
           else
-            Cuv(i0/2,i1,i2) = 1d0/2d0/dfloat(r)*( 
+            Cuv(i0/2,i1,i2) = 1d0/2d0/dble(r)*( 
      &              Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
      &            + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
           endif

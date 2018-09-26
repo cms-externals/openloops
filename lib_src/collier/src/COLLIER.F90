@@ -17,7 +17,7 @@
 !       *                                         *
 !       *    by A.Denner, S.Dittmaier, L.Hofer    *
 !       *                                         *
-!       *               version 1.0               *
+!       *               version 1.2               *
 !       *                                         *    
 !       *******************************************
 ! 
@@ -30,6 +30,7 @@
 module COLLIER
 
   use collier_init, only : &
+      GetVersionNumber_cll, &
       Init_cll, InitEvent_cll, &
       GetNc_cll, GetNt_cll, & 
       SetDeltaUV_cll, SetMuUV2_cll, GetDeltaUV_cll, GetMuUV2_cll, &
@@ -40,9 +41,8 @@ module COLLIER
       SetCheckAcc_cll, GetCheckAcc_cll, SetAccuracy_cll, &
       SetRitmax_cll, GetRitmax_cll, &
       SetTenRed_cll, GetTenRed_cll, SwitchOnTenRed_cll, SwitchOffTenRed_cll, &
-      InitCacheSystem_cll, SwitchOnCacheSystem_cll, SwitchOffCacheSystem_cll, &
-      SwitchOnCache_cll, SwitchOffCache_cll, SetCacheLevel_cll, &
       GetErrFlag_cll, InitErrFlag_cll, SetErrStop_cll, &
+      GetErrFlag_coli, &
       GetAccFlag_cll, InitAccFlag_cll, &
       SwitchOffFileOutput_cll, SwitchOnFileOutput_cll, &
       SetOutputFolder_cll, GetOutputFolder_cll, &
@@ -69,6 +69,7 @@ module COLLIER
       PrintStatistics_cll, PrintStatistics2_cll
 
   use cache, only : &
-      SetCacheMode_cll
+      SetCacheMode_cll, InitCacheSystem_cll, SwitchOnCacheSystem_cll, SwitchOffCacheSystem_cll, &
+      SwitchOnCache_cll, SwitchOffCache_cll, SetCacheLevel_cll, AddNewCache_cll
 
 end module COLLIER

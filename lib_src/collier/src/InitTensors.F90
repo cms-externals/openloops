@@ -387,11 +387,11 @@ contains
     integer :: r,n0,n1,n2,n3,i,j,flag
     double complex :: diffTN
     double precision :: ratio
-    character(len=*),parameter :: fmt1 = "(A8'(',i2,')  = dcmplx(',d25.18,' , ',d25.18,')')"
+    character(len=*),parameter :: fmt1 = "(A8,'(',i2,')  = dcmplx(',d25.18,' , ',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
-    "(A6,' TNten(',i1,','i1,','i1,','i1,') = (',d23.16,' , ',d23.16,' ), r=',i2)"
+    "(A6,' TNten(',i1,',',i1,',',i1,',',i1,') = (',d23.16,' , ',d23.16,' ), r=',i2)"
     character(len=*),parameter :: fmt3 = &
-    "(A7,'(',i1,','i2,') = dcmplx(',d25.18,' , ',d25.18,' )')"    
+    "(A7,'(',i1,',',i2,') = dcmplx(',d25.18,' , ',d25.18,' )')"    
 
 
     CheckCntten_cll(N) = CheckCntten_cll(N) + 1
@@ -515,11 +515,11 @@ contains
     integer :: r,ind,i,j,flag,n0,n1,n2,n3
     double complex :: diffTN
     double precision :: ratio
-    character(len=*),parameter :: fmt1 = "(A8'(',i2,')  = dcmplx(',d25.18,' , ',d25.18,')')"
+    character(len=*),parameter :: fmt1 = "(A8,'(',i2,')  = dcmplx(',d25.18,' , ',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
-    "(A6,' TNten(',i1,','i1,','i1,','i1,') = (',d23.16,' , ',d23.16,' ), r=',i2)"    
+    "(A6,' TNten(',i1,',',i1,',',i1,',',i1,') = (',d23.16,' , ',d23.16,' ), r=',i2)"    
     character(len=*),parameter :: fmt3 = &
-    "(A7,'(',i1,','i2,') = dcmplx(',d25.18,' , ',d25.18,' )')"
+    "(A7,'(',i1,',',i2,') = dcmplx(',d25.18,' , ',d25.18,' )')"
 
     CheckCntten_cll(N) = CheckCntten_cll(N) + 1
 
@@ -642,11 +642,11 @@ contains
     integer :: r,n0,n1,n2,n3,i,j,flag
     double complex :: diffTN
     double precision :: ratio
-    character(len=*),parameter :: fmt1 = "(A8'(',i2,')  = dcmplx(',d25.18,',',d25.18,')')"
+    character(len=*),parameter :: fmt1 = "(A8,'(',i2,')  = dcmplx(',d25.18,',',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
-    "(A6,' TNten(',i1,','i1,','i1,','i1,') = (',d23.16,' , ',d23.16,' ), r=',i2)"    
+    "(A6,' TNten(',i1,',',i1,',',i1,',',i1,') = (',d23.16,' , ',d23.16,' ), r=',i2)"    
     character(len=*),parameter :: fmt3 = &
-    "(A7,'(',i1,','i2,') = dcmplx(',d25.18,' , ',d25.18,' )')"
+    "(A7,'(',i1,',',i2,') = dcmplx(',d25.18,' , ',d25.18,' )')"
 
     CheckCntten_cll(1) = CheckCntten_cll(1) + 1
 
@@ -758,11 +758,11 @@ contains
     integer :: r,ind,i,j,flag,n0,n1,n2,n3
     double complex :: diffTN
     double precision :: ratio
-    character(len=*),parameter :: fmt1 = "(A8'(',i2,')  = dcmplx(',d25.18,',',d25.18,')')"
+    character(len=*),parameter :: fmt1 = "(A8,'(',i2,')  = dcmplx(',d25.18,',',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
-    "(A6,' TNten(',i1,','i1,','i1,','i1,') = (',d23.16,' , ',d23.16,' ), r=',i2)"    
+    "(A6,' TNten(',i1,',',i1,',',i1,',',i1,') = (',d23.16,' , ',d23.16,' ), r=',i2)"    
     character(len=*),parameter :: fmt3 = &
-    "(A7,'(',i1,','i2,') = dcmplx(',d25.18,' , ',d25.18,' )')"
+    "(A7,'(',i1,',',i2,') = dcmplx(',d25.18,' , ',d25.18,' )')"
 
     CheckCntten_cll(1) = CheckCntten_cll(1) + 1
 

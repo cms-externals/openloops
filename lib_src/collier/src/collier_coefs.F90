@@ -17,8 +17,8 @@
 !       *                                         *
 !       *    by A.Denner, S.Dittmaier, L.Hofer    *
 !       *                                         *
-!       *               version 1.0               *
-!       *                                         *    
+!       *               version 1.2               *
+!       *                                         *
 !       *******************************************
 ! 
 !
@@ -156,6 +156,24 @@ contains
     double precision :: norm,norm_coli,norm_dd
     integer :: accflagDD,errflagDD,NDD,rankDD
     logical :: mflag,eflag
+
+    if (1.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('A_cll','Nmax_cll smaller 1',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 1'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('A_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
 
     mflag=.true.
     if (present(id_in)) then
@@ -328,6 +346,24 @@ contains
     double precision :: Bacc(0:rmax),Bacc2(0:rmax),norm,norm_coli,norm_dd
     integer :: accflagDD,errflagDD,NDD,rankDD
     logical :: mflag,eflag
+
+    if (2.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('B_cll','Nmax_cll smaller 2',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 2'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('B_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
 
     mflag=.true.
     if (present(id_in)) then
@@ -524,10 +560,42 @@ contains
   
     integer, intent(in) :: rmax
     double complex, intent(in) :: p10,m02,m12
-    double complex, intent(out) :: Buv(1:NCoefs(rmax,2)),B(1:NCoefs(rmax,2))
+    double complex, intent(out) :: Buv(1:),B(1:)
+    double precision, optional, intent(out) ::  Berr(0:rmax)
     double precision :: Berraux(0:rmax)
+    logical :: eflag
+
+    if (2.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('B_cll','Nmax_cll smaller 2',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 2'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('B_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call B_list_checked_cll(B,Buv,p10,m02,m12,rmax,Berr)
+  
+  end subroutine B_list_cll
+ 
+
+  subroutine B_list_checked_cll(B,Buv,p10,m02,m12,rmax,Berr)
+  
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: p10,m02,m12
+    double complex, intent(out) :: Buv(1:NCoefs(rmax,2)),B(1:NCoefs(rmax,2))
     double precision, optional, intent(out) ::  Berr(0:rmax)
     double complex :: Buv_aux(0:rmax/2,0:rmax), B_aux(0:rmax/2,0:rmax)
+    double precision :: Berraux(0:rmax)
     integer :: r,n0,n1,cnt
 
     if (present(Berr)) then
@@ -547,7 +615,7 @@ contains
       end do
     end do
 
-  end subroutine B_list_cll
+  end subroutine B_list_checked_cll
 
 
 
@@ -559,6 +627,37 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine B_arrays_list_cll(B,Buv,MomInv,masses2,rmax,Berr)
+  
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: MomInv(1),masses2(0:1)
+    double precision, optional, intent(out) :: Berr(0:rmax)
+    double complex, intent(out) :: Buv(1:),B(1:)
+    logical :: eflag
+
+    if (2.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('B_cll','Nmax_cll smaller 2',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 2'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('B_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call B_arrays_list_checked_cll(B,Buv,MomInv,masses2,rmax,Berr)
+  
+  end subroutine B_arrays_list_cll
+  
+
+  subroutine B_arrays_list_checked_cll(B,Buv,MomInv,masses2,rmax,Berr)
   
     integer, intent(in) :: rmax
     double complex, intent(in) :: MomInv(1),masses2(0:1)
@@ -585,7 +684,7 @@ contains
       end do
     end do
 
-  end subroutine B_arrays_list_cll
+  end subroutine B_arrays_list_checked_cll
 
 
 
@@ -620,6 +719,24 @@ contains
     integer :: accflagDD,errflagDD,NDD,rankDD
     logical :: mflag,eflag
     integer :: r,n1,n2
+
+    if (3.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('C_cll','Nmax_cll smaller 3',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 3'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('C_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
 
     mflag=.true.
     if (present(id_in)) then
@@ -923,12 +1040,44 @@ contains
       
     integer, intent(in) :: rmax
     double complex, intent(in) :: p10,p21,p20,m02,m12,m22
+    double complex, intent(out) :: Cuv(:),C(:)
     double precision, optional, intent(out) :: Cerr(0:rmax),Cerr2(0:rmax)
+    logical :: eflag
+    
+    if (3.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('C_cll','Nmax_cll smaller 3',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 3'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('C_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call C_list_checked_cll(C,Cuv,p10,p21,p20,m02,m12,m22,rmax,Cerr,Cerr2)
+      
+  end subroutine C_list_cll
+
+      
+  subroutine C_list_checked_cll(C,Cuv,p10,p21,p20,m02,m12,m22,rmax,Cerr,Cerr2)
+      
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: p10,p21,p20,m02,m12,m22
+    double precision, optional, intent(out) :: Cerr(0:rmax),Cerr2(0:rmax)
+    double complex, intent(out) :: Cuv(NCoefs(rmax,3)),C(NCoefs(rmax,3))
     double complex :: Cuv_aux(0:rmax/2,0:rmax,0:rmax)
     double complex :: C_aux(0:rmax/2,0:rmax,0:rmax)
-    double complex, intent(out) :: Cuv(NCoefs(rmax,3)),C(NCoefs(rmax,3))
     double precision :: Cerraux(0:rmax),Cerr2aux(0:rmax)
     integer :: r,n0,n1,n2,cnt
+    logical :: eflag
     
     if (present(Cerr)) then
       if (present(Cerr2)) then
@@ -962,7 +1111,7 @@ contains
       end do
     end do
 
-  end subroutine C_list_cll
+  end subroutine C_list_checked_cll
 
 
 
@@ -977,10 +1126,41 @@ contains
       
     integer, intent(in) :: rmax
     double complex, intent(in) :: MomInv(3), masses2(0:2)
+    double complex, intent(out) :: Cuv(:),C(:)
+    double precision, optional, intent(out) :: Cerr(0:rmax),Cerr2(0:rmax)
+    logical :: eflag
+    
+    if (3.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('C_cll','Nmax_cll smaller 3',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 3'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('C_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call C_arrays_list_checked_cll(C,Cuv,MomInv,masses2,rmax,Cerr,Cerr2)
+      
+  end subroutine C_arrays_list_cll
+      
+
+  subroutine C_arrays_list_checked_cll(C,Cuv,MomInv,masses2,rmax,Cerr,Cerr2)
+      
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: MomInv(3), masses2(0:2)
+    double complex, intent(out) :: Cuv(NCoefs(rmax,3)),C(NCoefs(rmax,3))
     double precision, optional, intent(out) :: Cerr(0:rmax),Cerr2(0:rmax)
     double complex :: Cuv_aux(0:rmax/2,0:rmax,0:rmax)
     double complex :: C_aux(0:rmax/2,0:rmax,0:rmax)
-    double complex, intent(out) :: Cuv(NCoefs(rmax,3)),C(NCoefs(rmax,3))
     double precision :: Cerraux(0:rmax),Cerr2aux(0:rmax)
     integer :: r,n0,n1,n2,cnt
     
@@ -1016,7 +1196,7 @@ contains
       end do
     end do
 
-  end subroutine C_arrays_list_cll
+  end subroutine C_arrays_list_checked_cll
 
 
 
@@ -1054,6 +1234,24 @@ contains
     integer :: accflagDD,errflagDD,NDD,rankDD
     logical :: mflag,eflag
     integer :: r,n1,n2,n3
+
+    if (4.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('D_cll','Nmax_cll smaller 4',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 4'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('D_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
 
     mflag=.true.
     if (present(id_in)) then
@@ -1352,6 +1550,26 @@ contains
     double precision, optional, intent(out) :: Derr(0:rmax),Derr2(0:rmax)
     double precision :: Derraux(0:rmax),Derr2aux(0:rmax)
     
+    logical :: eflag
+
+    if (4.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('D_cll','Nmax_cll smaller 4',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 4'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('D_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
     if (present(Derr)) then
       if (present(Derr2)) then
         call D_main_cll(D,Duv,MomInv(1),MomInv(2),MomInv(3),MomInv(4),MomInv(5),MomInv(6),  &
@@ -1385,10 +1603,42 @@ contains
   
     integer, intent(in) :: rmax
     double complex, intent(in) :: p10,p21,p32,p30,p20,p31,m02,m12,m22,m32
-    double complex :: D_aux(0:rmax/2,0:rmax,0:rmax,0:rmax)
-    double complex :: Duv_aux(0:rmax/2,0:rmax,0:rmax,0:rmax)
+    double complex, intent(out) :: D(:),Duv(:)
+    double precision, optional, intent(out) :: Derr(0:rmax),Derr2(0:rmax)
+    logical :: eflag
+
+    if (4.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('D_cll','Nmax_cll smaller 4',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 4'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('D_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+    
+    call D_list_checked_cll(D,Duv,p10,p21,p32,p30,p20,p31,  &
+                              m02,m12,m22,m32,rmax,Derr,Derr2)
+
+  end subroutine D_list_cll
+
+
+  subroutine D_list_checked_cll(D,Duv,p10,p21,p32,p30,p20,p31,m02,m12,m22,m32,rmax,Derr,Derr2)
+  
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: p10,p21,p32,p30,p20,p31,m02,m12,m22,m32
     double complex, intent(out) :: D(NCoefs(rmax,4)),Duv(NCoefs(rmax,4))
     double precision, optional, intent(out) :: Derr(0:rmax),Derr2(0:rmax)
+    double complex :: D_aux(0:rmax/2,0:rmax,0:rmax,0:rmax)
+    double complex :: Duv_aux(0:rmax/2,0:rmax,0:rmax,0:rmax)
     double precision :: Derraux(0:rmax),Derr2aux(0:rmax)
     integer :: r,n0,n1,n2,n3,cnt
     
@@ -1426,7 +1676,7 @@ contains
       end do
     end do
 
-  end subroutine D_list_cll
+  end subroutine D_list_checked_cll
 
 
 
@@ -1441,10 +1691,41 @@ contains
   
     integer, intent(in) :: rmax
     double complex, intent(in) :: MomInv(6), masses2(0:3)
-    double complex :: D_aux(0:rmax/2,0:rmax,0:rmax,0:rmax)
-    double complex :: Duv_aux(0:rmax/2,0:rmax,0:rmax,0:rmax)
+    double complex, intent(out) :: D(:),Duv(:)
+    double precision, optional, intent(out) :: Derr(0:rmax),Derr2(0:rmax)
+    logical :: eflag
+
+    if (4.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('D_cll','Nmax_cll smaller 4',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 4'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('D_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+    
+    call D_arrays_list_checked_cll(D,Duv,MomInv,masses2,rmax,Derr,Derr2)
+
+  end subroutine D_arrays_list_cll
+
+
+  subroutine D_arrays_list_checked_cll(D,Duv,MomInv,masses2,rmax,Derr,Derr2)
+  
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: MomInv(6), masses2(0:3)
     double complex, intent(out) :: D(NCoefs(rmax,4)),Duv(NCoefs(rmax,4))
     double precision, optional, intent(out) :: Derr(0:rmax),Derr2(0:rmax)
+    double complex :: D_aux(0:rmax/2,0:rmax,0:rmax,0:rmax)
+    double complex :: Duv_aux(0:rmax/2,0:rmax,0:rmax,0:rmax)
     double precision :: Derraux(0:rmax),Derr2aux(0:rmax)
     integer :: r,n0,n1,n2,n3,cnt
     
@@ -1482,7 +1763,7 @@ contains
       end do
     end do
 
-  end subroutine D_arrays_list_cll
+  end subroutine D_arrays_list_checked_cll
 
 
 
@@ -1500,11 +1781,11 @@ contains
     integer, intent(in) :: rmax
     double complex, intent(in) :: p10,p21,p32,p43,p40,p20,p31,p42,p30,p41
     double complex, intent(in) :: m02,m12,m22,m32,m42
-    double precision :: q10,q21,q32,q43,q40,q20,q31,q42,q30,q41
-    double complex :: mm02,mm12,mm22,mm32,mm42
     double complex, intent(out) :: E(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: Euv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
     double precision, optional, intent(out) :: Eerr(0:rmax),Eerr2(0:rmax)
+    double precision :: q10,q21,q32,q43,q40,q20,q31,q42,q30,q41
+    double complex :: mm02,mm12,mm22,mm32,mm42
     double precision :: Eerraux(0:rmax),Eerr2aux(0:rmax),Ediff(0:rmax)
     integer, optional, intent(in) :: id_in   
     double complex :: E2uv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax) 
@@ -1518,6 +1799,24 @@ contains
     integer :: accflagDD,errflagDD,NDD,rankDD
     logical :: mflag,eflag
     integer :: r,n1,n2,n3,n4
+
+    if (5.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('E_cll','Nmax_cll smaller 5',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 5'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('E_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
 
     mflag=.true.
     if (present(id_in)) then
@@ -1884,13 +2183,47 @@ contains
     integer, intent(in) :: rmax
     double complex, intent(in) :: p10,p21,p32,p43,p40,p20,p31,p42,p30,p41
     double complex, intent(in) :: m02,m12,m22,m32,m42
-    double complex :: E_aux(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex :: Euv_aux(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
+    double complex, intent(out) :: E(:),Euv(:)
+    double precision, optional, intent(out) :: Eerr(0:rmax),Eerr2(0:rmax)
+    logical :: eflag
+    
+    if (5.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('E_cll','Nmax_cll smaller 5',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 5'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('E_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if
+    
+    call E_list_checked_cll(E,Euv,p10,p21,p32,p43,p40,p20,p31,p42,p30,p41,  &
+                               m02,m12,m22,m32,m42,rmax,Eerr,Eerr2)
+  
+  end subroutine E_list_cll
+
+  
+  subroutine E_list_checked_cll(E,Euv,p10,p21,p32,p43,p40,p20,p31,p42,p30,p41,  &
+                               m02,m12,m22,m32,m42,rmax,Eerr,Eerr2)
+  
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: p10,p21,p32,p43,p40,p20,p31,p42,p30,p41
+    double complex, intent(in) :: m02,m12,m22,m32,m42
     double complex, intent(out) :: E(NCoefs(rmax,5)),Euv(NCoefs(rmax,5))
     double precision, optional, intent(out) :: Eerr(0:rmax),Eerr2(0:rmax)
+    double complex :: E_aux(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
+    double complex :: Euv_aux(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
     double precision :: Eerraux(0:rmax),Eerr2aux(0:rmax)
     integer :: r,n0,n1,n2,n3,n4,cnt
-    
+
     if (present(Eerr)) then
       if (present(Eerr2)) then
         call E_main_cll(E_aux,Euv_aux,p10,p21,p32,p43,p40,p20,p31,p42,p30,p41,  &
@@ -1927,7 +2260,7 @@ contains
       end do
     end do
 
-  end subroutine E_list_cll
+  end subroutine E_list_checked_cll
 
 
 
@@ -1943,10 +2276,41 @@ contains
   
     integer, intent(in) :: rmax
     double complex, intent(in) :: MomInv(10), masses2(0:4)
-    double complex :: E_aux(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex :: Euv_aux(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
+    double complex, intent(out) :: E(:),Euv(:)
+    double precision, optional, intent(out) :: Eerr(0:rmax),Eerr2(0:rmax)
+    logical :: eflag
+    
+    if (5.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('E_cll','Nmax_cll smaller 5',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 5'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('E_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call E_arrays_list_checked_cll(E,Euv,MomInv,masses2,rmax,Eerr,Eerr2)
+  
+  end subroutine E_arrays_list_cll
+
+  
+  subroutine E_arrays_list_checked_cll(E,Euv,MomInv,masses2,rmax,Eerr,Eerr2)
+  
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: MomInv(10), masses2(0:4)
     double complex, intent(out) :: E(NCoefs(rmax,5)),Euv(NCoefs(rmax,5))
     double precision, optional, intent(out) :: Eerr(0:rmax),Eerr2(0:rmax)
+    double complex :: E_aux(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
+    double complex :: Euv_aux(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
     double precision :: Eerraux(0:rmax),Eerr2aux(0:rmax)
     integer :: r,n0,n1,n2,n3,n4,cnt
     
@@ -1990,7 +2354,7 @@ contains
       end do
     end do
 
-  end subroutine E_arrays_list_cll
+  end subroutine E_arrays_list_checked_cll
 
 
 
@@ -2008,12 +2372,12 @@ contains
     integer, intent(in) :: rmax
     double complex, intent(in) :: p10,p21,p32,p43,p54,p50,p20,p31,p42,p53,p40
     double complex, intent(in) :: p51,p30,p41,p52,m02,m12,m22,m32,m42,m52
-    double precision :: q10,q21,q32,q43,q54,q50,q20,q31,q42,q53,q40
-    double precision :: q51,q30,q41,q52
-    double complex :: mm02,mm12,mm22,mm32,mm42,mm52
     double complex, intent(out) :: F(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: Fuv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax)
     double precision, optional, intent(out) ::Ferr(0:rmax),Ferr2(0:rmax)
+    double precision :: q10,q21,q32,q43,q54,q50,q20,q31,q42,q53,q40
+    double precision :: q51,q30,q41,q52
+    double complex :: mm02,mm12,mm22,mm32,mm42,mm52
     integer, optional, intent(in) :: id_in
     double complex :: F2uv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax) 
     double complex :: F2(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax) 
@@ -2028,6 +2392,24 @@ contains
     logical :: mflag,eflag
     integer :: r,n1,n2,n3,n4,n5
    
+    if (6.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('F_cll','Nmax_cll smaller 6',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 6'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('F_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
     mflag=.true.
     if (present(id_in)) then
       mflag=.false.
@@ -2422,6 +2804,40 @@ contains
     integer, intent(in) :: rmax
     double complex, intent(in) :: p10,p21,p32,p43,p54,p50,p20,p31,p42,p53,p40
     double complex, intent(in) :: p51,p30,p41,p52,m02,m12,m22,m32,m42,m52
+    double complex, intent(out) :: F(:),Fuv(:)
+    double precision, optional, intent(out) ::Ferr(0:rmax),Ferr2(0:rmax)
+    logical :: eflag
+    
+    if (6.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('F_cll','Nmax_cll smaller 6',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 6'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('F_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call F_list_checked_cll(F,Fuv,p10,p21,p32,p43,p54,p50,p20,p31,p42,p53,p40, &
+      p51,p30,p41,p52,m02,m12,m22,m32,m42,m52,rmax,Ferr,Ferr2)
+      
+  end subroutine F_list_cll
+      
+
+  subroutine F_list_checked_cll(F,Fuv,p10,p21,p32,p43,p54,p50,p20,p31,p42,p53,p40, &
+      p51,p30,p41,p52,m02,m12,m22,m32,m42,m52,rmax,Ferr,Ferr2)
+      
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: p10,p21,p32,p43,p54,p50,p20,p31,p42,p53,p40
+    double complex, intent(in) :: p51,p30,p41,p52,m02,m12,m22,m32,m42,m52
     double complex, intent(out) :: F(NCoefs(rmax,6)),Fuv(NCoefs(rmax,6))
     double precision, optional, intent(out) ::Ferr(0:rmax),Ferr2(0:rmax)
     double complex :: F_aux(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax)
@@ -2467,7 +2883,7 @@ contains
       end do
     end do
 
-  end subroutine F_list_cll
+  end subroutine F_list_checked_cll
 
 
 
@@ -2478,6 +2894,37 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine F_arrays_list_cll(F,Fuv,MomInv,masses2,rmax,Ferr,Ferr2)
+      
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: MomInv(15), masses2(0:5)
+    double complex, intent(out) :: F(:),Fuv(:)
+    double precision, optional, intent(out) ::Ferr(0:rmax),Ferr2(0:rmax)
+    logical :: eflag
+
+    if (6.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('F_cll','Nmax_cll smaller 6',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 6'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('F_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call F_arrays_list_checked_cll(F,Fuv,MomInv,masses2,rmax,Ferr,Ferr2)
+      
+  end subroutine F_arrays_list_cll
+      
+
+  subroutine F_arrays_list_checked_cll(F,Fuv,MomInv,masses2,rmax,Ferr,Ferr2)
       
     integer, intent(in) :: rmax
     double complex, intent(in) :: MomInv(15), masses2(0:5)
@@ -2534,7 +2981,7 @@ contains
       end do
     end do
 
-  end subroutine F_arrays_list_cll
+  end subroutine F_arrays_list_checked_cll
 
 
 
@@ -2566,6 +3013,24 @@ contains
     integer :: errflag,id
     logical :: mflag,eflag
     integer :: r,n1,n2,n3,n4,n5,n6
+
+    if (7.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('G_cll','Nmax_cll smaller 7',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 7'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('G_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
 
     mflag=.true.
     if (present(id_in)) then
@@ -2833,6 +3298,43 @@ contains
     double complex, intent(in) :: p10,p21,p32,p43,p54,p65,p60,p20,p31,p42,p53
     double complex, intent(in) :: p64,p50,p61,p30,p41,p52,p63,p40,p51,p62
     double complex, intent(in) :: m02,m12,m22,m32,m42,m52,m62
+    double complex, intent(out) :: G(:),Guv(:)
+    double precision, optional, intent(out) :: Gerr(0:rmax),Gerr2(0:rmax)
+    logical :: eflag
+
+    if (7.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('G_cll','Nmax_cll smaller 7',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 7'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('G_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call G_list_checked_cll(G,Guv,p10,p21,p32,p43,p54,p65,p60,p20,p31,p42,p53, &
+                               p64,p50,p61,p30,p41,p52,p63,p40,p51,p62, &
+                               m02,m12,m22,m32,m42,m52,m62,rmax,Gerr,Gerr2)
+
+  end subroutine G_list_cll
+      
+
+  subroutine G_list_checked_cll(G,Guv,p10,p21,p32,p43,p54,p65,p60,p20,p31,p42,p53, &
+                               p64,p50,p61,p30,p41,p52,p63,p40,p51,p62, &
+                               m02,m12,m22,m32,m42,m52,m62,rmax,Gerr,Gerr2)
+
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: p10,p21,p32,p43,p54,p65,p60,p20,p31,p42,p53
+    double complex, intent(in) :: p64,p50,p61,p30,p41,p52,p63,p40,p51,p62
+    double complex, intent(in) :: m02,m12,m22,m32,m42,m52,m62
     double complex, intent(out) :: G(NCoefs(rmax,7))
     double complex, intent(out) :: Guv(NCoefs(rmax,7))
     double precision, optional, intent(out) :: Gerr(0:rmax),Gerr2(0:rmax)
@@ -2885,7 +3387,7 @@ contains
       end do
     end do  
     
-  end subroutine G_list_cll
+  end subroutine G_list_checked_cll
 
 
 
@@ -2897,6 +3399,37 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine G_arrays_list_cll(G,Guv,MomInv,masses2,rmax,Gerr,Gerr2)
+
+    integer, intent(in) :: rmax
+    double complex, intent(in) :: MomInv(21), masses2(0:6)
+    double complex, intent(out) :: G(:),Guv(:)
+    double precision, optional, intent(out) :: Gerr(0:rmax),Gerr2(0:rmax)
+    logical :: eflag
+
+    if (7.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('G_cll','Nmax_cll smaller 7',eflag,.true.)
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= 7'
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('G_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+
+    call G_arrays_list_checked_cll(G,Guv,MomInv,masses2,rmax,Gerr,Gerr2)
+
+  end subroutine G_arrays_list_cll
+
+
+  subroutine G_arrays_list_checked_cll(G,Guv,MomInv,masses2,rmax,Gerr,Gerr2)
 
     integer, intent(in) :: rmax
     double complex, intent(in) :: MomInv(21), masses2(0:6)
@@ -2960,7 +3493,7 @@ contains
       end do
     end do  
     
-  end subroutine G_arrays_list_cll
+  end subroutine G_arrays_list_checked_cll
 
 
 
@@ -2972,6 +3505,46 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine TN_main_cll(TN,TNuv,MomInv,masses2,N,rmax,TNerr,id_in,TNerr2)
+
+    integer, intent(in) :: N,rmax
+    double complex, intent(in) :: MomInv(:), masses2(0:)
+    double complex, intent(out) :: TN(:)
+    double complex, intent(out) :: TNuv(:)
+    integer, optional, intent(in) :: id_in
+    double precision, optional, intent(out) :: TNerr(0:),TNerr2(0:)
+    logical :: eflag
+
+    if (N.eq.1) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('TN_cll','subroutine called with wrong number of arguments for N=1',eflag,.true.)
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (N.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('TN_cll','argument N larger than Nmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'N        =',N
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= ',N
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('TN_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+    
+    call TN_main_checked_cll(TN,TNuv,MomInv,masses2,N,rmax,TNerr,id_in,TNerr2)
+
+  end subroutine TN_main_cll
+
+
+  subroutine TN_main_checked_cll(TN,TNuv,MomInv,masses2,N,rmax,TNerr,id_in,TNerr2)
 
     integer, intent(in) :: N,rmax
     double complex, intent(in) :: MomInv(BinomTable(2,N)), masses2(0:N-1)
@@ -3001,11 +3574,11 @@ contains
     integer :: accflagDD,errflagDD,rankDD,NDD,id
     logical :: mflag,eflag
 
-    if (N.eq.1) then
-      call SetErrFlag_cll(-10)
-      call ErrOut_cll('TN_cll','subroutine called with wrong number of arguments for N=1',eflag)
-      return
-    end if    
+!    if (N.eq.1) then
+!      call SetErrFlag_cll(-10)
+!      call ErrOut_cll('TN_cll','subroutine called with wrong number of arguments for N=1',eflag)
+!      return
+!    end if    
     
     mflag=.true.
     if (present(id_in)) then
@@ -3674,7 +4247,7 @@ contains
 #endif
     end if
 
-  end subroutine TN_main_cll
+  end subroutine TN_main_checked_cll
 
 
 
@@ -3686,6 +4259,45 @@ contains
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine T1_cll(A,Auv,masses2,N,rmax,Aerr,id_in)
+
+    integer, intent(in) :: N,rmax
+    double complex, intent(in) :: masses2(0:0)
+    double complex, intent(out) :: A(:)
+    double complex, intent(out) :: Auv(:)
+    integer, optional, intent(in) :: id_in
+    double precision, optional, intent(out) :: Aerr(0:rmax)
+    logical :: eflag
+    
+    if (N.ne.1) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('TN_cll','subroutine called with inconsistent arguments',eflag)
+      return
+    end if
+    if (N.gt.Nmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('TN_cll','argument N larger than Nmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'N        =',N
+      write(nerrout_cll,*) 'Nmax_cll =',Nmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with Nmax_cll >= ',N
+      call PropagateErrFlag_cll
+      return
+    end if    
+    if (rmax.gt.rmax_cll) then
+      call SetErrFlag_cll(-10)
+      call ErrOut_cll('TN_cll','argument rmax larger than rmax_cll',eflag,.true.)
+      write(nerrout_cll,*) 'rmax     =',rmax
+      write(nerrout_cll,*) 'rmax_cll =',rmax_cll
+      write(nerrout_cll,*) 'Reinitialize COLLIER with rmax_cll >= ',rmax
+      call PropagateErrFlag_cll
+      return
+    end if    
+    
+    call T1_checked_cll(A,Auv,masses2,N,rmax,Aerr,id_in)
+
+  end subroutine T1_cll
+
+
+  subroutine T1_checked_cll(A,Auv,masses2,N,rmax,Aerr,id_in)
 
     integer, intent(in) :: N,rmax
     double complex, intent(in) :: masses2(0:0)
@@ -3706,12 +4318,12 @@ contains
     integer :: accflagDD,errflagDD,rankDD,NDD,id
     logical :: mflag,eflag
     
-    if (N.ne.1) then
-      call SetErrFlag_cll(-10)
-      call ErrOut_cll('TN_cll','subroutine called with inconsistent arguments',eflag)
-      return
-    end if
-    
+!    if (N.ne.1) then
+!      call SetErrFlag_cll(-10)
+!      call ErrOut_cll('TN_cll','subroutine called with inconsistent arguments',eflag)
+!      return
+!    end if
+        
     mflag=.true.
     if (present(id_in)) then
       mflag=.false.
@@ -3846,7 +4458,7 @@ contains
 
     end if
 
-  end subroutine T1_cll
+  end subroutine T1_checked_cll
 
   
 
@@ -3981,9 +4593,9 @@ contains
         mm02 = getminf2DD_cll(m02)
         mm12 = getminf2DD_cll(m12)
 
-        call SwitchOffCacheSystem_cll
+        use_cache_system=.false.
         call B_dd(Bdd,Bdduv,q10,mm02,mm12,0,0)
-        call SwitchOnCacheSystem_cll
+        use_cache_system=use_cache_system_save
 !        B0uv = Bdduv(0,0)
         B0 = Bdd(0,0)
 
@@ -4003,9 +4615,9 @@ contains
         mm02 = getminf2DD_cll(m02)
         mm12 = getminf2DD_cll(m12)
 
-        call SwitchOffCacheSystem_cll
+        use_cache_system=.false.
         call B_dd(Bdd,Bdduv,q10,mm02,mm12,0,0)
-        call SwitchOnCacheSystem_cll
+        use_cache_system=use_cache_system_save
         B2uv(0,0) = Bdduv(0,0)
         B2(0,0) = Bdd(0,0)
 
@@ -4720,9 +5332,9 @@ contains
         mm02 = getminf2DD_cll(m02)
         mm12 = getminf2DD_cll(m12)
 
-        call SwitchOffCacheSystem_cll
+        use_cache_system=.false.
         call DB_dd(DBdd,DBdduv,q10,mm02,mm12,0)
-        call SwitchOnCacheSystem_cll
+        use_cache_system=use_cache_system_save
         DB0 = DBdd(0,0)
 
       case (3)
@@ -4740,9 +5352,9 @@ contains
         mm02 = getminf2DD_cll(m02)
         mm12 = getminf2DD_cll(m12)
 
-        call SwitchOffCacheSystem_cll
+        use_cache_system=.false.
         call DB_dd(DBdd,DBdduv,q10,mm02,mm12,0)
-        call SwitchOnCacheSystem_cll
+        use_cache_system=use_cache_system_save
         DB0dd = DBdd(0,0)
 
         ! cross-check
@@ -4824,9 +5436,9 @@ contains
         mm02 = getminf2DD_cll(m02)
         mm12 = getminf2DD_cll(m12)
 
-        call SwitchOffCacheSystem_cll
+        use_cache_system=.false.
         call DB_dd(DBdd,DBdduv,q10,mm02,mm12,1)
-        call SwitchOnCacheSystem_cll
+        use_cache_system=use_cache_system_save
         DB1 = DBdd(0,1)
 
 
@@ -4844,9 +5456,9 @@ contains
         mm02 = getminf2DD_cll(m02)
         mm12 = getminf2DD_cll(m12)
 
-        call SwitchOffCacheSystem_cll
+        use_cache_system=.false.
         call DB_dd(DBdd,DBdduv,q10,mm02,mm12,1)
-        call SwitchOnCacheSystem_cll
+        use_cache_system=use_cache_system_save
         DB1dd = DBdd(0,1)
 
         ! cross-check
@@ -4929,9 +5541,9 @@ contains
         mm02 = getminf2DD_cll(m02)
         mm12 = getminf2DD_cll(m12)
 
-        call SwitchOffCacheSystem_cll
+        use_cache_system=.false.
         call DB_dd(DBdd,DBdduv,q10,mm02,mm12,2)
-        call SwitchOnCacheSystem_cll
+        use_cache_system=use_cache_system_save
         DB00uv = DBdduv(1,0)
         DB00   = DBdd(1,0)
 
@@ -4952,9 +5564,9 @@ contains
         mm02 = getminf2DD_cll(m02)
         mm12 = getminf2DD_cll(m12)
 
-        call SwitchOffCacheSystem_cll
+        use_cache_system=.false.
         call DB_dd(DBdd,DBdduv,q10,mm02,mm12,2)
-        call SwitchOnCacheSystem_cll
+        use_cache_system=use_cache_system_save
         DB00dduv = DBdduv(1,0)
         DB00dd   = DBdd(1,0)
 
@@ -5025,9 +5637,9 @@ contains
         ! calculate loop integral using
         ! COLI implementation by AD/LH
   
-        call SwitchOffCacheSystem_cll       
+        use_cache_system=.false.       
         call CalcDB(DBcoli,DBcoliuv,p10,m02,m12,2,0,DBerraux)
-        call SwitchOnCacheSystem_cll        
+        use_cache_system=use_cache_system_save        
         DB11 = DBcoli(0,2)
 
 
@@ -5040,9 +5652,9 @@ contains
         mm02 = getminf2DD_cll(m02)
         mm12 = getminf2DD_cll(m12)
 
-        call SwitchOffCacheSystem_cll
+        use_cache_system=.false.
         call DB_dd(DBdd,DBdduv,q10,mm02,mm12,2)
-        call SwitchOnCacheSystem_cll
+        use_cache_system=use_cache_system_save
         DB11 = DBdd(0,2)
 
       case (3)
@@ -5052,9 +5664,9 @@ contains
         ! from DD implementation by SD
 
         ! calculate loop integral using COLI
-        call SwitchOffCacheSystem_cll       
+        use_cache_system=.false.       
         call CalcDB(DBcoli,DBcoliuv,p10,m02,m12,2,0,DBerraux)
-        call SwitchOnCacheSystem_cll
+        use_cache_system=use_cache_system_save
         DB11 = DBcoli(0,2)        
 
         ! replace small masses by DD-identifiers    
@@ -5062,9 +5674,9 @@ contains
         mm02 = getminf2DD_cll(m02)
         mm12 = getminf2DD_cll(m12)
 
-        call SwitchOffCacheSystem_cll
+        use_cache_system=.false.
         call DB_dd(DBdd,DBdduv,q10,mm02,mm12,2)
-        call SwitchOnCacheSystem_cll
+        use_cache_system=use_cache_system_save
         DB11dd   = DBdd(0,2)
 
         ! cross-check
@@ -5165,12 +5777,12 @@ contains
 
         rank = rmax
 
-        ! call SwitchOffCacheSystem_cll
+        ! use_cache_system=.false.
         call DB_dd(DBdd,DBdduv,q10,mm02,mm12,rank)
-        ! call SwitchOnCacheSystem_cll
+        ! use_cache_system=use_cache_system_save
 
         DB(0:rank/2,0:rank) = DBdd(0:rank/2,0:rank)
-        DBuv(0:rank/2,0:rank) = DBdduv(0:rank,0:rank)
+        DBuv(0:rank/2,0:rank) = DBdduv(0:rank/2,0:rank)
 
       case (3)
         ! cross-check mode
@@ -5192,9 +5804,9 @@ contains
 
         rank = rmax
 
-        ! call SwitchOffCacheSystem_cll
+        ! use_cache_system=.false.
         call DB_dd(DBdd,DBdduv,q10,mm02,mm12,rank)
-        ! call SwitchOnCacheSystem_cll
+        ! use_cache_system=use_cache_system_save
 
         DB2(0:rank/2,0:rank) = DBdd(0:rank/2,0:rank)
         DB2uv(0:rank/2,0:rank) = DBdduv(0:rank/2,0:rank)

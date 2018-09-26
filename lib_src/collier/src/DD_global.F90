@@ -95,6 +95,7 @@ subroutine Init_DD_global(nmax_in,ritmax_in)
   integer (kind=8)    :: Binomial_DD
 
   ritmax = ritmax_in
+
 ! dimensions for array declarations
   rmax6  = 6
   rmax5  = 5
@@ -107,7 +108,9 @@ subroutine Init_DD_global(nmax_in,ritmax_in)
 !  -> dimensions for arrays in internal cache 
   r2max6  = rmax6
   r2max5  = r2max6-1
-  r2max4  = r2max5-1
+!  r2max4  = r2max5-1
+!changed SD 28.6.17
+  r2max4  = rmax4
   r2max3  = rmax3
   r2max2  = rmax2
 

@@ -1,25 +1,31 @@
-
-! Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-!
-! This file is part of OpenLoops.
-!
-! OpenLoops is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! OpenLoops is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-! GNU General Public License for more details.
-!
-! You should have received a copy of the GNU General Public License
-! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+!******************************************************************************!
+! Copyright (C) 2014-2018 OpenLoops Collaboration. For authors see authors.txt !
+!                                                                              !
+! This file is part of OpenLoops.                                              !
+!                                                                              !
+! OpenLoops is free software: you can redistribute it and/or modify            !
+! it under the terms of the GNU General Public License as published by         !
+! the Free Software Foundation, either version 3 of the License, or            !
+! (at your option) any later version.                                          !
+!                                                                              !
+! OpenLoops is distributed in the hope that it will be useful,                 !
+! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+! GNU General Public License for more details.                                 !
+!                                                                              !
+! You should have received a copy of the GNU General Public License            !
+! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+!******************************************************************************!
 
 
 module ol_kinematics_/**/REALKIND
   use KIND_TYPES
   implicit none
+
+  interface internal_momenta
+    module procedure internal_momenta_std, internal_momenta_six
+  end interface
+
 contains
 
 ! **********************************************************************
@@ -80,6 +86,25 @@ end subroutine LC2Std_Rep
 
 
 ! **********************************************************************
+subroutine LC2Std_Rep_D(L,P)
+! **********************************************************************
+! light-cone -> Lorentz representation
+! L(1:4)   = light-cone representation L^A (ALWAYS CONTRAVARIANT)
+! P(0:3)   = Lorentz momentum P^mu (ALWAYS CONTRAVARIANT)
+! P(0:3)   here is a double-realkind vector
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND), intent(in)  :: L(1:4)
+  real(DREALKIND),    intent(out) :: P(0:3)
+  P(0) =  real(L(1)+L(2))*0.5_/**/REALKIND
+  P(1) = -real(L(3)+L(4))*0.5_/**/REALKIND
+  P(2) = aimag(L(4)-L(3))*0.5_/**/REALKIND
+  P(3) =  real(L(2)-L(1))*0.5_/**/REALKIND
+end subroutine LC2Std_Rep_D
+
+
+! **********************************************************************
 subroutine LC2Std_Rep_cmplx(L,P)
 ! **********************************************************************
 ! complex version
@@ -109,6 +134,24 @@ function cont_L_cmplx(A)
   complex(REALKIND), intent(in) :: A(0:3)
   cont_L_cmplx = A(0)*A(0) - A(1)*A(1) - A(2)*A(2) - A(3)*A(3)
 end function cont_L_cmplx
+
+
+! **************************************************************************
+function cont_LC_cntrv(V1,V2)
+! Contraction of contravariant Lorentz vectors in LightCone representation.
+! Contraction of V1 with itself or with a second vector V2
+! **************************************************************************
+  use KIND_TYPES, only: REALKIND
+  implicit none
+  complex(REALKIND) :: cont_LC_cntrv
+  complex(REALKIND), intent(in) :: V1(1:4)
+  complex(REALKIND), optional, intent(in) :: V2(1:4)
+  if(present(V2)) then
+    cont_LC_cntrv = (V1(1)*V2(2) + V2(1)*V1(2) - V1(3)*V2(4) - V2(3)*V1(4))/2
+  else
+    cont_LC_cntrv = V1(1)*V1(2) - V1(3)*V1(4)
+  end if
+end function cont_LC_cntrv
 
 
 #ifdef PRECISION_dp
@@ -181,6 +224,7 @@ subroutine decay3(E_in, m, psp)
     E1 = m(1)
   else if (E_in < m(1)) then
     call ol_fatal("3-particle interaction energy too low.")
+    return
   else
     E1 = E_in
   end if
@@ -394,15 +438,15 @@ subroutine clean_mom_in(P_in, m_ext2, P, n)
 ! 3-momenta (and energies) of incoming particles shifted by +/- eps*p1,
 ! so that energy conservation is fulfilled up to terms of O(eps^3)
 ! **********************************************************************
-  use KIND_TYPES, only: REALKIND, DREALKIND
+  use KIND_TYPES, only: REALKIND
   use ol_debug, only: ol_msg
   use ol_generic, only: to_string
   use ol_parameters_decl_/**/REALKIND, only: psp_tolerance
   implicit none
-  real(DREALKIND), intent(in)  :: P_in(0:3,n)
-  integer,         intent(in)  :: n
-  real(REALKIND),  intent(in)  :: m_ext2(n)
-  real(REALKIND),  intent(out) :: P(0:3,n)
+  real(REALKIND), intent(in)  :: P_in(0:3,n)
+  integer,        intent(in)  :: n
+  real(REALKIND), intent(in)  :: m_ext2(n)
+  real(REALKIND), intent(out) :: P(0:3,n)
   real(REALKIND)  :: E_ref, P0(n), P2(n)
   real(REALKIND)  :: E0(2), E1(2), E2(2)
   real(REALKIND)  :: E0_tot, E1_tot, E2_tot
@@ -517,14 +561,14 @@ subroutine clean_mom_scatt(P_in, m_ext2, P, n)
 ! same as clean_mom_in but for 2-> n-2 PS point
 ! This routine is not used internally.
 ! **********************************************************************
-  use KIND_TYPES, only: REALKIND, DREALKIND
+  use KIND_TYPES, only: REALKIND
   implicit none
-  real(DREALKIND), intent(in)  :: P_in(0:3,n)
-  integer,         intent(in)  :: n
-  real(REALKIND),  intent(in)  :: m_ext2(n)
-  real(REALKIND),  intent(out) :: P(0:3,n)
-  real(DREALKIND) :: Q_in(0:3,n)
-  real(REALKIND)  :: Q(0:3,n)
+  real(REALKIND), intent(in)  :: P_in(0:3,n)
+  integer,        intent(in)  :: n
+  real(REALKIND), intent(in)  :: m_ext2(n)
+  real(REALKIND), intent(out) :: P(0:3,n)
+  real(REALKIND) :: Q_in(0:3,n)
+  real(REALKIND) :: Q(0:3,n)
 
   Q_in(:,1:2) = P_in(:,1:2)
   Q_in(:,3:) = -P_in(:,3:)
@@ -588,7 +632,7 @@ subroutine conv_mom_scatt2in(P_scatt, m_ext2, P_in_clean, perm_inv, n)
   use KIND_TYPES, only: REALKIND, DREALKIND
   use ol_external_decl_/**/REALKIND, only: nParticles, P_ex, inverse_crossing
   use ol_external_decl_/**/DREALKIND, only: n_scatt
-  use ol_parameters_decl_/**/DREALKIND, only: scalefactor
+  use ol_parameters_decl_/**/REALKIND, only: scalefactor
   use ol_parameters_init_/**/REALKIND, only: init_kin_arrays
   implicit none
   integer,           intent(in)  :: n
@@ -596,9 +640,9 @@ subroutine conv_mom_scatt2in(P_scatt, m_ext2, P_in_clean, perm_inv, n)
   real(REALKIND),    intent(in)  :: m_ext2(n)
   real(REALKIND),    intent(out) :: P_in_clean(0:3,n)
   integer,           intent(in)  :: perm_inv(n)
-  real(DREALKIND) :: P_in(0:3,n)
-  real(REALKIND)  :: P_clean(0:3,n), m_ext2_perm(n)
-  integer         :: k
+  real(REALKIND) :: P_in(0:3,n)
+  real(REALKIND) :: P_clean(0:3,n), m_ext2_perm(n)
+  integer        :: k
   nParticles = n
   call init_kin_arrays(nParticles)
   P_ex(:,1:n) = P_scatt
@@ -608,7 +652,7 @@ subroutine conv_mom_scatt2in(P_scatt, m_ext2, P_in_clean, perm_inv, n)
   end do
   P_in(:,1:n_scatt) =   scalefactor * P_scatt(:,1:n_scatt)
   P_in(:,n_scatt+1:)  = - scalefactor * P_scatt(:,n_scatt+1:)
-  if (n_scatt == 2 .and. n > 3) then
+  if (n_scatt == 2 .and. n > 2) then
     ! Clean momenta to get full numerical precision.
     ! Do the cleaning in the original permutation where the first two momenta are incoming.
     ! Otherwise the beam alignment (zero components) might be spoiled by the cleaning.
@@ -695,7 +739,7 @@ end subroutine write_INmom
 
 
 ! **********************************************************************
-subroutine internal_momenta(P, Npart)
+subroutine internal_momenta_std(P, Npart, invariants_mode)
 ! **********************************************************************
 ! P(0:3,Npart) = external real-valued four-momenta (standard representation)
 ! Npart        = total (in & out) external particle number
@@ -712,6 +756,7 @@ subroutine internal_momenta(P, Npart)
 
   real(REALKIND), intent(in) :: P(0:3,Npart)
   integer,        intent(in)  :: Npart
+  integer, optional, intent(in)  :: invariants_mode
   integer :: i, j
   integer :: Jmax
   integer :: i1, i2 ! conventional particle numbers
@@ -745,16 +790,85 @@ subroutine internal_momenta(P, Npart)
     call intmom(P, Npart, i)
   end if
 
+  if(.not. present(invariants_mode)) then
+    do i = 1, Npart
+      ! QInvariantsMatrix(i,i) = m_ex2(i)
+      do j = i + 1, Npart
+        QInvariantsMatrix(i,j) = Q(5,2**(i-1)+2**(j-1))
+        QInvariantsMatrix(j,i) = QInvariantsMatrix(i,j)
+      end do
+    end do
+  end if
+
+end subroutine internal_momenta_std
+
+
+! **********************************************************************
+subroutine internal_momenta_six(P, Npart, ext_masses)
+! **********************************************************************
+! P(0:3,Npart)       = external real-valued four-momenta
+!                      (standard-representation)
+! Npart              = number of external particle (in & out)
+! L(1:6,1:Npart^2-2) = internal four-momenta in light-cone representation;
+!                      the fifth component is the R-valued sum of external
+!                      masses while the
+!                      the sixth component is the sum of the scalar-products
+! Numbering of internal momenta:
+!   Sum_i s(i)*P(i) => Q(Sum_i s(i)*2^(i-1)), s(i) = 0, 1
+!   so that Q(J1) + Q(J2) = Q(J1+J2)
+! QInvariantsMatrix(i,j) = (p_i+p_j)^2 for i /= j, otherwise undefined.
+! invariants_mode    = flag used to decide in which way the invariants
+!                      from the internal momenta are computed
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1
+  use ol_momenta_decl_/**/REALKIND, only: Q, L, QInvariantsMatrix
+  implicit none
+
+  integer,           intent(in) :: Npart
+  real(REALKIND),    intent(in) :: P(0:3,Npart), ext_masses(Npart)
+  complex(REALKIND) :: zero = 0._/**/REALKIND
+  integer :: i, j, invariants_mode
+  integer :: Jmax
+  integer :: i1, i2 ! conventional particle numbers
+  integer :: l1, l2 ! individual 2^(i-1) particles numbers
+  integer :: s1, s2 ! sums of 2^(i-1) particle numbers
+  integer :: r1, r2 ! inverse of s1, s2, ...
+
+  i = 2**Npart - 2
+  L(:,i+1) = 0
+  L(5:6,:) = zero
+
+  call internal_momenta_std(P, Npart, invariants_mode)
+  L(1:4,0:i) = Q(1:4,0:i)
+
+  if (Npart == 2) then
+    L(5,1) = ext_masses(1)
+    L(6,1) = zero
+    L(5:6,2) = L(5:6,1)
+  else if (Npart == 3) then
+    L(5,1) = ext_masses(1)
+    L(5,2) = ext_masses(2)
+    L(6,1) = zero
+    L(6,2) = zero
+    L(5,3) = ext_masses(1) + ext_masses(2)
+    L(6,3) = 2*cont_LC_cntrv(L(1:4,1),L(1:4,2))
+    L(5:6,4) = L(5:6,3)
+    L(5:6,5) = L(5:6,2)
+    L(5:6,6) = L(5:6,1)
+  else
+    ! compute masses and scalar products
+    call intmom_six(Npart, i, ext_masses)
+  end if
+
   do i = 1, Npart
     ! QInvariantsMatrix(i,i) = m_ex2(i)
     do j = i + 1, Npart
-      QInvariantsMatrix(i,j) = Q(5,2**(i-1)+2**(j-1))
+      QInvariantsMatrix(i,j) = L(5,2**(i-1)+2**(j-1)) + L(6,2**(i-1)+2**(j-1))
       QInvariantsMatrix(j,i) = QInvariantsMatrix(i,j)
     end do
   end do
 
-
-end subroutine internal_momenta
+end subroutine internal_momenta_six
 
 
 ! **********************************************************************
@@ -764,8 +878,8 @@ subroutine intmom(P_ex,Npart,Jmax)
   use ol_momenta_decl_/**/REALKIND, only: Q
   implicit none
 
-  real(REALKIND), intent(in) :: P_ex(0:3,Npart)
   integer,        intent(in) :: Npart, Jmax
+  real(REALKIND), intent(in) :: P_ex(0:3,Npart)
   integer :: A
   integer :: i1 ! conventional particle numbers
   integer :: l1 ! individual 2^(i-1) particles numbers
@@ -790,6 +904,34 @@ subroutine intmom(P_ex,Npart,Jmax)
   end do
 
 end subroutine intmom
+
+
+! **********************************************************************
+subroutine intmom_six(Npart,Jmax,ext_masses)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_momenta_decl_/**/REALKIND, only: L
+  implicit none
+
+  integer,        intent(in) :: Npart, Jmax
+  real(REALKIND), intent(in) :: ext_masses(Npart)
+  integer :: A
+  integer :: i1 ! conventional particle numbers
+  integer :: l1 ! individual 2^(i-1) particles numbers
+  integer :: s1 ! sums of 2^(i-1) particle numbers
+  integer :: r1 ! inverse of s1, s2, ...
+
+  l1 = 1
+  do i1 = 1, Npart
+    s1 = l1
+    r1 = Jmax + 1 - s1
+    L(5,l1) = ext_masses(i1)
+    L(5,r1) = L(5,s1)
+    l1 = 2*l1
+    call intmom_rec_six(Npart, Jmax, i1, s1, 1)
+  end do !i1
+
+end subroutine intmom_six
 
 
 ! **********************************************************************
@@ -830,6 +972,43 @@ end subroutine intmom_rec
 
 
 ! **********************************************************************
+recursive subroutine intmom_rec_six(Npart, Jmax, i1, s1, x)
+! **********************************************************************
+  use ol_momenta_decl_/**/REALKIND, only: L
+  implicit none
+  integer,        intent(in) :: Npart, Jmax, i1, s1, x
+  integer :: A
+  integer :: ix ! conventional particle numbers
+  integer :: lx ! individual 2^(i-1) particles numbers
+  integer :: sx ! sums of 2^(i-1) particle numbers
+  integer :: rx ! inverse of sx
+  logical :: last
+
+  last = .false.
+  if (2*x+2 == Npart .or. 2*x+3 == Npart) then
+    last = .true.
+  end if
+  lx = 1 ! adding ext mom 1 <= ix < i1
+  do ix = 1, i1 - 1
+    sx = s1 + lx
+    rx = Jmax + 1 - sx
+    if ( (last .eqv. .false.) .or. (mod(Npart,2) == 1 .or. (sx < rx)) ) then
+    ! avoid double determination for even Npart
+      L(6,sx) = 2*cont_LC_cntrv(L(1:4,s1),L(1:4,lx)) + L(6,s1)
+      L(5,sx) = L(5,s1) + L(5,lx)
+      L(6,rx) = L(6,sx)
+      L(5,rx) = L(5,sx)
+    end if
+    lx = 2*lx
+    if ( last .eqv. .false. ) then ! recursion
+      call intmom_rec_six(Npart, Jmax, ix, sx, x+1)
+    end if
+  end do  !ix
+
+end subroutine intmom_rec_six
+
+
+! **********************************************************************
 function squeeze_onshell(pinv, masses)
 ! **********************************************************************
 ! If 'pinv' is "close" to an element of 'masses', return the mass (positive or negative).
@@ -863,13 +1042,15 @@ function momenta_invariants(moms) result(invs)
   use ol_external_decl_/**/REALKIND, only: binom2
   use ol_parameters_decl_/**/DREALKIND, only: model
   use ol_parameters_decl_/**/REALKIND, only: &
-    & wMW, rMW, wMZ, rMZ, wMH, rMH, wMC, rMC, wMB, rMB, wMT, rMT, &
+    & wMW, rMW, wMZ, rMZ, wMH, rMH, &
+    & wMC, rMC, wMB, rMB, wMT, rMT, &
+    & rME, wME, rMM, wMM, rML, wML, &
     & wMA0, rMA0, wMHH, rMHH, wMHp, rMHp
   implicit none
   complex(REALKIND), intent(in) :: moms(:,:)
   complex(REALKIND) :: invs(binom2(size(moms,2)+1))
   complex(REALKIND) :: moms0(0:3,0:size(moms,2))
-  real(REALKIND) :: masses(0:9)
+  real(REALKIND) :: masses(0:12)
   integer :: n, k, a, b
   n = size(moms,2) + 1
   moms0(:,0) = 0
@@ -892,22 +1073,62 @@ function momenta_invariants(moms) result(invs)
   end do
 #endif
   masses = 0
-  n = 6
+  n = 9
   if (wMW == 0) masses(1) = rMW
   if (wMZ == 0) masses(2) = rMZ
   if (wMH == 0) masses(3) = rMH
-  if (wMC == 0 .and. rMC /= 0) masses(4) = rMC
-  if (wMB == 0 .and. rMB /= 0) masses(5) = rMB
+  if (wMC == 0) masses(4) = rMC
+  if (wMB == 0) masses(5) = rMB
   if (wMT == 0) masses(6) = rMT
+  if (wME == 0) masses(7) = rME
+  if (wMM == 0) masses(8) = rMM
+  if (wML == 0) masses(9) = rML
   if (trim(model) == "2hdm") then
-    n = 9
-    if (wMA0 == 0) masses(7) = rMA0
-    if (wMHH == 0) masses(8) = rMHH
-    if (wMHp == 0) masses(9) = rMHp
+    n = 12
+    if (wMA0 == 0) masses(10) = rMA0
+    if (wMHH == 0) masses(11) = rMHH
+    if (wMHp == 0) masses(12) = rMHp
   end if
   do k = 1, size(invs)
     invs(k) = squeeze_onshell(invs(k), masses(0:n))
   end do
 end function momenta_invariants
+
+! **********************************************************************
+function collier_invariants(moms) result(invs)
+! **********************************************************************
+! Calculate the list of invariants from the momenta-indices 'moms'
+! as used by Collier.
+! This function is meant to be used only to compute invariants for
+! scalar integrals, namely one-loop bubbles, triangles and boxes.
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_debug, only: ol_error
+  use ol_external_decl_/**/REALKIND, only: binom2
+  use ol_momenta_decl_/**/REALKIND, only: L
+  implicit none
+  integer, intent(in) :: moms(:)
+  complex(REALKIND) :: invs(binom2(size(moms)+1))
+
+  if(size(moms)==1) then
+    invs(1) = L(5,moms(1)) + L(6,moms(1))
+  else if(size(moms)==2) then
+    invs(1) = L(5,moms(1))         + L(6,moms(1))
+    invs(2) = L(5,moms(2)-moms(1)) + L(6,moms(2)-moms(1))
+    invs(3) = L(5,moms(2))         + L(6,moms(2))
+  else if(size(moms)==3) then
+    invs(1) = L(5,moms(1))         + L(6,moms(1))
+    invs(2) = L(5,moms(2)-moms(1)) + L(6,moms(2)-moms(1))
+    invs(3) = L(5,moms(3)-moms(2)) + L(6,moms(3)-moms(2))
+    invs(4) = L(5,moms(3))         + L(6,moms(3))
+    invs(5) = L(5,moms(2))         + L(6,moms(2))
+    invs(6) = L(5,moms(3)-moms(1)) + L(6,moms(3)-moms(1))
+  else
+    call ol_error('Collier invariants computed for a non-MI')
+    invs(:) = 0
+  end if
+
+end function collier_invariants
+
 
 end module ol_kinematics_/**/REALKIND

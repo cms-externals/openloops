@@ -18,11 +18,13 @@
 !#define Dgytest
 !#define Dgxtest
 !#define Dgptest
-#define ALWAYSPV
+!#define Dgpftest
+#define ALWAYSPV           !   default
 !#define USED0
 !#define PPEXP00
-#define Cutrloop
-!#define USEGM
+#define Cutrloop           !   default
+!#define USEGM     !  needs changes in CalcDred in select etc
+
 !#define TEST
 !#define CritPointsCOLI 
 #define PVEST2
@@ -35,7 +37,7 @@
 !  ***********************
 ! 
 !  functions and subroutines:
-!  CalcDuv, CalcDpv, CalcDpv2, CalcDg, CalcDgy, CalcDgp, CalcDgr
+!  CalcDuv, CalcDpv, CalcDpv1, CalcDpv2, CalcDg, CalcDgy, CalcDgp, CalcDgr, CalcDgpf, CopyDimp3
 !
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -44,9 +46,10 @@
 module globalD
 
   double complex :: q10,q21,q32,q30,q20,q31,mm02,mm12,mm22,mm32
-  double complex :: q1q2,q1q3,q2q3,detZ,Z(3,3),Zadj(3,3),f(3),Zadjf(3)
-  double complex :: Zadj2f(3,3,3),Zadj2ff(3,3),Xadj(0:3,0:3)
-  double complex :: Zadjff
+! double complex :: q1q2,q1q3,q2q3,detZ,Z(3,3),Zadj(3,3),f(3),Zadjf(3)
+  double complex :: detZ,Z(3,3),Zadj(3,3),f(3),Zadjf(3)
+  double complex :: Zadj2f(3,3,3),Zadj2ff(3,3),Xadj(0:3,0:3),Zadjs(3)
+  double complex :: Zadjff,detZmZadjf
   double complex :: mx(0:3,0:3),mxinv(0:3,0:3),Zinv(3,3),detX
   double precision :: q2max,m2max,m2scale,adetZ,fmax,maxZadjf,maxZadjfd,aZadjff
   double precision :: maxZadj2ff,maxXadj,adetX,maxZadj,maxZadj2f,maxZ
@@ -55,7 +58,8 @@ module globalD
   double precision :: fac_gy,x_gy,y_gy,v_gy
   double precision :: fac_gp,w_gp
   double precision :: fac_gr
-  double precision :: pweight(3)
+  double precision :: fac_gpf,x_gpf,y_gpf,v_gpf
+!  double precision :: pweight(3)
   double precision :: wmaxZadj,wmaxZadjf,wmaxXadj
   double complex, parameter :: undefined_D=1d50
   
@@ -72,6 +76,7 @@ module reductionD
 
   ! should not be too small since expansion for large expansion parameters are calculated to early
   ! 1d1 to small for gy exp
+  ! 10.08.2017 1d2 to small for gy expansion => adapt exit rloop in gy expansion 
   double precision, parameter :: truncfacD = 1d2
 !  double precision, parameter :: truncfacD = 1d0
 
@@ -117,9 +122,12 @@ contains
           rank = rmax
           switch = 0
 
-          if(rmax.ge.2) then
-            allocate(fct(NCoefsG(rmax,4)+NCoefsG(rmax-2,4)+2*(rmax+1)))
-            call ReadCache(fct,NCoefsG(rmax,4)+NCoefsG(rmax-2,4)+2*(rmax+1),x,10,1,id,4,rank,nocalc,wrica)
+          if(rmax.ge.3) then
+            allocate(fct(NCoefsG(rmax,4)-NCoefs(rmax-2,4)+NCoefs(rmax-3,4)+2*(rmax+1)))
+            call ReadCache(fct,NCoefsG(rmax,4)-NCoefs(rmax-2,4)+NCoefs(rmax-3,4)+2*(rmax+1),x,10,1,id,4,rank,nocalc,wrica)
+          else if(rmax.eq.2) then
+            allocate(fct(NCoefsG(rmax,4)-1+2*(rmax+1)))
+            call ReadCache(fct,NCoefsG(rmax,4)-1+2*(rmax+1),x,10,1,id,4,rank,nocalc,wrica)
           else
             allocate(fct(NCoefsG(rmax,4)+2*(rmax+1)))
             call ReadCache(fct,NCoefsG(rmax,4)+2*(rmax+1),x,10,1,id,4,rank,nocalc,wrica)
@@ -129,11 +137,17 @@ contains
             cnt = 0
             Duv(0:min(rmax/2,1),:,:,:) = 0d0
             do r=0,rmax
-!              do n0=0,r
-              do n0=0,r/2+1
-                do n1=0,r-n0
-                  do n2=0,r-n0-n1
-                    n3=r-n0-n1-n2
+              do n1=0,r
+                do n2=0,r-n1
+                  n3=r-n1-n2
+                  cnt = cnt+1
+                  D(0,n1,n2,n3) = fct(cnt)
+                end do
+              end do
+              do n0=1,(r+1)/2
+                do n1=0,r-2*n0+1
+                  do n2=0,r-2*n0-n1+1
+                    n3=r-2*n0-n1-n2+1
  
                     cnt = cnt+1
                     D(n0,n1,n2,n3) = fct(cnt)
@@ -141,10 +155,10 @@ contains
                 end do
               end do
 
-              do n0=2,r/2+1
-                do n1=0,r-n0
-                  do n2=0,r-n0-n1
-                    n3=r-n0-n1-n2
+              do n0=2,(r+1)/2
+                do n1=0,r-2*n0+1
+                  do n2=0,r-2*n0-n1+1
+                    n3=r-2*n0-n1-n2+1
  
                     cnt = cnt+1
                     Duv(n0,n1,n2,n3) = fct(cnt)
@@ -155,7 +169,8 @@ contains
               Derr1(r) = real(fct(cnt))
               cnt = cnt+1
               Derr2(r) = real(fct(cnt))
-            end do     
+            end do
+!            write(*,*) 'Dcache', id, rank, D(0,rank,0,0) 
             return
           end if
 
@@ -163,30 +178,33 @@ contains
           if(rank.eq.rmax) then
 
             call CalcDred(D,Duv,p10,p21,p32,p30,p20,p31,m02,m12,m22,m32,rank,id,Derr1,Derr2)
+!            write(*,*) 'Dcalc', id, rank, D(0,rank,0,0) 
 
             if (wrica) then
               cnt = 0
               do r=0,rank
-!               do n0=0,r
-                do n0=0,r/2+1
-                  do n1=0,r-n0
-                    do n2=0,r-n0-n1
-                      n3 = r-n0-n1-n2
- 
+                do n1=0,r
+                  do n2=0,r-n1
+                    n3 = r-n1-n2
+                    cnt = cnt+1
+                    fct(cnt) = D(0,n1,n2,n3)
+                  end do
+                end do
+                do n0=1,(r+1)/2
+                  do n1=0,r-2*n0+1
+                    do n2=0,r-2*n0-n1+1
+                      n3 = r-2*n0-n1-n2+1
                       cnt = cnt+1
                       fct(cnt) = D(n0,n1,n2,n3)
-
                     end do
                   end do
                 end do
-                do n0=2,r/2+1
-                  do n1=0,r-n0
-                    do n2=0,r-n0-n1
-                      n3 = r-n0-n1-n2
- 
+                do n0=2,(r+1)/2
+                  do n1=0,r-2*n0+1
+                    do n2=0,r-2*n0-n1+1
+                      n3 = r-2*n0-n1-n2+1
                       cnt = cnt+1
                       fct(cnt) = Duv(n0,n1,n2,n3)
-
                     end do
                   end do
                 end do
@@ -196,8 +214,10 @@ contains
                 fct(cnt) = Derr2(r)
               end do
    
-              if(rank.ge.2) then
-                call WriteCache(fct,NCoefsG(rank,4)+NCoefsG(rank-2,4)+2*(rank+1),id,4,rank)
+              if(rank.ge.3) then
+                call WriteCache(fct,NCoefsG(rank,4)-NCoefs(rank-2,4)+NCoefs(rank-3,4)+2*(rank+1),id,4,rank)
+              else if(rank.eq.2) then
+                call WriteCache(fct,NCoefsG(rank,4)-1+2*(rank+1),id,4,rank)
               else
                 call WriteCache(fct,NCoefsG(rank,4)+2*(rank+1),id,4,rank)
               end if            
@@ -218,8 +238,10 @@ contains
             if (wrica) then
               cnt = 0
               deallocate(fct)
-              if(rank.ge.2) then 
-                allocate(fct(NCoefsG(rank,4)+NCoefsG(rank-2,4)+2*(rank+1)))
+              if(rank.ge.3) then 
+                allocate(fct(NCoefsG(rank,4)-NCoefs(rank-2,4)+NCoefs(rank-3,4)+2*(rank+1)))
+              else if(rank.eq.2) then 
+                allocate(fct(NCoefsG(rank,4)-1+2*(rank+1)))
               else
                 allocate(fct(NCoefsG(rank,4)+2*(rank+1)))
               end if
@@ -252,9 +274,11 @@ contains
                 cnt = cnt+1
                 fct(cnt) = Derr2aux(r)
               end do
-   
-              if(rank.ge.2) then
-                call WriteCache(fct,NCoefsG(rank,4)+NCoefsG(rank-2,4)+2*(rank+1),id,4,rank)
+
+              if(rank.ge.3) then
+                call WriteCache(fct,NCoefsG(rank,4)-NCoefs(rank-2,4)+NCoefs(rank-3,4)+2*(rank+1),id,4,rank)   
+              else if(rank.eq.2) then
+                call WriteCache(fct,NCoefsG(rank,4)-1+2*(rank+1),id,4,rank)
               else
                 call WriteCache(fct,NCoefsG(rank,4)+2*(rank+1),id,4,rank)
               end if            
@@ -310,9 +334,9 @@ contains
 #endif
 !    double complex :: detX
     double complex :: chdet
-    integer :: rmaxC,r,rid,n0,n1,n2,n3,g,gy,gp,gr,gm,i,iexp
+    integer :: rmaxC,r,rid,n0,n1,n2,n3,g,gy,gp,gr,gm,gpf,i,iexp
     integer :: bin,k,nid(0:3)
-    logical :: use_pv,use_pv2,use_g,use_gy,use_gp,use_gr,use_gm
+    logical :: use_pv,use_pv2,use_g,use_gy,use_gp,use_gr,use_gm,use_gpf
 
     integer :: r_alt,Drmethod(0:rmax),DrCalc(0:rmax),DCalc
     double complex, allocatable :: C_i(:,:,:,:), Cuv_i(:,:,:,:)
@@ -322,15 +346,16 @@ contains
     integer :: Drmethod_alt(0:rmax)    
 
     double precision :: err_pv(0:rmax),err_pv2(0:rmax),err_g(0:rmax),err_gy(0:rmax),err_gp(0:rmax)
-    double precision :: err_gr(0:rmax),err_gm(0:rmax)
+    double precision :: err_gr(0:rmax),err_gm(0:rmax),err_gpf(0:rmax)
     double precision :: h_pv,w_pv,v_pv,z_pv,h_pv2,w_pv2,v_pv2,z_pv2,hw_pv2
     double precision :: u_g,z_g,err_g_C,err_g_Cr,err_g_exp
     double precision :: u_gm,z_gm,err_gm_C,err_gm_Cr,err_gm_exp
     double precision :: v1_gy,b_gy,err_gy_C,err_gy_Cr,err_gy_exp
     double precision :: v_gp,v1_gp,z_gp,err_gp_C,err_gp_Cr,err_gp_exp
+    double precision :: v1_gpf,b_gpf,err_gpf_C,err_gpf_Cr,err_gpf_exp
     double precision :: x_gr,y_gr,y1_gr,a_gr,err_gr_C,err_gr_Cr,err_gr_exp
     double precision :: err_C0,Cerr_i(0:rmax_C,0:3),err_C(0:rmax_C),err_D0,acc_D,errfac(0:3),err_req_D,err_inf,Cerr2_i(0:rmax_C,0:3)
-    double precision :: checkest,norm
+    double precision :: checkest,norm,Dscale2
     logical :: lerr_D0,errorwriteflag
 
     character(len=*),parameter :: fmt1 = "(A7,'dcmplx(',d25.18,' , ',d25.18,' )')"
@@ -349,6 +374,7 @@ contains
 #ifdef Dredtest
     write(*,*) 'CalcDred in',rmax,id,acc_req_D
     write(*,*) 'CalcDred acc_req',acc_req_D,reqacc_coli
+    write(*,*) 'CalcDred in',p10,p21,p32,p30,p20,p31,m02,m12,m22,m32
 #endif
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -385,10 +411,14 @@ contains
     write(*,*) 'CalcDred Cerr 1 =',Cerr_i(0:rmaxC,1)
     write(*,*) 'CalcDred Cerr 2 =',Cerr_i(0:rmaxC,2)
     write(*,*) 'CalcDred Cerr 3 =',Cerr_i(0:rmaxC,3)
-    write(*,*) 'CalcDred Cacc 0 =',Cerr_i(0:rmaxC,0)/abs(C_i(0,0,0,0))
-    write(*,*) 'CalcDred Cacc 1 =',Cerr_i(0:rmaxC,1)/abs(C_i(0,0,0,1))
-    write(*,*) 'CalcDred Cacc 2 =',Cerr_i(0:rmaxC,2)/abs(C_i(0,0,0,2))
-    write(*,*) 'CalcDred Cacc 3 =',Cerr_i(0:rmaxC,3)/abs(C_i(0,0,0,3))
+    if (abs(C_i(0,0,0,0)).ne.0d0) &
+        write(*,*) 'CalcDred Cacc 0 =',Cerr_i(0:rmaxC,0)/abs(C_i(0,0,0,0))
+    if (abs(C_i(0,0,0,1)).ne.0d0) &
+        write(*,*) 'CalcDred Cacc 1 =',Cerr_i(0:rmaxC,1)/abs(C_i(0,0,0,1))
+    if (abs(C_i(0,0,0,2)).ne.0d0) &
+        write(*,*) 'CalcDred Cacc 2 =',Cerr_i(0:rmaxC,2)/abs(C_i(0,0,0,2))
+    if (abs(C_i(0,0,0,3)).ne.0d0) &
+        write(*,*) 'CalcDred Cacc 3 =',Cerr_i(0:rmaxC,3)/abs(C_i(0,0,0,3))
 #endif
  
 !   acc_C(0:rmaxC)=max((Cerr_i(0:rmaxC,0))/abs(C_i(0,0,0,0)),  & 
@@ -448,9 +478,9 @@ contains
     m2scale = max(q2max,m2max)
 
     ! Gram and related stuff
-    q1q2 = (q10+q20-q21)/2D0
-    q1q3 = (q10+q30-q31)/2D0
-    q2q3 = (q20+q30-q32)/2D0
+!   q1q2 = (q10+q20-q21)/2D0
+!   q1q3 = (q10+q30-q31)/2D0
+!   q2q3 = (q20+q30-q32)/2D0
 
     Z(1,1) = 2d0*q10
     Z(2,1) = q10+q20-q21
@@ -461,6 +491,7 @@ contains
     Z(1,3) = Z(3,1)
     Z(2,3) = Z(3,2)
     Z(3,3) = 2d0*q30
+!    write(*,*) 'Zn ',Z
 
     maxZ = maxval(abs(Z))
 
@@ -469,19 +500,54 @@ contains
       call chinv(3,Z,Zinv)
       Zadj = Zinv * detZ
     else
-      Zadj(1,1) = 4d0*(q30*q20-q2q3*q2q3)
-      Zadj(2,1) = 4d0*(q1q3*q2q3-q30*q1q2)
-      Zadj(3,1) = 4d0*(q1q2*q2q3-q20*q1q3)
+!     Zadj(1,1) = 4d0*(q30*q20-q2q3*q2q3)
+!     Zadj(2,1) = 4d0*(q1q3*q2q3-q30*q1q2)
+!     Zadj(3,1) = 4d0*(q1q2*q2q3-q20*q1q3)
+!     Zadj(1,2) = Zadj(2,1)
+!     Zadj(2,2) = 4d0*(q10*q30-q1q3*q1q3)
+!     Zadj(3,2) = 4d0*(q1q2*q1q3-q10*q2q3)
+!     Zadj(1,3) = Zadj(3,1)
+!     Zadj(2,3) = Zadj(3,2)
+!     Zadj(3,3) = 4d0*(q10*q20-q1q2*q1q2)
+
+      Zadj(1,1) = (Z(3,3)*Z(2,2)-Z(2,3)*Z(2,3))
+      Zadj(2,1) = (Z(1,3)*Z(2,3)-Z(3,3)*Z(1,2))
+      Zadj(3,1) = (Z(1,2)*Z(2,3)-Z(2,2)*Z(1,3))
       Zadj(1,2) = Zadj(2,1)
-      Zadj(2,2) = 4d0*(q10*q30-q1q3*q1q3)
-      Zadj(3,2) = 4d0*(q1q2*q1q3-q10*q2q3)
+      Zadj(2,2) = (Z(1,1)*Z(3,3)-Z(1,3)*Z(1,3))
+      Zadj(3,2) = (Z(1,2)*Z(1,3)-Z(1,1)*Z(2,3))
       Zadj(1,3) = Zadj(3,1)
       Zadj(2,3) = Zadj(3,2)
-      Zadj(3,3) = 4d0*(q10*q20-q1q2*q1q2)
+      Zadj(3,3) = (Z(1,1)*Z(2,2)-Z(1,2)*Z(1,2))
     endif
-!   write(*,*) 'Zadjn ',Zadj
-!   write(*,*) 'detZn ',detZ
+!    write(*,*) 'Zadjn ',Zadj
+!    write(*,*) 'detZn ',detZ
 
+#ifdef Dredtest
+    Zadjs(1) = q20*(q31+q32-q21) + q31*(q32-q30)   &
+         + q30*(q32+q21) - q32*(q32+2d0*q10-q21)
+    write(*,*) 'Zadjs(1) ',Zadjs(1), Zadj(1,1)+Zadj(1,2)+Zadj(1,3)
+    Zadjs(3) = q20*(q21+q31-q32) + (q31-q21)*(q21-q10)  &
+         - 2d0*q30*q21 + q32*(q10+q21)
+    write(*,*) 'Zadjs(3) ',Zadjs(3), Zadj(3,1)+Zadj(3,2)+Zadj(3,3)
+#endif
+
+    Zadjs(1) = q32*(-2d0*q10 + q20+q30+q31+q21 - q32) &
+         + (q21-q31)*(q30-q20)
+    Zadjs(2) = q31*(-2d0*q20 + q10+q30+q32+q21 - q31) &
+         + (q21-q32)*(q30-q10)
+    Zadjs(3) = q21*(-2d0*q30 + q10+q20+q32+q31 - q21) &
+         + (q31-q32)*(q20-q10)
+
+#ifdef Dredtest
+    write(*,*) 'Zadjs(1) ',Zadjs(1), Zadj(1,1)+Zadj(1,2)+Zadj(1,3)
+    write(*,*) 'Zadjs(2) ',Zadjs(2), Zadj(2,1)+Zadj(2,2)+Zadj(2,3)
+    write(*,*) 'Zadjs(3) ',Zadjs(3), Zadj(3,1)+Zadj(3,2)+Zadj(3,3)
+#endif
+
+    detZmZadjf = -2*q21*q31*q32 + q30*q21*(-q21 + q31 + q32) & 
+         + q20*q31*(q21 - q31 + q32) + q10*q32*(q21 + q31 - q32)
+         
     adetZ = abs(detZ)
     maxZadj = max(abs(Zadj(1,1)),abs(Zadj(2,1)),abs(Zadj(3,1)),  &
                   abs(Zadj(2,2)),abs(Zadj(3,2)),abs(Zadj(3,3)))
@@ -496,21 +562,13 @@ contains
     mx(2,0) = q20 - mm22 + mm02
     mx(3,0) = q30 - mm32 + mm02
     mx(0,1) = mx(1,0)
-    mx(1,1) = 2d0*q10
-    mx(2,1) = q10+q20-q21
-    mx(3,1) = q10+q30-q31
     mx(0,2) = mx(2,0)
-    mx(1,2) = mx(2,1)
-    mx(2,2) = 2d0*q20
-    mx(3,2) = q20+q30-q32
     mx(0,3) = mx(3,0)
-    mx(1,3) = mx(3,1)
-    mx(2,3) = mx(3,2)
-    mx(3,3) = 2d0*q30
+    mx(1:3,1:3) = Z(1:3,1:3)
 
     detX = chdet(4,mx)
 
-    if (detX.ne.0d0) then
+    if (detX.ne.0d0.and.maxZ.ne.0d0) then
       call chinv(4,mx,mxinv)
       Xadj = mxinv * detX
 
@@ -647,25 +705,37 @@ contains
 !    write(*,*) 'CalcDred wmaxZadjf',maxXadj,wmaxXadj
 
     ! rough estimate for D0 to set the scale, to be improved
+     Dscale2 = max(abs(p10*p32),abs(p21*p30),abs(p20*p31),abs(m02*m02), \
+              abs(m12*m12),abs(m22*m22),abs(m32*m32))
 #ifdef USED0
-    D0est = abs(D0_coli(p10,p21,p32,p30,p20,p31,m02,m12,m22,m32))
+    D0est = max(abs(D0_coli(p10,p21,p32,p30,p20,p31,m02,m12,m22,m32)),  \
+             1d0/Dscale2)
     lerr_D0 = .true.
 #else
-    if (adetX.ne.0d0) then
-      D0est = 1d0/sqrt(adetX)
-    elseif (m2max.ne.0d0) then
-      D0est = 1d0/m2max**2
-    else if (maxZ.ne.0d0) then
-      D0est = 1d0/maxZ**2
-    else
-      D0est = 1d0 
-    endif
+! changed 09.09.16
+     if(Dscale2.ne.0d0) then 
+       D0est = 1d0/Dscale2
+     else
+       D0est = 1d0
+     end if
+!    if (adetX.ne.0d0) then
+!      D0est = 1d0/sqrt(adetX)
+!    elseif (m2max.ne.0d0) then
+!      D0est = 1d0/m2max**2
+!    else if (maxZ.ne.0d0) then
+!      D0est = 1d0/maxZ**2
+!    else
+!      D0est = 1d0 
+!    endif
     lerr_D0 = .false.
 #endif
     err_inf = acc_inf*D0est
     Dtyp = D0est
 
 #ifdef Dredtest
+    if (adetX.ne.0d0) write(*,*) 'D0est',1d0/sqrt(adetX)
+    if (m2max.ne.0d0) write(*,*) 'D0est',1d0/m2max**2
+    if (maxZ.ne.0d0) write(*,*) 'D0est',1d0/maxZ**2
     write(*,*) 'D0est',D0est
 #endif
 
@@ -698,7 +768,10 @@ contains
     w_pv = real(undefined_D)
     v_pv = real(undefined_D)
     z_pv = real(undefined_D)
-    if (adetZ.lt.dprec_cll*maxZadjf) then
+
+!    if (adetZ.lt.dprec_cll*maxZadjf.or.adetZ.eq.0d0) then
+!   14.07.2017
+    if (adetZ.lt.dprec_cll*maxZadjf.or.adetZ.lt.dprec_cll*maxZ**3.or.adetZ.eq.0d0) then
       use_pv = .false.
       err_pv = err_inf
     else
@@ -722,19 +795,18 @@ contains
 #ifdef Dredtest
           write(*,*) 'CalcDred w_pv: ',w_pv,v_pv,z_pv,err_D0,err_C0,rmax
 
-          write(*,*) 'CalcDred err_pv: ',err_pv(rmax), w_pv**((rmax-1)/2) * v_pv * err_D0,  &
+          write(*,*) 'CalcDred err_pv con: ',err_pv(rmax), w_pv**((rmax-1)/2) * v_pv * err_D0,  &
                         w_pv**((rmax-1)/2) * z_pv * err_C0, z_pv * err_C(rmax-1)
 #endif
         else
           err_pv(rmax) = max( w_pv**(rmax/2) * err_D0,  &
                         w_pv**(rmax/2-1) * v_pv * z_pv * err_C0, z_pv * err_C(rmax-1) )
 #ifdef Dredtest
-         write(*,*) 'CalcDred err_pv: ',err_pv(rmax), w_pv**((rmax)/2) * err_D0,  &
+         write(*,*) 'CalcDred w_pv: ',w_pv,v_pv,z_pv
+         write(*,*) 'CalcDred err_pv con: ',err_pv(rmax), w_pv**((rmax)/2) * err_D0,  &
                        w_pv**(rmax/2-1) * v_pv * z_pv * err_C0, z_pv * err_C(rmax-1)
-         write(*,*) 'CalcDred err_pv: ',err_pv(rmax), w_pv**((rmax)/2),err_D0,  &
+         write(*,*) 'CalcDred err_pv con: ',err_pv(rmax), w_pv**((rmax)/2),err_D0,  &
                        w_pv**(rmax/2-1) * v_pv,err_C0, z_pv,err_C(rmax-1)
-         write(*,*) 'CalcDred err_pv: ',w_pv,v_pv,z_pv
-         write(*,*) 'CalcDred err_pv: ',(maxZadjf/adetZ)**2, abs(mm02)*maxZadj/adetZ, aZadjff*maxZadj/adetZ**2
 #endif
         end if
       end if
@@ -749,7 +821,11 @@ contains
     hw_pv2 = real(undefined_D)
     v_pv2 = real(undefined_D)
     z_pv2 = real(undefined_D)
-    if ((adetZ.lt.dprec_cll*maxZadjf).or.(adetX.lt.dprec_cll*maxval(abs(mx))*adetZ)) then
+
+!    if ((adetZ.lt.dprec_cll*maxZadjf).or.(adetX.lt.dprec_cll*maxval(abs(mx))*adetZ).or.adetZ.eq.0d0.or.adetX.eq.0d0) then
+!    14.07.2017   
+    if ((adetZ.lt.dprec_cll*maxZadjf).or.(adetX.lt.dprec_cll*maxval(abs(mx))*adetZ).or.  &
+         (adetZ.lt.dprec_cll*maxZ**3).or.adetZ.eq.0d0.or.adetX.eq.0d0) then
       use_pv2 = .false.
       err_pv2 = err_inf
     else
@@ -854,7 +930,8 @@ contains
 !  err_pv(rmax) = 1d30
 #endif
 
-    Dtyp = real(undefined_D)
+
+!    Dtyp = real(undefined_D)
     Dtyp = D0est
 #ifdef ALWAYSPV
     if(use_pv.or.use_pv2) then
@@ -932,6 +1009,7 @@ contains
       else
         Dtyp =  abs(D(0,0,0,0))
       end if
+      if(Dtyp.eq.0d0) Dtyp = D0est
       err_req_D = acc_req_D * Dtyp
 
 
@@ -951,6 +1029,12 @@ contains
         DCount(DCalc+DCountoffset0) = DCount(DCalc+DCountoffset0)+1
         return
       end if
+
+    else   !  added 14.07.2017
+      D = 0d0
+      Duv = 0d0
+      Derr1 = err_inf
+      Derr2 = err_inf
     end if
 
 #ifdef Dredtest
@@ -965,7 +1049,8 @@ contains
 
     ! choose most promising expansion scheme
     ! Gram expansion    
-    if (maxZadjf.ne.0d0) then
+!    if (maxZadjf.ne.0d0) then
+    if (maxZadjf.gt.m2scale**3*dprec_cll) then   !  10.07.2017
       x_g = adetZ/maxZadjf
 !      u_g = max(1d0,maxZadj2ff/maxZadjf/4d0,abs(mm02)*maxZadj/maxZadjf/4d0)
 ! 03.03.15   large P counts!
@@ -974,6 +1059,7 @@ contains
       u_g = max(1d0,maxXadj/maxZadjf/2d0)
       fac_g = x_g*u_g
       err_g = err_inf
+      g = -1
       if (fac_g.ge.1) then
         use_g = .false.
         err_g_exp = err_inf
@@ -991,6 +1077,7 @@ contains
     else
       use_g = .false.
       err_g = err_inf
+      g = -1
       err_g_exp = err_inf
       err_g_C = err_C(rmax)         ! dummy
       u_g = real(undefined_D)
@@ -1000,13 +1087,14 @@ contains
 
 #ifdef Dredtest
     write(*,*) 'CalcDred: after Gram pars',use_g,fac_g,x_g,u_g,z_g,err_g_Cr,err_C(rmax),err_C0,err_g_exp
-!    write(*,*) 'CalcDred: after Gram pars',1d0,maxZadj2ff/maxZadjf,abs(mm02)*maxZadj/maxZadjf
+!    write(*,*) 'CalcDred: after Gram pars',adetZ,maxZadjf,maxXadj,maxZ
     write(*,*) 'CalcDred: after Gram pars',err_C(rmax), err_C0 * u_g**rmax 
 #endif
 
 #ifdef USEGM
     ! modified Gram expansion    
-    if (aZadjff.ne.0d0) then
+!   if (aZadjff.ne.0d0) then
+    if (aZadjff.gt.m2scale**4*dprec_cll) then   !  10.07.2017
       x_gm = adetZ*fmax/aZadjff
 !      u_gm = max(1d0,maxZadj2ff/maxZadjf/4d0,abs(mm02)*maxZadj/maxZadjf/4d0)
 ! 03.03.15   large P counts!
@@ -1015,6 +1103,7 @@ contains
       u_gm = max(1d0,maxXadj/maxZadjf/2d0)
       fac_gm = x_gm*u_gm
       err_gm = err_inf
+      gm = -1
       if (fac_gm.ge.1) then
         use_gm = .false.
         err_gm_exp = err_inf
@@ -1030,6 +1119,7 @@ contains
     else
       use_gm = .false.
       err_gm = err_inf
+      gm = -1
       err_gm_exp = err_inf
       err_gm_C = err_C(rmax)         ! dummy
     endif
@@ -1044,18 +1134,21 @@ contains
 #else
       use_gm = .false.
       err_gm = err_inf
+      gm = -1 
       err_gm_exp = err_inf
       err_gm_C = err_C(rmax)         ! dummy
 #endif
 
     ! Gram-Cayley expansion
-    if (maxXadj.ne.0d0) then
+!    if (maxXadj.ne.0d0.and.maxZadj.ne.0) then
+    if (maxXadj.gt.m2scale**3*dprec_cll.and.maxZadj.gt.m2scale*dprec_cll) then   !  10.07.2017
       x_gy = maxZadjf/maxXadj
       y_gy = adetZ/maxXadj
       v_gy = maxZadj2f/maxZadj
       v1_gy = max(1d0,v_gy)
       fac_gy = max(x_gy,y_gy)*v1_gy
       err_gy = err_inf
+      gy = -1
       if (fac_gy.ge.1) then
         use_gy = .false.
         err_gy_exp = err_inf
@@ -1073,6 +1166,7 @@ contains
     else
       use_gy = .false.
       err_gy = err_inf
+      gy = -1
       err_gy_exp = err_inf
       err_gy_C = err_C(rmax+1)         ! dummy
       v1_gy = real(undefined_D)
@@ -1089,12 +1183,14 @@ contains
 #endif
 
     ! expansion in small momenta
-    if (fmax.ne.0d0) then
+!    if (fmax.ne.0d0) then
+    if (fmax.gt.m2scale*dprec_cll) then   !  10.07.2017
       w_gp = maxZ/fmax                        ! was q2max
       v_gp = abs(mm02/fmax)
       v1_gp = max(1d0,v_gp)
       fac_gp = w_gp*v1_gp
       err_gp = err_inf
+      gp = -1
       if (fac_gp.ge.1d0) then
         use_gp = .false.
         err_gp_exp = err_inf
@@ -1112,6 +1208,7 @@ contains
     else
       use_gp = .false.
       err_gp = err_inf
+      gp = -1
       err_gp_exp = err_inf
       err_gp_C = err_C(rmax)  ! dummy
       v1_gp = real(undefined_D)
@@ -1125,13 +1222,15 @@ contains
 #endif
 
     ! reversed Gram expansion
-    if (maxZadjf.ne.0d0.and.maxZadj2f.ne.0d0) then
+!    if (maxZadjf.ne.0d0.and.maxZadj2f.ne.0d0) then
+    if (maxZadjf.gt.m2scale**3*dprec_cll.and.maxZadj2f.gt.m2scale**2*dprec_cll) then   !  10.07.2017
       x_gr = adetZ/maxZadjf
       y_gr = maxZadj/maxZadj2f              ! c*y    c=2
       y1_gr = max(1d0,y_gr)
       a_gr = maxZadj/maxZadjf
       fac_gr = max(x_gr,y_gr)
       err_gr = err_inf
+      gr = -1
       if (fac_gr.ge.1.or.2*rmax.gt.rmax_C) then
         use_gr = .false.
         err_gr_exp = err_inf
@@ -1146,6 +1245,7 @@ contains
     else
       use_gr = .false.
       err_gr = err_inf
+      gr = -1
       err_gr_exp = err_inf
       err_gr_C = err_C(rmax)   ! dummy
       a_gr = real(undefined_D)
@@ -1159,8 +1259,50 @@ contains
     write(*,*) 'CalcDred: after revGram pars',err_gr_C,Dtyp
 #endif
 
+    ! expansion in small momenta and f's
+!  estimates to be confirmed 16.08.17, r dependence may be different
+!  since D_mni... is needed in contrast to Dgy expansion
+    if (abs(m02).gt.m2scale*dprec_cll) then 
+      x_gpf = fmax/abs(m02)
+      y_gpf = maxZ/abs(m02)
+      v_gpf = 0d0
+      v1_gpf = max(1d0,v_gpf)
+      fac_gpf = max(x_gpf,y_gpf)
+      err_gpf = err_inf
+      gpf = -1
+      if (fac_gpf.ge.1) then
+        use_gpf = .false.
+        err_gpf_exp = err_inf
+        err_gpf_C = err_C(rmax+1)         ! dummy
+        err_gpf_Cr = real(undefined_D)
+        b_gpf = real(undefined_D)
+      else
+        use_gpf = .true.
+        b_gpf = 1d0/abs(m02)
+        err_gpf_Cr =  max( err_C(rmax), err_C(rmax+1) ) 
+        err_gpf_C = err_gpf_Cr * b_gpf
+        err_gpf_exp = 1d0 * Dtyp
+      end if
+    else
+      use_gpf = .false.
+      err_gpf = err_inf
+      gpf = -1
+      err_gpf_exp = err_inf
+      err_gpf_C = err_C(rmax+1)         ! dummy
+      b_gpf = real(undefined_D)
+      err_gpf_Cr = real(undefined_D)
+    endif
+
+
+#ifdef Dredtest
+    write(*,*) 'CalcDred: after pf pars',use_gpf,fac_gpf,x_gpf,y_gpf,v_gpf,b_gpf,err_gpf_Cr,err_gpf_exp,err_gpf
+    if (use_gpf) then
+      write(*,*)  'CalcDred: after pf pars',maxXadj/maxZadj,1/v_gpf,1/v_gpf*maxXadj/maxZadj,1/v_gpf*maxXadj/maxZadj*x_gpf
+    end if
+#endif
+
 ! no method works
-    if(use_pv.or.use_pv2.or.use_g.or.use_gy.or.use_gp.or.use_gr.or.use_gm.eqv..false.) then
+    if(use_pv.or.use_pv2.or.use_g.or.use_gy.or.use_gp.or.use_gr.or.use_gm.or.use_gpf.eqv..false.) then
       call SetErrFlag_coli(-6)
       call ErrOut_coli('CalcDred',' no reduction method works',  &
          errorwriteflag)
@@ -1189,13 +1331,13 @@ contains
       return
     endif
 
-
 #ifdef TEST
 ! switched off for testing
     use_g  = .false.
-    use_gy = .false.
+!    use_gy = .false.
     use_gp = .false.
     use_gr = .false.
+!    use_gpf= .false.
 !    use_g  = .true.
 !    use_gy = .true.
 !    use_gp = .true.
@@ -1234,7 +1376,7 @@ contains
           err_gm_C = max(err_gm_Cr,err_C(rmax+gm)*z_gm*x_gm**gm)
           err_gm(rmax) = max(err_gm_exp,err_gm_C)
           if(err_gm(rmax).lt.err_req_D) then
-            iexp = 5
+            iexp = 7
             ! increase gm by 2 to account for bad estimates
             gm = min(max(gm+2,3*gm/2),rmax_D-rmax)
             exit
@@ -1253,7 +1395,7 @@ contains
       if (mod(i,2).eq.1) then
 
 #ifdef Dredtest
-!       write(*,*) 'CalcDred: it gy',use_gy,err_gy_exp,err_gy_C,err_gy(rmax),err_req_D
+       write(*,*) 'CalcDred: it gy',use_gy,err_gy_exp,err_gy_C,err_gy(rmax),err_req_D
 #endif
 
         if (use_gy) then
@@ -1266,18 +1408,18 @@ contains
             err_gy(rmax) = max(err_gy_exp,err_gy_C)
 
 #ifdef Dredtest
-!         write(*,*) 'CalcDred i gy',i,gy,err_gy_exp,err_gy_C,err_gy(rmax) 
-!         write(*,*) 'CalcDred i ',err_gy_Cr,                   &
-!               max(err_C(rmax+2*gy)*v1_gy,err_C(rmax+2*gy+1))*y_gy**gy,      &          
-!               max(err_C(rmax+gy)*v1_gy,err_C(rmax+gy+1))*(max(x_gy,v_gy*y_gy))**gy
-!          write(*,*) 'CalcDred i ', b_gy*err_C(rmax+2*gy)*v1_gy*y_gy**gy, &
-!                b_gy*err_C(rmax+2*gy+1)*y_gy**gy
-!          write(*,*) 'CalcDred i ', & 
-!                b_gy,err_C(rmax+2*gy+1),y_gy**gy 
-!          write(*,*) 'CalcDred i ', b_gy*x_gy**gy*err_C(rmax+gy)*v1_gy, &
-!                b_gy*err_C(rmax+gy+1)*x_gy**gy 
-!          write(*,*) 'CalcDred i ', & 
-!                b_gy,err_C(rmax+gy+1),x_gy**gy,x_gy,gy 
+         write(*,*) 'CalcDred i gy',i,gy,err_gy_exp,err_gy_C,err_gy(rmax) 
+         write(*,*) 'CalcDred i ',err_gy_Cr,                   &
+               max(err_C(rmax+2*gy)*v1_gy,err_C(rmax+2*gy+1))*y_gy**gy,      &          
+               max(err_C(rmax+gy)*v1_gy,err_C(rmax+gy+1))*(max(x_gy,v_gy*y_gy))**gy
+          write(*,*) 'CalcDred i ', b_gy*err_C(rmax+2*gy)*v1_gy*y_gy**gy, &
+                b_gy*err_C(rmax+2*gy+1)*y_gy**gy
+          write(*,*) 'CalcDred i ', & 
+                b_gy,err_C(rmax+2*gy+1),y_gy**gy 
+          write(*,*) 'CalcDred i ', b_gy*x_gy**gy*err_C(rmax+gy)*v1_gy, &
+                b_gy*err_C(rmax+gy+1)*x_gy**gy 
+          write(*,*) 'CalcDred i ', & 
+                b_gy,err_C(rmax+gy+1),x_gy**gy,x_gy,gy 
 #endif
 
             if(err_gy(rmax).lt.err_req_D) then
@@ -1346,6 +1488,50 @@ contains
 !      write(*,*) 'CalcDred: it gr',i,gr, err_gr_exp,err_gr_C ,err_gr(rmax)
 #endif
 
+      if (mod(i,2).eq.1) then
+
+#ifdef Dredtest
+       write(*,*) 'CalcDred: it gy',use_gy,err_gy_exp,err_gy_C,err_gy(rmax),err_req_D
+#endif
+
+        if (use_gpf) then
+          if (err_gpf_exp.gt.err_gpf_C.and.err_gpf(rmax).gt.err_req_D) then
+            gpf = i/2
+            err_gpf_exp = err_gpf_exp*fac_gpf
+            err_gpf_C = b_gpf*max(err_gpf_Cr,                   &
+                max(err_C(rmax+2*gpf)*v1_gpf,err_C(rmax+2*gpf+1))*y_gpf**gpf,      &          
+                max(err_C(rmax+gpf)*v1_gpf,err_C(rmax+gpf+1))*(max(x_gpf,v_gpf*y_gpf))**gpf) 
+            err_gpf(rmax) = max(err_gpf_exp,err_gpf_C)
+
+#ifdef Dredtest
+         write(*,*) 'CalcDred i gpf',i,gpf,err_gpf_exp,err_gpf_C,err_gpf(rmax) 
+         write(*,*) 'CalcDred i ',err_gpf_Cr,                   &
+               max(err_C(rmax+2*gpf)*v1_gpf,err_C(rmax+2*gpf+1))*y_gpf**gpf,      &          
+               max(err_C(rmax+gpf)*v1_gpf,err_C(rmax+gpf+1))*(max(x_gpf,v_gpf*y_gpf))**gpf
+          write(*,*) 'CalcDred i ', b_gpf*err_C(rmax+2*gpf)*v1_gpf*y_gpf**gpf, &
+                b_gpf*err_C(rmax+2*gpf+1)*y_gpf**gpf
+          write(*,*) 'CalcDred i ', & 
+                b_gpf,err_C(rmax+2*gpf+1),y_gpf**gpf 
+          write(*,*) 'CalcDred i ', b_gpf*x_gpf**gpf*err_C(rmax+gpf)*v1_gpf, &
+                b_gpf*err_C(rmax+gpf+1)*x_gpf**gpf 
+          write(*,*) 'CalcDred i ', & 
+                b_gpf,err_C(rmax+gpf+1),x_gpf**gpf,x_gpf,gpf 
+#endif
+
+            if(err_gpf(rmax).lt.err_req_D) then
+              iexp = 5
+              ! increase gpf by 2 to account for bad estimates
+              gpf = min(max(gpf+2,2*gpf),(rmax_D-rmax)/2)
+              exit
+            end if
+          end if
+        end if
+
+#ifdef Dredtest
+!       write(*,*) 'CalcDred: it gpf',i,gpf, err_gpf_exp,err_gpf_C ,err_gpf(rmax)
+#endif
+
+      end if
       end if
 
 
@@ -1357,30 +1543,32 @@ contains
     err_gp(rmax) =  err_gp(rmax)/impest_D
     err_gr(rmax) =  err_gr(rmax)/impest_D     
     err_gm(rmax) =  err_gm(rmax)/impest_D     
+    err_gpf(rmax) =  err_gpf(rmax)/impest_D     
 
 #ifdef Dredtest
     write(*,*) 'iexp=',iexp
-    write(*,*) 'facexp=',fac_g,fac_gy,fac_gp,fac_gr,fac_gm
-    write(*,*) 'errexp=',err_g_exp,err_gy_exp,err_gp_exp,err_gr_exp,err_gm_exp,err_req_D
+    write(*,*) 'facexp=',fac_g,fac_gy,fac_gp,fac_gr,fac_gm,fac_gpf
+    write(*,*) 'errexp=',err_g_exp,err_gy_exp,err_gp_exp,err_gr_exp,err_gm_exp,err_gpf_exp,err_req_D
     write(*,*) 'errexptot=',i,g,err_g(rmax),gy,err_gy(rmax),gp,err_gp(rmax), &
 
-        gr,err_gr(rmax),gm,err_gm(rmax)
+        gr,err_gr(rmax),gm,err_gm(rmax),gpf,err_gpf(rmax)
     write(*,*) 'accexptot=',i,g,err_g(rmax)/Dtyp,gy,err_gy(rmax)/Dtyp, &
-        gp,err_gp(rmax)/Dtyp,gr,err_gr(rmax)/Dtyp,gm,err_gm(rmax)/Dtyp
+        gp,err_gp(rmax)/Dtyp,gr,err_gr(rmax)/Dtyp,gm,err_gm(rmax)/Dtyp, &
+        gpf,err_gpf(rmax)/Dtyp
 #endif
 
 ! call expansions with estimated order to save CPU time
 
 #ifdef TEST
-     iexp = 0
+!     iexp = 0
 !     iexp = 5
 !     gm = 10
 !      iexp = 1
 !      g = 10
 !     iexp = 4
 !     gr = 3
-!      iexp = 2
-!      gy = 4
+      iexp = 2
+      gy = 4
 #endif
 
     select case (iexp)
@@ -1406,8 +1594,6 @@ contains
 
       err_g=Derr_alt
 
-!      call CopyDimp(D,D_alt,Derr,Derr_alt,Drmethod,Drmethod_alt,rmax,rmax)
-!      call CopyDimp2(D,D_alt,Derr,Derr_alt,Derr2,Derr2_alt,Drmethod,Drmethod_alt,rmax,rmax)
       call CopyDimp3(D,D_alt,Derr,Derr_alt,Derr1,Derr1_alt,Derr2,Derr2_alt,Drmethod,Drmethod_alt,rmax,rmax)
               
 
@@ -1438,8 +1624,6 @@ contains
 #endif
       err_gy=Derr_alt
 
-!      call CopyDimp(D,D_alt,Derr,Derr_alt,Drmethod,Drmethod_alt,rmax,rmax)
-!      call CopyDimp2(D,D_alt,Derr,Derr_alt,Derr2,Derr2_alt,Drmethod,Drmethod_alt,rmax,rmax)
       call CopyDimp3(D,D_alt,Derr,Derr_alt,Derr1,Derr1_alt,Derr2,Derr2_alt,Drmethod,Drmethod_alt,rmax,rmax)
 
 #ifdef Dredtest
@@ -1472,8 +1656,6 @@ contains
 #endif
       err_gp=Derr_alt
 
-!      call CopyDimp(D,D_alt,Derr,Derr_alt,Drmethod,Drmethod_alt,rmax,rmax)
-!      call CopyDimp2(D,D_alt,Derr,Derr_alt,Derr2,Derr2_alt,Drmethod,Drmethod_alt,rmax,rmax)
       call CopyDimp3(D,D_alt,Derr,Derr_alt,Derr1,Derr1_alt,Derr2,Derr2_alt,Drmethod,Drmethod_alt,rmax,rmax)
 
 #ifdef Dredtest
@@ -1502,8 +1684,6 @@ contains
 #endif
       err_gr=Derr_alt
 
-!      call CopyDimp(D,D_alt,Derr,Derr_alt,Drmethod,Drmethod_alt,rmax,rmax)
-!      call CopyDimp2(D,D_alt,Derr,Derr_alt,Derr2,Derr2_alt,Drmethod,Drmethod_alt,rmax,rmax)
       call CopyDimp3(D,D_alt,Derr,Derr_alt,Derr1,Derr1_alt,Derr2,Derr2_alt,Drmethod,Drmethod_alt,rmax,rmax)
 
 #ifdef Dredtest
@@ -1513,7 +1693,7 @@ contains
 #endif
 
 #ifdef USEGM
-    case (5)
+    case (7)
       call CalcDgm(D_alt,Duv,p10,p21,p32,p30,p20,p31,m02,m12,m22,m32,rmax,gm,gm,id,Derr1_alt,Derr2_alt)
 #ifdef PVEST2
       Derr_alt = Derr2_alt
@@ -1533,8 +1713,6 @@ contains
 #endif
       err_gm=Derr_alt
 
-!      call CopyDimp(D,D_alt,Derr,Derr_alt,Drmethod,Drmethod_alt,rmax,rmax)
-!      call CopyDimp2(D,D_alt,Derr,Derr_alt,Derr2,Derr2_alt,Drmethod,Drmethod_alt,rmax,rmax)
       call CopyDimp3(D,D_alt,Derr,Derr_alt,Derr1,Derr1_alt,Derr2,Derr2_alt,Drmethod,Drmethod_alt,rmax,rmax)
 
 #ifdef Dredtest
@@ -1542,6 +1720,34 @@ contains
       write(*,*) 'CalcDred after exp Dacc=',Derr/Dtyp
       write(*,*) 'CalcDred after exp method=',Drmethod
 #endif
+#endif
+
+    case (5)
+      call CalcDgpf(D_alt,Duv,p10,p21,p32,p30,p20,p31,m02,m12,m22,m32,rmax,gpf,gpf,id,Derr1_alt,Derr2_alt)
+#ifdef PVEST2
+      Derr_alt = Derr2_alt
+#else
+      Derr_alt = Derr1_alt
+#endif
+      DCount(7) = DCount(7)+1
+      DrCalc(0:rmax)=DrCalc(0:rmax)+64
+      DCalc = DCalc+64
+      Drmethod_alt(0:rmax)=64
+
+#ifdef Dredtest
+      checkest=Derr_alt(rmax)/err_gpf(rmax)
+      if(checkest.gt.1d2*impest_D.or.checkest.lt.1d-2*impest_D) then
+        write(*,*) 'CalcDred: estimate err_gpf imprecise',err_gpf(rmax),Derr_alt(rmax),checkest
+      end if
+#endif
+      err_gpf=Derr_alt
+
+      call CopyDimp3(D,D_alt,Derr,Derr_alt,Derr1,Derr1_alt,Derr2,Derr2_alt,Drmethod,Drmethod_alt,rmax,rmax)
+
+#ifdef Dredtest
+      write(*,*) 'CalcDred after exp Derr=',Derr,err_req_D
+      write(*,*) 'CalcDred after exp Dacc=',Derr/Dtyp
+      write(*,*) 'CalcDred after exp method=',Drmethod
 #endif
 
     end select
@@ -1560,23 +1766,23 @@ contains
 #endif
 #endif
 
-    if (rmax.ge.1) then
-      Dtyp =  max(abs(D(0,0,0,0)),        &
-          abs(D(0,1,0,0)),abs(D(0,0,1,0)),abs(D(0,0,0,1)))
-    else
-      Dtyp =  abs(D(0,0,0,0))
-    end if
-    err_req_D = acc_req_D * Dtyp
-
+    if (iexp.ne.0) then           !  if added 21.11.2016
+      if (rmax.ge.1) then
+        Dtyp =  max(abs(D(0,0,0,0)),        &
+            abs(D(0,1,0,0)),abs(D(0,0,1,0)),abs(D(0,0,0,1)))  
+      else
+        Dtyp =  abs(D(0,0,0,0))
+      end if
+      err_req_D = acc_req_D * Dtyp
     
-
 #ifdef Dredtest
-    write(*,*) 'CalcDred ',rmax,Derr(rmax),err_req_D
+      write(*,*) 'CalcDred ',rmax,Derr1(rmax),err_req_D
 #endif
 
-    if (Derr1(rmax).le.err_req_D) then
-      DCount(DCalc+DCountoffset0) = DCount(DCalc+DCountoffset0)+1
-      return
+      if (Derr1(rmax).le.err_req_D) then
+        DCount(DCalc+DCountoffset0) = DCount(DCalc+DCountoffset0)+1
+        return
+      end if
     end if
 
 #ifdef TEST
@@ -1586,7 +1792,7 @@ contains
 #ifdef Dredtest
     write(*,*) 'CalcDred no optimal method'
     write(*,*) 'err_req_D=',err_req_D
-    write(*,*) 'err_est=',err_pv(rmax),err_pv2(rmax),err_g(rmax),err_gy(rmax),err_gp(rmax),err_gr(rmax)
+    write(*,*) 'err_est=',err_pv(rmax),err_pv2(rmax),err_g(rmax),err_gy(rmax),err_gp(rmax),err_gr(rmax),err_gpf(rmax)
 #endif
 
     ! no method does work optimal
@@ -1727,7 +1933,7 @@ contains
       end if
 
       if (mod(DrCalc(r),32)-mod(DrCalc(r),16).ne.16.and.use_gp) then
-      ! estimate accuracy of alternative Gram expansion
+      ! estimate accuracy of small momenta expansion
         err_gp_Cr = max(err_C0*v_gp**r,err_C(r))*z_gp
         err_gp_exp = v1_gp**(r-1) * Dtyp
 
@@ -1777,6 +1983,33 @@ contains
 
       end if
 
+      if (mod(DrCalc(r),128)-mod(DrCalc(r),64).ne.64.and.use_gpf) then
+      ! estimate accuracy of small momenta and f expansion
+        err_gpf_Cr =  max( err_C(r) * v1_gpf, err_C(r+1) ) 
+        err_gpf_C = err_gpf_Cr * b_gpf
+        err_gpf_exp = 1d0 * Dtyp
+
+      ! determine optimal order of expansion 
+        gpf = 0
+        do i=0,rmax_D-r
+          if (mod(i,2).eq.1) then
+            gpf = i/2
+            err_gpf_exp = err_gpf_exp*fac_gpf
+            err_gpf_C = b_gpf*max(err_gpf_Cr,                   &
+                max(err_C(r+2*gpf)*v1_gpf,err_C(r+2*gpf+1))*y_gpf**gpf,      &          
+                max(err_C(r+gpf)*v1_gpf,err_C(r+gpf+1))*(max(x_gpf,v_gpf*y_gpf))**gpf) 
+            err_gpf(r) = max(err_gpf_exp,err_gpf_C)            
+            if (err_gpf_exp.lt.err_gpf_C.or.err_gpf(r).lt.err_req_D) exit
+          end if
+        end do
+      ! increase gpf to account for bad estimates
+        gpf = min(max(gpf+2,2*gpf),(rmax_D-r)/2)
+      ! scale estimates down to allow trying other methods
+        err_gpf(r) =  err_gpf(r)/impest_D     
+      end if
+
+
+
 #ifdef USEGM
       if (mod(DrCalc(r),128)-mod(DrCalc(r),64).ne.64.and.use_gm) then
       ! estimate accuracy of modified Gram expansion
@@ -1801,17 +2034,17 @@ contains
 
 
 #ifdef Dredtest
-      write(*,*) 'CalcDred: bef final loop ord methods',r,g,gy,gp,gr,gm
+      write(*,*) 'CalcDred: bef final loop ord methods',r,g,gy,gp,gr,gm,gpf
       write(*,*) 'CalcDred: bef final loop err methods',r,err_pv(r),err_pv2(r), &
-          err_g(r),err_gy(r),err_gp(r),err_gr(r),err_gm(r)
+          err_g(r),err_gy(r),err_gp(r),err_gr(r),err_gm(r),err_gpf(r)
       write(*,*) 'CalcDred: bef final loop acc methods',r,err_pv(r)/Dtyp,err_pv2(r)/Dtyp,   &
           err_g(r)/Dtyp,err_gy(r)/Dtyp,err_gp(r)/Dtyp, &
-          err_gr(r)/Dtyp,err_gm(r)/Dtyp
+          err_gr(r)/Dtyp,err_gm(r)/Dtyp,err_gpf(r)/Dtyp
       write(*,*) 'CalcDred: bef final loop method',r,DrCalc(r),Drmethod(r)
 #endif
 
 100   continue   ! try other methods if error larger than expected
-      if (min(err_pv(r),err_pv2(r)).le.min(err_g(r),err_gy(r),err_gp(r),err_gr(r))       &
+      if (min(err_pv(r),err_pv2(r)).le.min(err_g(r),err_gy(r),err_gp(r),err_gr(r),err_gpf(r))       &
           .and.min(err_pv(r),err_pv2(r)).lt.err_inf) then
 
         if (use_pv.and.err_pv(r).le.err_pv2(r).and.mod(DrCalc(r),2).ne.1) then
@@ -1864,8 +2097,7 @@ contains
        write(*,*) 'final loop r Dpv Derr',Derr_alt(2),Derr(2)
 #endif
           err_pv(0:r)=Derr_alt(0:r)
-!          call CopyDimp(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt,Drmethod,Drmethod_alt(0:r),rmax,r)
-!          call CopyDimp2(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Derr2,Derr2_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
+
           call CopyDimp3(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Derr1,Derr1_alt(0:r),   &
               Derr2,Derr2_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
 
@@ -1940,8 +2172,6 @@ contains
        write(*,*) 'final loop r Dpv2 Derr',Derr_alt(2),Derr(2)
        endif
 #endif
-!          call CopyDimp(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
-!          call CopyDimp2(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Derr2,Derr2_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
           call CopyDimp3(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Derr1,Derr1_alt(0:r),   &
               Derr2,Derr2_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
 
@@ -1969,7 +2199,7 @@ contains
         write(*,*) 'CalcDred: explore exps once more'
 #endif
 
-        if (use_g.and.err_g(r).le.min(err_gy(r),err_gp(r),err_gr(r))        &
+        if (use_g.and.err_g(r).le.min(err_gy(r),err_gp(r),err_gr(r),err_gpf(r))        &
             .and.mod(DrCalc(r),8)-mod(DrCalc(r),4).ne.4) then
 
 !          deallocate(D_alt)
@@ -2007,8 +2237,7 @@ contains
 #endif
           
           err_g(0:r)=Derr_alt(0:r)
-!          call CopyDimp(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
-!          call CopyDimp2(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Derr2,Derr2_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
+
           call CopyDimp3(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Derr1,Derr1_alt(0:r),  &
               Derr2,Derr2_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
 
@@ -2034,7 +2263,7 @@ contains
 
           if(checkest.gt.impest_D.and.Mode_coli.lt.1) goto 100     ! error larger than expected: try other methods
           
-        else if (use_gy.and.err_gy(r).le.min(err_g(r),err_gp(r),err_gr(r))        &
+        else if (use_gy.and.err_gy(r).le.min(err_g(r),err_gp(r),err_gr(r),err_gpf(r))        &
             .and.mod(DrCalc(r),16)-mod(DrCalc(r),8).ne.8) then
 
 !          deallocate(D_alt)
@@ -2072,8 +2301,7 @@ contains
 #endif
           
           err_gy(0:r)=Derr_alt(0:r)
-!          call CopyDimp(D,D_alt,Derr,Derr_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
-!          call CopyDimp2(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Derr2,Derr2_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
+
           call CopyDimp3(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Derr1,Derr1_alt(0:r),  &
               Derr2,Derr2_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
 
@@ -2099,7 +2327,7 @@ contains
 
           if(checkest.gt.impest_D.and.Mode_coli.lt.1) goto 100     ! error larger than expected: try other methods
 
-        elseif (use_gp.and.err_gp(r).le.min(err_g(r),err_gy(r),err_gr(r))        &
+        elseif (use_gp.and.err_gp(r).le.min(err_g(r),err_gy(r),err_gr(r),err_gpf(r))    &
             .and.mod(DrCalc(r),32)-mod(DrCalc(r),16).ne.16) then
 
 !          deallocate(D_alt)
@@ -2137,8 +2365,7 @@ contains
 #endif
           
           err_gp(0:r)=Derr_alt(0:r)
-!          call CopyDimp(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
-!          call CopyDimp2(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Derr2,Derr2_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
+
           call CopyDimp3(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Derr1,Derr1_alt(0:r),   &
               Derr2,Derr2_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
 
@@ -2158,7 +2385,7 @@ contains
 
           if(checkest.gt.impest_D.and.Mode_coli.lt.1) goto 100     ! error larger than expected: try other methods
           
-        elseif (use_gr.and.err_gr(r).le.min(err_g(r),err_gy(r),err_gp(r))        &
+        elseif (use_gr.and.err_gr(r).le.min(err_g(r),err_gy(r),err_gp(r),err_gpf(r))        &
             .and.mod(DrCalc(r),64)-mod(DrCalc(r),32).ne.32) then
 
 !          deallocate(D_alt)
@@ -2196,8 +2423,7 @@ contains
 #endif
           
           err_gr(0:r)=Derr_alt(0:r)
-!          call CopyDimp(D,D_alt,Derr,Derr_alt,Drmethod,Drmethod_alt,rmax,r)
-!          call CopyDimp2(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Derr2,Derr2_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
+
           call CopyDimp3(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Derr1,Derr1_alt(0:r),    &  
               Derr2,Derr2_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
  
@@ -2223,6 +2449,58 @@ contains
 !       write(*,*) 'CalcDred D(1,0,1,0)',r,D(1,0,1,0)
 !     endif
 #endif
+
+        else if (use_gpf.and.err_gpf(r).le.min(err_g(r),err_gy(r),err_gp(r),err_gr(r))        &
+            .and.mod(DrCalc(r),128)-mod(DrCalc(r),64).ne.64) then
+
+          if (r.eq.rmax) then
+            call CalcDgpf(D_alt,Duv,p10,p21,p32,p30,p20,p31,m02,m12,m22,m32,r,gpf,(rmax_D)/2,id,Derr1_alt,Derr2_alt)
+          else
+            call CalcDgpf(D_alt(0:r,0:r,0:r,0:r),Duv_alt(0:r,0:r,0:r,0:r),   &
+                p10,p21,p32,p30,p20,p31,m02,m12,m22,m32,r,gpf,(rmax_D)/2,id,Derr1_alt(0:r),Derr2_alt(0:r))
+          end if
+#ifdef PVEST2
+          Derr_alt = Derr2_alt
+#else
+          Derr_alt = Derr1_alt
+#endif
+          DCount(17) = DCount(17)+1
+          DrCalc(0:r)=DrCalc(0:r)+64
+          DCalc = DCalc+64
+          Drmethod_alt(0:r)=64
+          checkest=Derr_alt(r)/err_gpf(r)
+
+#ifdef Dredtest
+          if(checkest.gt.1d2*impest_D.or.checkest.lt.1d-2*impest_D) then
+            write(*,*) 'CalcDred: estimate err_gpf imprecise',err_gpf(r),Derr_alt(r)
+          end if
+#endif
+          
+          err_gpf(0:r)=Derr_alt(0:r)
+          call CopyDimp3(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Derr1,Derr1_alt(0:r),  &
+              Derr2,Derr2_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
+
+          if (rmax.ge.1) then
+            Dtyp =  max(abs(D(0,0,0,0)),        &
+                abs(D(0,1,0,0)),abs(D(0,0,1,0)),abs(D(0,0,0,1)))
+          else
+            Dtyp =  abs(D(0,0,0,0))
+          end if
+          err_req_D = acc_req_D * Dtyp
+
+#ifdef Dredtest
+          write(*,*) 'CalcDred: after exp 2nd try Dmethod=',Drmethod
+          write(*,*) 'CalcDred: after exp 2nd try Derr(r)=',Derr
+          write(*,*) 'CalcDred: after exp 2nd try Dacc(r)=',Derr/Dtyp
+#endif
+
+#ifdef Dredtest
+!       if(rmax.ge.3)then
+!       write(*,*) 'after CalcDgpf D(1,0,0,0)',r,D_alt(1,0,0,0),D(1,0,0,0)
+!       endif
+#endif
+
+          if(checkest.gt.impest_D.and.Mode_coli.lt.1) goto 100     ! error larger than expected: try other methods
 
 #ifdef USEGM
         else if (use_gm.and.err_gm(r).le.min(err_gy(r),err_gp(r),err_gr(r),err_g(r))        &
@@ -2263,8 +2541,7 @@ contains
 #endif
           
           err_gm(0:r)=Derr_alt(0:r)
-!          call CopyDimp(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
-!          call CopyDimp2(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Derr2,Derr2_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
+
           call CopyDimp3(D,D_alt(0:r,0:r,0:r,0:r),Derr,Derr_alt(0:r),Derr1,Derr1_alt(0:r),  &  
               Derr2,Derr2_alt(0:r),Drmethod,Drmethod_alt(0:r),rmax,r)
 
@@ -2307,19 +2584,19 @@ contains
 #endif
 
 #ifdef Dredtest
-       if(r.ge.2) then
-       write(*,*) 'after r CalcDg D(1,0,1,0)',r,D_alt(1,0,1,0),D(1,0,1,0)
-       write(*,*) 'after r CalcDg Derr',Derr_alt(2),Derr(2)
-       endif
+!       if(r.ge.2) then
+!       write(*,*) 'after r CalcDg D(1,0,1,0)',r,D_alt(1,0,1,0),D(1,0,1,0)
+!       write(*,*) 'after r CalcDg Derr',Derr_alt(2),Derr(2)
+!       endif
 #endif
 
 
 #ifdef Dredtest
       write(*,*) 'CalcDred: final loop err methods',r,err_pv(r),err_pv2(r), &
-          err_g(r),err_gy(r),err_gp(r),err_gr(r),err_gm(r)
+          err_g(r),err_gy(r),err_gp(r),err_gr(r),err_gm(r),err_gpf(r)
       write(*,*) 'CalcDred: final loop acc methods',r,err_pv(r)/Dtyp,err_pv2(r)/Dtyp,   &
           err_g(r)/Dtyp,err_gy(r)/Dtyp,err_gp(r)/Dtyp, &
-          err_gr(r)/Dtyp,err_gm(r)/Dtyp
+          err_gr(r)/Dtyp,err_gm(r)/Dtyp,err_gpf(r)/Dtyp
       write(*,*) 'CalcDred: final loop method',r,DrCalc(r),Drmethod(r)
 #endif
 
@@ -2369,7 +2646,7 @@ contains
 #ifdef CritPointsCOLI 
       CritPointCntD = CritPointCntD + 1    
 
-      if (CritPointCntD.le.MaxCritPointD) then
+      if (CritPointCntD.le.MaxCritPointD.and.Monitoring) then
 
         call CritPointsOut_coli('D_coli',acc_D)
         write(ncpout_coli,*) 'arguments of CalcDred_coli:'
@@ -2397,7 +2674,7 @@ contains
     end if
 
 #ifdef Dredtest
-       write(*,*) 'CalcDg exit D(1,0,1,0)',r,D_alt(1,0,1,0),D(1,0,1,0)
+       write(*,*) 'CalcDred exit D(1,0,0,0)',r,D_alt(1,0,0,0),D(1,0,0,0)
 #endif
 
   end subroutine CalcDred
@@ -2453,6 +2730,7 @@ contains
   !  subroutine CalcDpv1(D,Duv,p10,p21,p32,p30,p20,p31,m02,m12,m22,m32,rmax,id,Derr,Derr2)
   !
   !  new version 10.02.2016   (5.10) with (5.11) inserted
+  !              14.09.2016    prefactors of C_0 improved
   !
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
@@ -2465,14 +2743,20 @@ contains
     double complex, intent(out) :: D(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: Duv(0:rmax,0:rmax,0:rmax,0:rmax)
     double precision, intent(out) :: Derr(0:rmax),Derr2(0:rmax)
-    double complex, allocatable :: C_0(:,:,:,:), Cuv_0(:,:,:,:)
-    double complex, allocatable :: C_i(:,:,:,:), Cuv_i(:,:,:,:)
-    double complex, allocatable :: D_alt(:,:,:,:)
-    double precision, allocatable :: Cerr_i(:,:),Cerr2_i(:,:)
+    double complex :: C_0(0:rmax-1,0:rmax-1,0:rmax-1,0:rmax-1), Cuv_0(0:rmax-1,0:rmax-1,0:rmax-1,0:rmax-1)
+    double complex :: C_i(0:rmax-1,0:rmax-1,0:rmax-1,3), Cuv_i(0:rmax-1,0:rmax-1,0:rmax-1,3)
+    double complex :: D_alt(0:rmax,0:rmax,0:rmax,0:rmax)
+    double precision :: Cerr_i(0:rmax-1,0:3),Cerr2_i(0:rmax-1,0:3)
+!   double complex, allocatable :: C_0(:,:,:,:), Cuv_0(:,:,:,:)
+!   double complex, allocatable :: C_i(:,:,:,:), Cuv_i(:,:,:,:)
+!   double complex, allocatable :: D_alt(:,:,:,:)
+!   double precision, allocatable :: Cerr_i(:,:),Cerr2_i(:,:)
     double complex :: Smod(3)
     double complex :: D0_coli, elimminf2_coli
-    double precision, allocatable :: D00_err(:),Dij_err(:),Cij_err(:)
-    double precision, allocatable :: D00_err2(:),Dij_err2(:),Cij_err2(:)
+ !  double precision, allocatable :: D00_err(:),Dij_err(:),Cij_err(:)
+ !  double precision, allocatable :: D00_err2(:),Dij_err2(:),Cij_err2(:)
+    double precision :: D00_err(0:rmax),Dij_err(0:rmax),Cij_err(0:rmax-1)
+    double precision :: D00_err2(0:rmax),Dij_err2(0:rmax),Cij_err2(0:rmax-1)
     integer :: rmaxC,r,n0,n1,n2,n3,nn0,nn1,nn2,nn3,i,j
     integer :: bin,k,nid(0:3)
 
@@ -2491,21 +2775,21 @@ contains
     ! allocation of C functions
     rmaxC = rmax-1
     ! rmaxC = max(rmax-1,0)
-    allocate(C_0(0:rmaxC,0:rmaxC,0:rmaxC,0:rmaxC))
-    allocate(Cuv_0(0:rmaxC,0:rmaxC,0:rmaxC,0:rmaxC))
-    allocate(C_i(0:rmaxC,0:rmaxC,0:rmaxC,3))
-    allocate(Cuv_i(0:rmaxC,0:rmaxC,0:rmaxC,3))
-    allocate(Cerr_i(0:rmaxC,0:3))
-    allocate(Cerr2_i(0:rmaxC,0:3))
+!   allocate(C_0(0:rmaxC,0:rmaxC,0:rmaxC,0:rmaxC))
+!   allocate(Cuv_0(0:rmaxC,0:rmaxC,0:rmaxC,0:rmaxC))
+!   allocate(C_i(0:rmaxC,0:rmaxC,0:rmaxC,3))
+!   allocate(Cuv_i(0:rmaxC,0:rmaxC,0:rmaxC,3))
+!   allocate(Cerr_i(0:rmaxC,0:3))
+!   allocate(Cerr2_i(0:rmaxC,0:3))
 
     ! allocate arrays for error propagation
-    allocate(D00_err(0:rmax))
-    allocate(Dij_err(0:rmax))
-    allocate(Cij_err(0:rmaxC))
+!   allocate(D00_err(0:rmax))
+!   allocate(Dij_err(0:rmax))
+!   allocate(Cij_err(0:rmaxC))
     
-    allocate(D00_err2(0:rmax))
-    allocate(Dij_err2(0:rmax))
-    allocate(Cij_err2(0:rmaxC))
+!   allocate(D00_err2(0:rmax))
+!   allocate(Dij_err2(0:rmax))
+!   allocate(Cij_err2(0:rmaxC))
     
     ! determine binaries for C-coefficients
     k=0
@@ -2563,9 +2847,13 @@ contains
 #ifdef Dpv1test
     write(*,*) 'CalcDpv1 Cij_err=',Cij_err
     write(*,*) 'CalcDpv1 Dij_err(0)=',Dij_err(0)
+    write(*,*) 'CalcDpv1 test :', & 
+            (1d0 - (Zadjf(1)+Zadjf(2)+Zadjf(3))/detZ), &
+            (detZmZadjf + Zadjs(1)*(mm12-mm02) + Zadjs(2)*(mm22-mm02) &
+            + Zadjs(3)*(mm32-mm02) ) /detZ
 #endif
 
-    allocate(D_alt(0:rmax,0:rmax,0:rmax,0:rmax))
+!   allocate(D_alt(0:rmax,0:rmax,0:rmax,0:rmax))
 
     ! PV reduction
     do r=1,rmax
@@ -2577,11 +2865,12 @@ contains
 
     ! reduction formula (5.10) with (5.11) inserted for n0 >= 1
 
-            D(n0,n1,n2,n3) = C_0(n0-1,n1,n2,n3) + 4*Duv(n0,n1,n2,n3)  &
-                 + detX/detZ*D(n0-1,n1,n2,n3) 
+            D(n0,n1,n2,n3) = 4*Duv(n0,n1,n2,n3) + detX/detZ*D(n0-1,n1,n2,n3) 
 
             D(n0,n1,n2,n3) = D(n0,n1,n2,n3) &
-                - (Zadjf(1)+Zadjf(2)+Zadjf(3))/detZ* C_0(n0-1,n1,n2,n3)
+                + (detZmZadjf + Zadjs(1)*(mm12-mm02) + Zadjs(2)*(mm22-mm02) &
+                    + Zadjs(3)*(mm32-mm02) ) /detZ * C_0(n0-1,n1,n2,n3)
+!               + (1d0 - (Zadjf(1)+Zadjf(2)+Zadjf(3))/detZ)* C_0(n0-1,n1,n2,n3)
 
             if (n1.ge.1) then
               D(n0,n1,n2,n3) = D(n0,n1,n2,n3) &
@@ -2590,6 +2879,7 @@ contains
               D(n0,n1,n2,n3) = D(n0,n1,n2,n3) &
                   + Zadjf(1)/detZ* C_i(n0-1,n2,n3,1)
             end if
+
             if (n2.ge.1) then
               D(n0,n1,n2,n3) = D(n0,n1,n2,n3) &
                   - 2*n2*Zadjf(2)/detZ*D(n0,n1,n2-1,n3)
@@ -2597,6 +2887,7 @@ contains
               D(n0,n1,n2,n3) = D(n0,n1,n2,n3) &
                   + Zadjf(2)/detZ * C_i(n0-1,n1,n3,2)
             end if
+
             if (n3.ge.1) then
               D(n0,n1,n2,n3) = D(n0,n1,n2,n3) &
                   - 2*n3*Zadjf(3)/detZ*D(n0,n1,n2,n3-1)
@@ -2635,9 +2926,10 @@ contains
               j = 3
             end if
 
-            do i=1,3
-              Smod(i) = -C_0(n0,nn1,nn2,nn3)
-            end do
+!            do i=1,3
+!              Smod(i) = -C_0(n0,nn1,nn2,nn3)
+!            end do
+            Smod = 0d0  
           
             if (nn1.ge.1) then
               Smod(1) = Smod(1) - 2*nn1*D(n0+1,nn1-1,nn2,nn3)
@@ -2659,15 +2951,19 @@ contains
           
             D(n0,n1,n2,n3) = (Zadj(1,j)*Smod(1) + Zadj(2,j)*Smod(2)  &
                            + Zadj(3,j)*Smod(3) &
+                           - Zadjs(j)*C_0(n0,nn1,nn2,nn3) &
                            - Zadjf(j)*D(n0,nn1,nn2,nn3))/detZ
 
-          end do
+         end do
         end do
 !     end do
 
       ! determine error from symmetry for n0=0 and n1>1, n2>1 
       Derr(r)=Derr(r-1)
       Derr2(r)=Derr2(r-1)
+
+!      write(*,*) 'CalcDpv1: Derr(r)',r,Derr(r),Derr2(r)
+
       n0=0
       do n1=0,r-2*n0
         do n2=0,r-2*n0-n1
@@ -2686,10 +2982,11 @@ contains
               j = 3
             end if
 
-            do i=1,3
-              Smod(i) = -C_0(n0,nn1,nn2,nn3)
-            end do
-          
+!            do i=1,3
+!              Smod(i) = -C_0(n0,nn1,nn2,nn3)
+!            end do
+            Smod = 0d0
+             
             if (nn1.ge.1) then
               Smod(1) = Smod(1) - 2*nn1*D(n0+1,nn1-1,nn2,nn3)
             else            
@@ -2710,13 +3007,14 @@ contains
           
             D_alt(n0,n1,n2,n3) = (Zadj(1,j)*Smod(1) + Zadj(2,j)*Smod(2)  &
                            + Zadj(3,j)*Smod(3) &
+                           - Zadjs(j)*C_0(n0,nn1,nn2,nn3)  &
                            - Zadjf(j)*D(n0,nn1,nn2,nn3))/detZ
  
             Derr(r)=max(Derr(r),abs(D(n0,n1,n2,n3)-D_alt(n0,n1,n2,n3)))
             Derr2(r)=max(Derr2(r),abs(D(n0,n1,n2,n3)-D_alt(n0,n1,n2,n3)))
 
 #ifdef Dpv1test
-!            write(*,*) 'CalcDpv: errpr',r,Derr(r),abs(D(n0,n1,n2,n3)-D_alt(n0,n1,n2,n3)), &
+!            write(*,*) 'CalcDpv1: errpr',r,Derr(r),abs(D(n0,n1,n2,n3)-D_alt(n0,n1,n2,n3)), &
 !                        D(n0,n1,n2,n3),D_alt(n0,n1,n2,n3),n0,n1,n2,n3
 #endif
 
@@ -2951,7 +3249,8 @@ contains
 !    f(2) = q20+mm02-mm22
 !    f(3) = q30+mm02-mm32
 
-    Zinv = Zadj/detZ
+!  commented out 2.9.17
+!   Zinv = Zadj/detZ
 
     ! calculate Duv
     call CalcDuv(Duv,Cuv_0,mm02,f,rmax,id)
@@ -3351,7 +3650,8 @@ contains
 !    f(2) = q20+mm02-mm22
 !    f(3) = q30+mm02-mm32
 
-    Zinv = Zadj/detZ
+!  commented out 2.9.17
+!   Zinv = Zadj/detZ
 
     ! calculate Duv
     call CalcDuv(Duv,Cuv_0,mm02,f,rmax,id)
@@ -4068,9 +4368,13 @@ contains
     ! reduce required accuracy of higher rank C's that appear only in expansion by dividing
     ! by estimated suppression factors that are multiplied in expansion
     acc_req_Cextra(0:rmax) = acc_req_CinD
-    do r=rmax+1,rmaxC
-      acc_req_Cextra(r)= acc_req_Cextra(r-1)/x_g
-    end do
+    if (x_g.ne.0d0) then
+      do r=rmax+1,rmaxC
+        acc_req_Cextra(r)= acc_req_Cextra(r-1)/x_g
+      end do
+    else ! 10.07.2017
+       acc_req_Cextra(rmax+1:rmaxC) = acc_inf
+    end if
 
     call CalcC(C_0(:,0,:,:),Cuv_0(:,0,:,:),p21,p32,p31,m12,m22,m32,rmaxC,nid(0),Cerr_i(:,0),Cerr2_i(:,0),rmax,acc_req_Cextra)
     call CalcC(C_i(:,:,:,1),Cuv_i(:,:,:,1),p20,p32,p30,m02,m22,m32,rmaxC,nid(1),Cerr_i(:,1),Cerr2_i(:,1),rmax,acc_req_Cextra)
@@ -4887,9 +5191,13 @@ contains
     ! reduce required accuracy of higher rank C's that appear only in expansion by dividing
     ! by estimated suppression factors that are multiplied in expansion
     acc_req_Cextra(0:rmax) = acc_req_CinD
-    do r=rmax+1,rmaxC
-      acc_req_Cextra(r)= acc_req_Cextra(r-1)/x_gm
-    end do
+    if (x_gm.ne.0d0) then
+      do r=rmax+1,rmaxC
+        acc_req_Cextra(r)= acc_req_Cextra(r-1)/x_gm
+      end do
+    else ! 10.07.2017
+       acc_req_Cextra(rmax+1,rmaxC) = acc_inf
+    end if
 
     call CalcC(C_0(:,0,:,:),Cuv_0(:,0,:,:),p21,p32,p31,m12,m22,m32,rmaxC,nid(0),Cerr_i(:,0),Cerr2_i(:,0),rmax,acc_req_Cextra)
     call CalcC(C_i(:,:,:,1),Cuv_i(:,:,:,1),p20,p32,p30,m02,m22,m32,rmaxC,nid(1),Cerr_i(:,1),Cerr2_i(:,1),rmax,acc_req_Cextra)
@@ -5625,11 +5933,15 @@ contains
     ! reduce required accuracy of higher rank C's that appear only in expansion by dividing
     ! by estimated suppression factors that are multiplied in expansion
     acc_req_Cextra(0:rmax) = acc_req_CinD
-    do r=rmax+1,rmaxC
-!      acc_req_Cextra(r)= acc_req_Cextra(r-1)/x_g
+    if (fac_gr.ne.0d0) then
+      do r=rmax+1,rmaxC
+!        acc_req_Cextra(r)= acc_req_Cextra(r-1)/x_g
 ! 09.03.15
-      acc_req_Cextra(r)= acc_req_Cextra(r-1)/fac_gr
-    end do
+        acc_req_Cextra(r)= acc_req_Cextra(r-1)/fac_gr
+      end do
+    else ! 10.07.2017
+       acc_req_Cextra(rmax+1:rmaxC) = acc_inf
+    end if
 
     call CalcC(C_0(:,0,:,:),Cuv_0(:,0,:,:),p21,p32,p31,m12,m22,m32,rmaxC,nid(0),Cerr_i(:,0),Cerr2_i(:,0),rmax,acc_req_Cextra)
     call CalcC(C_i(:,:,:,1),Cuv_i(:,:,:,1),p20,p32,p30,m02,m22,m32,rmaxC,nid(1),Cerr_i(:,1),Cerr2_i(:,1),rmax,acc_req_Cextra)
@@ -6774,9 +7086,13 @@ contains
     ! reduce required accuracy of higher rank C's that appear only in expansion by dividing
     ! by estimated suppression factors that are multiplied in expansion
     acc_req_Cextra(0:rmax) = acc_req_CinD
-    do r=rmax+1,rmaxC
-      acc_req_Cextra(r)= acc_req_Cextra(r-1)/x_g
-    end do
+    if (x_g.ne.0d0) then
+      do r=rmax+1,rmaxC
+        acc_req_Cextra(r)= acc_req_Cextra(r-1)/x_g
+      end do
+    else ! 10.07.2017
+       acc_req_Cextra(rmax+1:rmaxC) = acc_inf
+    end if
 
     call CalcC(C_0(:,0,:,:),Cuv_0(:,0,:,:),p21,p32,p31,m12,m22,m32,rmaxC,nid(0),Cerr_i(:,0),Cerr2_i(:,0),rmax,acc_req_Cextra)
     call CalcC(C_i(:,:,:,1),Cuv_i(:,:,:,1),p20,p32,p30,m02,m22,m32,rmaxC,nid(1),Cerr_i(:,1),Cerr2_i(:,1),rmax,acc_req_Cextra)
@@ -7482,12 +7798,23 @@ contains
     ! by estimated suppression factors that are multiplied in expansion
     acc_req_Cextra(0:rmax+1) = acc_req_CinD
     acc_aux = acc_req_C
-    do g=1,ordgy_min
-      acc_req_Cextra(rmax+2*g) = acc_req_Cextra(rmax+2*g-2)/y_gy
-      acc_req_Cextra(rmax+2*g+1) = acc_req_Cextra(rmax+2*g-1)/y_gy
-      acc_aux = acc_aux/max(x_gy,v_gy*y_gy)
-      acc_req_Cextra(rmax+g+1) = min(acc_req_Cextra(rmax+g+1),acc_aux)
-    end do
+    if (y_gy.ne.0d0) then
+      do g=1,ordgy_min
+        acc_req_Cextra(rmax+2*g) = acc_req_Cextra(rmax+2*g-2)/y_gy
+        acc_req_Cextra(rmax+2*g+1) = acc_req_Cextra(rmax+2*g-1)/y_gy
+        acc_aux = acc_aux/max(x_gy,v_gy*y_gy)
+        acc_req_Cextra(rmax+g+1) = min(acc_req_Cextra(rmax+g+1),acc_aux)
+      end do
+    else if(x_gy.ne.0d0) then ! 10.07.2017
+      do g=1,ordgy_min
+        acc_aux = acc_aux/x_gy
+        acc_req_Cextra(rmax+g+1) = acc_aux
+      end do
+    else ! 10.07.2017
+       acc_req_Cextra(rmax+2:rmax+2*ordgy_min+1) = acc_inf
+    end if
+   
+
 
 #ifdef Dgytest
     write(*,*) 'CalcDgy: accreq_Cextra',acc_req_Cextra
@@ -7607,9 +7934,10 @@ contains
             end if
 
 #ifdef Dgytest
-          if(n0.eq.0.and.n1.eq.0.and.n2.eq.2.and.n3.eq.0)then
+          if(n0.eq.0.and.n1.eq.0.and.n2.eq.0.and.n3.eq.1)then
             write(*,*) 'CalcDgy 0 C_0',C_0(n0,n1,n2,n3)
             write(*,*) 'CalcDgy 0 C_1',C_i(n0,n2,n3,1)
+            write(*,*) 'CalcDgy 0 C_2',C_i(n0,n1,n3,2)
             write(*,*) 'CalcDgy 0 C_3',C_i(n0,n1,n2,3)
             write(*,*) 'CalcDgy 0 Sh1',Shat(n0,n1,n2,n3,1)
             write(*,*) 'CalcDgy 0 Sh2',Shat(n0,n1,n2,n3,2)
@@ -7796,6 +8124,7 @@ contains
           inds(l) = nl+1
           inds(lt) = nlt
           inds(ltt) = nltt
+
           Daux = Zadj(k,1)*Shat(0,inds(1),inds(2),inds(3),1)  &
                + Zadj(k,2)*Shat(0,inds(1),inds(2),inds(3),2)  &
                + Zadj(k,3)*Shat(0,inds(1),inds(2),inds(3),3)
@@ -7804,6 +8133,7 @@ contains
             inds(lt) = nlt-1
             Daux = Daux - 2*nlt*Zadj(k,lt)*Dexpgy(1,inds(1),inds(2),inds(3),0)
           end if
+
           if (nltt.ge.1) then
             inds(lt) = nlt
             inds(ltt) = nltt-1
@@ -7819,6 +8149,8 @@ contains
             D(1,inds0(1),inds0(2),inds0(3)) = Dexpgy(1,inds0(1),inds0(2),inds0(3),0)
           end if
       
+
+
         end do
       end do
 
@@ -7949,14 +8281,15 @@ contains
 !                                              + Dexpgy(1,inds0(1),inds0(2),inds0(3),g)
 !            end if
  
-
+            
+!  10.08.2017  factor 1d1 added for g=1 since first terms can cancel for certain cases
             if (g.eq.1.and.abs(Dexpgy(1,inds0(1),inds0(2),inds0(3),g)).gt.   &
-                truncfacexp*max(1/m2scale,maxDexpgy(1,rg,g-1)) .or. &
+                1d1*truncfacexp*max(1/m2scale,maxDexpgy(1,rg,g-1)) .or. &
                 g.ge.2.and.abs(Dexpgy(1,inds0(1),inds0(2),inds0(3),g)).gt.   &
                 truncfacexp*maxDexpgy(1,rg,g-1)) then
 
 #ifdef Dgytest
-                write(*,*) 'CalcDgy cycle loop',1,inds0(1),inds0(2),inds0(3),g, &
+                write(*,*) 'CalcDgy exit gloop',1,inds0(1),inds0(2),inds0(3),g, &
                 abs(Dexpgy(1,inds0(1),inds0(2),inds0(3),g)),abs(Dexpgy(1,inds0(1),inds0(2),inds0(3),g-1)),maxDexpgy(1,rg,g-1)
 #endif
 
@@ -8110,12 +8443,14 @@ contains
 
 #ifdef Dgytest
 
+      write(*,*) 'CalcDgy D(1,0,0,0)',r,D(1,0,0,0)
       write(*,*) 'CalcDgy D(0,0,0,0)',r,D(0,0,0,0)
-      write(*,*) 'CalcDgy D(0,1,0,0)',r,D(0,1,0,0)
+      write(*,*) 'CalcDgy D(0,0,0,1)',r,D(0,0,0,1)
       if (r.ge.2.and.rmax.ge.2) then
-      write(*,*) 'CalcDgy D(0,0,2,0)',r,D(0,0,2,0)
+      write(*,*) 'CalcDgy D(0,0,0,2)',r,D(0,0,0,2)
       endif
       if (r.ge.3.and.rmax.ge.3)then
+      write(*,*) 'CalcDgy D(1,0,0,1)',r,D(1,0,0,1)
       write(*,*) 'CalcDgy D(0,1,0,2)',r,D(0,1,0,2)
       write(*,*) 'CalcDgy D(0,0,0,3)',r,D(0,0,0,3)
       write(*,*) 'CalcDgy D(0,1,1,1)',r,D(0,1,1,1)
@@ -8252,9 +8587,15 @@ contains
 #endif
 
 #ifdef Dgytest
+      if(rmax.ge.2) then
+      write(*,*) 'CalcDgy D(1,0,0,0) fin',D(1,0,0,0)
+      write(*,*) 'CalcDgy D(0,0,2,0) fin',D(0,0,2,0)
+      write(*,*) 'CalcDgy D(0,0,0,2) fin',D(0,0,0,2)
       if(rmax.ge.3) then
       write(*,*) 'CalcDgy D(1,0,1,0) fin',D(1,0,1,0)
       write(*,*) 'CalcDgy D(0,1,1,1) fin',D(0,1,1,1)
+      write(*,*) 'CalcDgy D(0,0,3,0) fin',D(0,0,3,0)
+      endif
       endif
 
     write(*,*) 'CalcDgy final err',Derr
@@ -8366,9 +8707,13 @@ contains
     ! reduce required accuracy of higher rank C's that appear only in expansion by dividing
     ! by estimated suppression factors that are multiplied in expansion
     acc_req_Cextra(0:rmax) =  acc_req_CinD
-    do r=rmax+1,rmaxC
-      acc_req_Cextra(r)= acc_req_Cextra(r-1)/w_gp
-    end do
+    if(w_gp.ne.0d0) then
+      do r=rmax+1,rmaxC
+        acc_req_Cextra(r)= acc_req_Cextra(r-1)/w_gp
+      end do
+    else ! 10.07.2017
+      acc_req_Cextra(rmax+1:rmaxC)=acc_inf
+    endif
 
     call CalcC(C_0(:,0,:,:),Cuv_0(:,0,:,:),p21,p32,p31,m12,m22,m32,rmaxC,nid(0),Cerr_i(:,0),Cerr2_i(:,0),rmax,acc_req_Cextra)
     if (k.eq.1) then
@@ -8808,113 +9153,644 @@ contains
 
 
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !  subroutine CopyDimp(D,D_alt,Derr,Derr_alt,Drmethod,Drmethod_alt,rmax)
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !  subroutine CalcDgpf(D,Duv,p10,p21,p32,p30,p20,p31,
+  !                          m02,m12,m22,m32,rmax,ordgpf_min,ordgpf_max,id,Derr,Derr2)
+  !  added by AD  16.08.2017
   !
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
-  subroutine CopyDimp(D,D_alt,Derr,Derr_alt,Drmethod,Drmethod_alt,rmax,r_alt)
+  subroutine CalcDgpf(D,Duv,p10,p21,p32,p30,p20,p31,  &
+                          m02,m12,m22,m32,rmax,ordgpf_min,ordgpf_max,id,Derr,Derr2)  
   
-    integer,   intent(in) :: rmax,r_alt
-    double complex, intent(inout) :: D(0:rmax,0:rmax,0:rmax,0:rmax)
-    double precision, intent(inout) :: Derr(0:rmax)
-    integer, intent(inout) :: Drmethod(0:rmax)
-    double complex, intent(in) :: D_alt(0:r_alt,0:r_alt,0:r_alt,0:r_alt)
-    double precision, intent(in) :: Derr_alt(0:r_alt)
-    integer, intent(in) :: Drmethod_alt(0:r_alt)
+    use globalD
 
-    integer :: r,n1,n2,n0
+    integer, intent(in) :: rmax,ordgpf_min,ordgpf_max,id
+    double complex, intent(in) :: p10,p21,p32,p30,p20,p31,m02,m12,m22,m32
+    double complex ::Zadj2(4)
+    double complex, allocatable :: Dexpgpf(:,:,:,:,:), DuvExpgpf(:,:,:,:)
+    double complex, intent(out) :: D(0:rmax,0:rmax,0:rmax,0:rmax)
+    double complex, intent(out) :: Duv(0:rmax,0:rmax,0:rmax,0:rmax)
+    double precision, intent(out) :: Derr(0:rmax),Derr2(0:rmax)
+    double complex, allocatable :: C_0(:,:,:,:), C_i(:,:,:,:), Shat(:,:,:,:,:)
+    double complex, allocatable :: Cuv_0(:,:,:,:), Cuv_i(:,:,:,:)
+    double complex, allocatable :: D_alt(:,:,:,:)
+    double precision, allocatable :: Cerr_i(:,:),Cerr2_i(:,:)
+    double complex :: Smod(3), Daux, elimminf2_coli
+    double precision, allocatable :: D00_err(:),Dij_err(:),Cij_err(:),acc_req_Cextra(:)
+    double precision, allocatable :: D00_err2(:),Dij_err2(:),Cij_err2(:)
+    double precision :: maxDexpgpf(0:1,0:rmax+2*ordgpf_min,0:ordgpf_max),truncfacexp,acc_aux
+    double precision :: minZk 
+    integer :: rmaxC,rmaxExp,gtrunc,r,n0,n1,n2,n3,a,b,i,j,g,rg,m,n
+    integer :: inds0(3),inds(3),inds2(2,4),at,bt,k,l,lt,ltt,nl,nlt,nltt
+    integer :: bin,nid(0:3)
+    logical :: errorwriteflag
 
-    do r=0,r_alt
-      if (Derr_alt(r).lt.Derr(r)) then
-        Drmethod(r)=Drmethod_alt(r)
-        Derr(r)=Derr_alt(r)
-        forall (n0=0:r/2)
-          forall (n1=0:2*r-n0)
-            forall (n2=0:r-2*n0-n1)
-              D(n0,n1,n2,r-2*n0-n1-n2) = D_alt(n0,n1,n2,r-2*n0-n1-n2)
-            end forall
-          end forall
-        end forall
-        forall (n0=1:(r+1)/2)
-          forall (n1=0:r+1-2*n0)
-            forall (n2=0:r+1-2*n0-n1)
-              D(n0,n1,n2,r+1-2*n0-n1-n2) = D_alt(n0,n1,n2,r+1-2*n0-n1-n2)
-            end forall
-          end forall
-        end forall
-!       forall (n0=0:r)
-!         forall (n1=0:r-n0)
-!           forall (n2=0:r-n0-n1)
-!             D(n0,n1,n2,r-n0-n1-n2) = D_alt(n0,n1,n2,r-n0-n1-n2)
-!           end forall
-!         end forall
-!       end forall
-!        forall (n1=0:r)
-!          forall (n2=0:r-n1)
-!            forall (n3=0:r-n1-n2)
-!              D((r-n1-n2-n3)/2,n1,n2,n3) = D_alt((r-n1-n2-n3)/2,n1,n2,n3)
-!            end forall
-!          end forall
-!        end forall
+#ifdef Dgpftest
+    write(*,*) 'CalcDgpf in, ord',rmax,ordgpf_min,ordgpf_max
+#endif
+
+    ! allocation of C functions
+    rmaxC = rmax + 2*ordgpf_min + 1
+    allocate(C_0(0:rmaxC,0:rmaxC,0:rmaxC,0:rmaxC))
+    allocate(Cuv_0(0:rmaxC,0:rmaxC,0:rmaxC,0:rmaxC))
+    allocate(C_i(0:rmaxC,0:rmaxC,0:rmaxC,3))
+    allocate(Cuv_i(0:rmaxC,0:rmaxC,0:rmaxC,3))
+    allocate(Cerr_i(0:rmaxC,0:3))
+    allocate(Cerr2_i(0:rmaxC,0:3))
+    allocate(acc_req_Cextra(0:rmaxC))
+    
+    ! determine binaries for C-coefficients
+    k=0
+    bin = 1
+    do while (k.le.3)
+      if (mod(id/bin,2).eq.0) then
+        nid(k) = id+bin
+        k = k+1
       end if
+      bin = 2*bin
     end do
 
-   end subroutine CopyDimp
+    ! reduce required accuracy of higher rank C's that appear only in expansion by dividing
+    ! by estimated suppression factors that are multiplied in expansion
+    acc_req_Cextra(0:rmax+1) = acc_req_CinD
+    acc_aux = acc_req_C
+    if (y_gpf.ne.0d0) then
+      do g=1,ordgpf_min
+        acc_req_Cextra(rmax+2*g) = acc_req_Cextra(rmax+2*g-2)/y_gpf
+        acc_req_Cextra(rmax+2*g+1) = acc_req_Cextra(rmax+2*g-1)/y_gpf
+        acc_aux = acc_aux/max(x_gpf,v_gpf*y_gpf)
+        acc_req_Cextra(rmax+g+1) = min(acc_req_Cextra(rmax+g+1),acc_aux)
+      end do
+    else if(x_gpf.ne.0d0) then ! 10.07.2017
+      do g=1,ordgpf_min
+        acc_aux = acc_aux/x_gpf
+        acc_req_Cextra(rmax+g+1) = acc_aux
+      end do
+    else ! 10.07.2017
+       acc_req_Cextra(rmax+2:rmax+2*ordgpf_min+1) = acc_inf
+    end if
+   
 
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !  subroutine CopyDimp2(D,D_alt,Derr,Derr_alt,Derr2,Derr2_alt,Drmethod,Drmethod_alt,rmax)
-  !
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  subroutine CopyDimp2(D,D_alt,Derr,Derr_alt,Derr2,Derr2_alt,Drmethod,Drmethod_alt,rmax,r_alt)
-  
-    integer,   intent(in) :: rmax,r_alt
-    double complex, intent(inout) :: D(0:rmax,0:rmax,0:rmax,0:rmax)
-    double precision, intent(inout) :: Derr(0:rmax),Derr2(0:rmax)
-    integer, intent(inout) :: Drmethod(0:rmax)
-    double complex, intent(in) :: D_alt(0:r_alt,0:r_alt,0:r_alt,0:r_alt)
-    double precision, intent(in) :: Derr_alt(0:r_alt),Derr2_alt(0:r_alt)
-    integer, intent(in) :: Drmethod_alt(0:r_alt)
 
-    integer :: r,n1,n2,n0
+#ifdef Dgpftest
+    write(*,*) 'CalcDgpf: accreq_Cextra',acc_req_Cextra
+#endif
 
-    do r=0,r_alt
-      if (Derr_alt(r).lt.Derr(r)) then
-        Drmethod(r)=Drmethod_alt(r)
-        Derr(r)=Derr_alt(r)
-        Derr2(r)=Derr2_alt(r)
-        forall (n0=0:r/2)
-          forall (n1=0:2*r-n0)
-            forall (n2=0:r-2*n0-n1)
-              D(n0,n1,n2,r-2*n0-n1-n2) = D_alt(n0,n1,n2,r-2*n0-n1-n2)
-            end forall
-          end forall
-        end forall
-        forall (n0=1:(r+1)/2)
-          forall (n1=0:r+1-2*n0)
-            forall (n2=0:r+1-2*n0-n1)
-              D(n0,n1,n2,r+1-2*n0-n1-n2) = D_alt(n0,n1,n2,r+1-2*n0-n1-n2)
-            end forall
-          end forall
-        end forall
-!       forall (n0=0:r)
-!         forall (n1=0:r-n0)
-!           forall (n2=0:r-n0-n1)
-!             D(n0,n1,n2,r-n0-n1-n2) = D_alt(n0,n1,n2,r-n0-n1-n2)
-!           end forall
-!         end forall
-!       end forall
-!        forall (n1=0:r)
-!          forall (n2=0:r-n1)
-!            forall (n3=0:r-n1-n2)
-!              D((r-n1-n2-n3)/2,n1,n2,n3) = D_alt((r-n1-n2-n3)/2,n1,n2,n3)
-!            end forall
-!          end forall
-!        end forall
-      end if
+    call CalcC(C_0(:,0,:,:),Cuv_0(:,0,:,:),p21,p32,p31,m12,m22,m32,rmaxC,nid(0),Cerr_i(:,0),Cerr2_i(:,0),rmax,acc_req_Cextra)
+    call CalcC(C_i(:,:,:,1),Cuv_i(:,:,:,1),p20,p32,p30,m02,m22,m32,rmaxC,nid(1),Cerr_i(:,1),Cerr2_i(:,1),rmax,acc_req_Cextra)
+    call CalcC(C_i(:,:,:,2),Cuv_i(:,:,:,2),p10,p31,p30,m02,m12,m32,rmaxC,nid(2),Cerr_i(:,2),Cerr2_i(:,2),rmax,acc_req_Cextra)
+    call CalcC(C_i(:,:,:,3),Cuv_i(:,:,:,3),p10,p21,p20,m02,m12,m22,rmaxC,nid(3),Cerr_i(:,3),Cerr2_i(:,3),rmax,acc_req_Cextra)
+
+#ifdef Dgpftest
+    write(*,*) 'CalcDgpf Cerr 0',Cerr_i(:,0)
+    write(*,*) 'CalcDgpf Cerr 1',Cerr_i(:,1)
+    write(*,*) 'CalcDgpf Cerr 2',Cerr_i(:,2)
+    write(*,*) 'CalcDgpf Cerr 3',Cerr_i(:,3)
+#endif
+
+
+    ! shift of integration momentum in C\{0}
+    do n1=1,rmaxC
+      do n2=0,rmaxC-n1
+        do n3=0,rmaxC-n1-n2
+          n0 = (rmaxC-n1-n2-n3)
+          C_0(0:n0,n1,n2,n3) = -C_0(0:n0,n1-1,n2,n3)  &
+                            -C_0(0:n0,n1-1,n2+1,n3)-C_0(0:n0,n1-1,n2,n3+1)
+          Cuv_0(0:n0,n1,n2,n3) = -Cuv_0(0:n0,n1-1,n2,n3)  &
+                              -Cuv_0(0:n0,n1-1,n2+1,n3)-Cuv_0(0:n0,n1-1,n2,n3+1)
+        end do
+      end do
+    end do
+      
+
+
+
+    ! coefficients Shat defined in (5.13)
+    allocate(Shat(0:rmaxC,0:rmaxC,0:rmaxC,0:rmaxC,3))
+
+    do r=0,rmaxC
+      do n0=0,r/2
+        do n1=0,r-2*n0
+          do n2=0,r-2*n0-n1
+            n3 = r-2*n0-n1-n2
+
+            Shat(n0,n1,n2,n3,:) = -C_0(n0,n1,n2,n3)
+
+            if(n1.eq.0) then
+              Shat(n0,n1,n2,n3,1) = Shat(n0,n1,n2,n3,1) + C_i(n0,n2,n3,1)
+            end if
+
+            if(n2.eq.0) then
+              Shat(n0,n1,n2,n3,2) = Shat(n0,n1,n2,n3,2) + C_i(n0,n1,n3,2)
+            end if
+
+            if(n3.eq.0) then
+              Shat(n0,n1,n2,n3,3) = Shat(n0,n1,n2,n3,3) + C_i(n0,n1,n2,3)
+            end if
+
+#ifdef Dgpftest
+          if(n0.eq.0.and.n1.eq.0.and.n2.eq.0.and.n3.eq.1)then
+            write(*,*) 'CalcDgpf 0 C_0',C_0(n0,n1,n2,n3)
+            write(*,*) 'CalcDgpf 0 C_1',C_i(n0,n2,n3,1)
+            write(*,*) 'CalcDgpf 0 C_2',C_i(n0,n1,n3,2)
+            write(*,*) 'CalcDgpf 0 C_3',C_i(n0,n1,n2,3)
+            write(*,*) 'CalcDgpf 0 Sh1',Shat(n0,n1,n2,n3,1)
+            write(*,*) 'CalcDgpf 0 Sh2',Shat(n0,n1,n2,n3,2)
+            write(*,*) 'CalcDgpf 0 Sh3',Shat(n0,n1,n2,n3,3)
+          endif
+#endif
+
+          end do
+        end do
+      end do
     end do
 
-   end subroutine CopyDimp2
+    ! choose reduction formulas with smallest expansion terms
+    minZk = maxZ
+    if (maxval(abs(Z(1,1:3))).le.minZk) then
+      minZk = maxval(abs(Z(1,1:3)))
+      k = 1
+      l = 1
+      lt = 2
+      ltt = 3 
+    end if
+    if (maxval(abs(Z(2,1:3))).lt.minZk) then
+      minZk = maxval(abs(Z(2,1:3)))
+      k = 2
+      l = 2
+      lt = 3
+      ltt = 1 
+    end if
+    if (maxval(abs(Z(3,1:3))).lt.minZk) then
+      minZk = maxval(abs(Z(3,1:3)))
+      k = 3
+      l = 3
+      lt = 1
+      ltt = 2 
+    end if
+
+#ifdef Dgpftest
+    write(*,*) 'CalcDgpf: Z',k, maxval(abs(Z(k,1:3)))
+#endif
+
+        
+    ! allocation of array for det(Z)- and det(X)-expanded C-coefficients
+    rmaxExp = rmaxC+1
+    allocate(Dexpgpf(0:max(rmax/2,1),0:rmaxExp-2,0:rmaxExp-2,0:rmaxExp-2,0:ordgpf_max))
+   
+
+    ! calculate Cuv
+    allocate(DuvExpgpf(0:rmaxExp,0:rmaxExp,0:rmaxExp,0:rmaxExp))
+    call CalcDuv(DuvExpgpf,Cuv_0,mm02,f,rmaxExp,id)
+    Duv(0:rmax,0:rmax,0:rmax,0:rmax) = DuvExpgpf(0:rmax,0:rmax,0:rmax,0:rmax)
+
+    ! allocate arrays for error propagation
+    allocate(D00_err(0:rmaxExp))
+    allocate(Dij_err(0:rmaxExp))
+    allocate(Cij_err(0:rmaxC))
+
+    allocate(D00_err2(0:rmaxExp))
+    allocate(Dij_err2(0:rmaxExp))
+    allocate(Cij_err2(0:rmaxC))
+
+    ! initialize accuracy estimates
+    Derr = acc_inf
+    Dij_err =0d0
+    D00_err =0d0
+    Cij_err = max(Cerr_i(:,0),Cerr_i(:,1),Cerr_i(:,2),Cerr_i(:,3))
+
+    Derr2 = acc_inf
+    Dij_err2 =0d0
+    D00_err2 =0d0
+    Cij_err2 = max(Cerr2_i(:,0),Cerr2_i(:,1),Cerr2_i(:,2),Cerr2_i(:,3))
+
+    ! truncation of expansion if calculated term larger than truncfacexp * previous term
+    ! crucial for expansion parameters between 0.1 and 1 !!!
+    truncfacexp = sqrt(fac_gpf) * truncfacD
+    gtrunc = ordgpf_max 
+
+! calculate D(1,n1,n2,n3) up to rank r+2
+! calculate D(0,n1,n2,n3) up to rank r  
+    rloop: do r=0,rmaxExp-2
+
+      if (r.gt.rmax+2*gtrunc+2) exit rloop
+
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      ! 0th-order coefficients
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      ! calculating D_00ijk.. exploiting eq. (5.71)
+      maxDexpgpf(1,r,0)=0d0
+      do nl=r,0,-1
+        do nlt=r-nl,0,-1
+          nltt = r-nl-nlt
+          inds0(l) = nl
+          inds0(lt) = nlt
+          inds0(ltt) = nltt
+
+          inds(l) = nl+1
+          inds(lt) = nlt
+          inds(ltt) = nltt
+
+          Daux = Shat(0,inds(1),inds(2),inds(3),k) 
+
+          Dexpgpf(1,inds0(1),inds0(2),inds0(3),0) = Daux/(2*(nl+1))
+
+          maxDexpgpf(1,r,0) =  maxDexpgpf(1,r,0) + abs(Dexpgpf(1,inds0(1),inds0(2),inds0(3),0) )
+
+!          if (r+2.le.rmax) then          !  for fixed rank
+          if (r+1.le.rmax) then
+            D(1,inds0(1),inds0(2),inds0(3)) = Dexpgpf(1,inds0(1),inds0(2),inds0(3),0)
+          end if
+      
+
+
+        end do
+      end do
+
+      ! calculate D_ijkl.. exploiting eq. (5.72)
+      maxDexpgpf(0,r,0)=0d0
+      do n1=0,r
+        do n2=0,r-n1
+          n3 = r-n1-n2
+
+          Daux = 2d0*(4+r+r)*Dexpgpf(1,n1,n2,n3,0) - 4*DuvExpgpf(1,n1,n2,n3)  &
+            - 2*C_0(0,n1,n2,n3)
+
+#ifdef Dgpftest
+          if(n1.eq.0.and.n2.eq.2.and.n3.eq.0)then
+            write(*,*) 'CalcDgpf 0 Daux',Daux
+          endif
+#endif
+
+          Dexpgpf(0,n1,n2,n3,0) = Daux/(2d0*m02)
+
+#ifdef Dgpftest
+          if(n1.eq.1.and.n2.eq.1.and.n3.eq.1)then
+            write(*,*) 'CalcDgpf D_0',r,Dexpgpf(0,n1,n2,n3,0) 
+          endif
+#endif
+
+          maxDexpgpf(0,r,0) =  maxDexpgpf(0,r,0) + abs(Dexpgpf(0,n1,n2,n3,0))
+          if (r.le.rmax) then
+            D(0,n1,n2,n3) = Dexpgpf(0,n1,n2,n3,0)
+!            Derr(r) =  abs(maxZadjf/maxXadj*Dexpgpf(0,n1,n2,n3,0))
+          end if
+      
+        end do
+      end do
+
+      if (r.le.rmax) then
+!       Derr(r) =  abs(maxZadjf/Xadj(a,b))*maxDexpgpf(0,r,0)
+        Derr(r) =  fac_gpf*maxDexpgpf(0,r,0)
+      endif
+
+      ! error propagation from C's
+      D00_err(r+2) = Cij_err(r+1)/2d0 
+      Dij_err(r)=1d0/abs(m02)*max((2*r+4)*D00_err(r+2),Cerr_i(r,0))
+
+      D00_err2(r+2) = Cij_err2(r+1)/2d0 
+      Dij_err2(r)=1d0/abs(m02)*max((2*r+4)*D00_err2(r+2),Cerr2_i(r,0))
+      
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      ! higher order coefficients
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      rg = r
+      gloop: do g=1,min(gtrunc,r/2)
+        rg = rg-2
+
+        ! calculating D_00ijk.. exploiting eq. (5.71)
+        maxDexpgpf(1,rg,g) = 0d0
+        do nl=rg,0,-1
+          do nlt=rg-nl,0,-1
+            nltt = rg-nl-nlt
+            inds0(l) = nl
+            inds0(lt) = nlt
+            inds0(ltt) = nltt
+
+            inds = inds0
+            inds(l) = inds(l)+1
+            Daux = -f(k)*Dexpgpf(0,inds(1),inds(2),inds(3),g-1)
+
+            inds(l) = inds(l)+1
+            Daux = Daux - Z(k,l)*Dexpgpf(0,inds(1),inds(2),inds(3),g-1)
+
+            inds(l) =  inds(l)-1
+            inds(lt) =  inds(lt)+1
+            Daux = Daux - Z(k,lt)*Dexpgpf(0,inds(1),inds(2),inds(3),g-1)
+
+            inds(lt) =  inds(lt)-1
+            inds(ltt) =  inds(ltt)+1
+            Daux = Daux - Z(k,ltt)*Dexpgpf(0,inds(1),inds(2),inds(3),g-1)
+
+            Dexpgpf(1,inds0(1),inds0(2),inds0(3),g) = Daux/(2*(nl+1))
+
+            maxDexpgpf(1,rg,g) =  maxDexpgpf(1,rg,g) + abs(Dexpgpf(1,inds0(1),inds0(2),inds0(3),g) )
+!            if (rg+2.le.rmax) then
+!              D(1,inds0(1),inds0(2),inds0(3)) = D(1,inds0(1),inds0(2),inds0(3))  &
+!                                              + Dexpgpf(1,inds0(1),inds0(2),inds0(3),g)
+!            end if
+ 
+            
+            if (g.eq.1.and.abs(Dexpgpf(1,inds0(1),inds0(2),inds0(3),g)).gt.   &
+                1d1*truncfacexp*max(1/m2scale,maxDexpgpf(1,rg,g-1)) .or.      &
+                g.ge.2.and.abs(Dexpgpf(1,inds0(1),inds0(2),inds0(3),g)).gt.   &
+                truncfacexp*maxDexpgpf(1,rg,g-1)) then
+
+#ifdef Dgpftest
+                write(*,*) 'CalcDgpf exit gloop',1,inds0(1),inds0(2),inds0(3),g, &
+                abs(Dexpgpf(1,inds0(1),inds0(2),inds0(3),g)),abs(Dexpgpf(1,inds0(1),inds0(2),inds0(3),g-1)),maxDexpgpf(1,rg,g-1)
+#endif
+
+                gtrunc = g-1
+                exit gloop
+!               gtrunc = g
+!               cycle gloop               ! worsens results for Dgy ??
+              end if
+       
+          end do
+        end do
+
+#ifndef PPEXP00
+!          if (rg+2.le.rmax) then        ! for fixed rank
+        if (rg+1.le.rmax) then
+          do n1=0,rg
+            do n2=0,rg-n1
+              n3=rg-n1-n2
+              D(1,n1,n2,n3) = D(1,n1,n2,n3) + Dexpgpf(1,n1,n2,n3,g)
+            end do
+          end do
+        end if
+#endif
+
+        ! calculate D_ijkl.. exploiting eq. (5.72)
+        maxDexpgpf(0,rg,g) = 0d0
+        do n1=0,rg
+          do n2=0,rg-n1
+            n3 = rg-n1-n2
+      
+            inds(1) = n1
+            inds(2) = n2
+            inds(3) = n3
+            Daux = 2*(4+rg+rg)*Dexpgpf(1,n1,n2,n3,g)
+
+            do i=1,3
+            do j=1,3
+              inds(i)=inds(i)+1
+              inds(j)=inds(j)+1 
+              Daux = Daux + Z(i,j)*Dexpgpf(0,inds(1),inds(2),inds(3),g-1)
+              inds(i)=inds(i)-1
+              inds(j)=inds(j)-1  
+            end do
+            end do
+
+            Dexpgpf(0,n1,n2,n3,g) = Daux/(2*m02)
+
+            maxDexpgpf(0,rg,g) =  maxDexpgpf(0,rg,g) + abs(Dexpgpf(0,n1,n2,n3,g))
+
+!            if (rg.le.rmax) then
+!              D(0,n1,n2,n3) = D(0,n1,n2,n3) + Dexpgpf(0,n1,n2,n3,g)
+!            end if
+
+            if (g.eq.1.and.abs(Dexpgpf(0,n1,n2,n3,g)).gt.               &
+                truncfacexp*max(1/m2scale**2,maxDexpgpf(0,rg,g-1)) .or. &
+                g.ge.2.and.abs(Dexpgpf(0,n1,n2,n3,g)).gt.               &
+                truncfacexp*maxDexpgpf(0,rg,g-1)) then
+
+#ifdef Dgpftest
+            write(*,*) 'CalcDgpf exit gloop',n1,n2,n3,g,abs(Dexpgpf(0,n1,n2,n3,g)),abs(Dexpgpf(0,n1,n2,n3,g-1)),maxDexpgpf(0,rg,g-1)
+#endif
+
+              gtrunc = g-1
+              exit gloop
+!             gtrunc = g
+!             cycle gloop
+            end if
+
+          end do
+        end do
+
+        ! error propagation from C's
+        if(rg.gt.1)then
+          D00_err(rg+2) = max(D00_err(rg+2),                  &
+                              fmax/2d0*Dij_err(rg+1),         &
+                              maxZ/2d0*Dij_err(rg+2))
+        end if
+        Dij_err(rg)=max(Dij_err(rg),maxZ/(2*abs(m02))*Dij_err(rg+2), &
+               (2*rg+4)/abs(m02)*D00_err(rg+2))
+
+        if(rg.gt.1)then
+          D00_err2(rg+2) = max(D00_err2(rg+2),                     &
+                              fmax/2d0*Dij_err2(rg+1),     &
+                              maxZ/2d0*Dij_err2(rg+2))
+        end if
+        Dij_err2(rg)=max(Dij_err2(rg),maxZ/(2*abs(m02))*Dij_err2(rg+2), &
+               (2*rg+4)/abs(m02)*D00_err2(rg+2))
+
+#ifdef PPEXP00
+        if (rg+2.le.rmax) then
+          do n1=0,rg
+            do n2=0,rg-n1
+              n3=rg-n1-n2
+              D(1,n1,n2,n3) = D(1,n1,n2,n3) + Dexpgpf(1,n1,n2,n3,g)
+            end do
+          end do
+        end if
+#endif
+
+        if (rg.le.rmax) then
+          Derr(rg) = 0d0
+          do n1=0,rg
+            do n2=0,rg-n1
+              n3 = rg-n1-n2
+              D(0,n1,n2,n3) = D(0,n1,n2,n3) + Dexpgpf(0,n1,n2,n3,g)
+              if(abs(Dexpgpf(0,n1,n2,n3,g-1)).ne.0d0) then
+                Derr(rg)=max(Derr(rg),abs(Dexpgpf(0,n1,n2,n3,g))*min(1d0,abs(Dexpgpf(0,n1,n2,n3,g))/abs(Dexpgpf(0,n1,n2,n3,g-1))))
+              else
+                Derr(rg)=max(Derr(rg),abs(Dexpgpf(0,n1,n2,n3,g)))
+              endif
+
+#ifdef Dgpftest
+!              write(*,*) 'CalcDgpf Derr calc',rg,Derr(rg),n1,n2,n3,g,abs(Dexpgpf(0,n1,n2,n3,g)),abs(Dexpgpf(0,n1,n2,n3,g-1))
+#endif
+
+            end do
+          end do
+
+          ! if error from C's larger than error from expansion stop expansion
+          ! allow for one more term, as each step involves only even or odd ranks
+#ifdef PVEST2
+          if(Dij_err2(rg).gt.3d0*Derr(rg)) then
+#else
+          if(Dij_err(rg).gt.3d0*Derr(rg)) then
+#endif
+            gtrunc = min(g,gtrunc)
+!           gtrunc = min(g+1,gtrunc)
+             
+#ifdef Dgpftest
+            write(*,*) 'CalcDgpf exit err',rg,g,gtrunc
+            write(*,*) 'CalcDgpf exit err',Dij_err(rg),Derr(rg)
+#endif
+          end if
+
+        end if
+
+      end do gloop
+
+#ifdef Dgpftest
+
+      write(*,*) 'CalcDgpf D(1,0,0,0)',r,D(1,0,0,0)
+      write(*,*) 'CalcDgpf D(0,0,0,0)',r,D(0,0,0,0)
+      write(*,*) 'CalcDgpf D(0,0,0,1)',r,D(0,0,0,1)
+      if (r.ge.2.and.rmax.ge.2) then
+      write(*,*) 'CalcDgpf D(0,0,0,2)',r,D(0,0,0,2)
+      endif
+      if (r.ge.3.and.rmax.ge.3)then
+      write(*,*) 'CalcDgpf D(1,0,0,1)',r,D(1,0,0,1)
+      write(*,*) 'CalcDgpf D(0,1,0,2)',r,D(0,1,0,2)
+      write(*,*) 'CalcDgpf D(0,0,0,3)',r,D(0,0,0,3)
+      write(*,*) 'CalcDgpf D(0,1,1,1)',r,D(0,1,1,1)
+      write(*,*) 'CalcDgpf D(0,2,1,0)',r,D(0,2,1,0)
+      endif
+
+      write(*,*) 'CalcDgpf Dij_err',r,Dij_err
+      write(*,*) 'CalcDgpf Dij_acc',r,Dij_err/abs(D(0,0,0,0))
+
+      write(*,*) 'CalcDgpf err',r,g,Derr
+      write(*,*) 'CalcDgpf acc',r,g,Derr/abs(D(0,0,0,0))
+#endif
+
+      Derr2 = max(Derr,Dij_err2(0:rmax))
+      Derr = max(Derr,Dij_err(0:rmax))
+
+!     if(maxval(Derr).le.acc_req_D*abs(D(0,0,0,0))) exit     ! changed 28.01.15
+      ! check if target precision already reached
+#ifdef Cutrloop
+      if(maxval(Derr-acc_req_D*abs(D(0,0,0,0))).le.0d0) then
+        if (r.lt.rmax) then
+          do rg=r+1,rmax
+            do n1=0,rg
+              do n2=0,rg-n1
+                D(0,n1,n2,rg-n1-n2)=0d0
+              end do
+            end do
+          end do
+          do rg=r+1,rmax
+            do n1=0,rg-2
+              do n2=0,rg-2-n1
+                D(1,n1,n2,rg-2-n1-n2)=0d0
+              end do
+            end do
+          end do
+          
+100       format(((a)))
+111       format(a22,2('(',g24.17,',',g24.17,') ':))
+          call SetErrFlag_coli(-5)
+          call ErrOut_coli('CalcDgpf',' exit rloop for D', &
+          errorwriteflag)
+          if (errorwriteflag) then
+            write(nerrout_coli,100)' CalcDgpf:  exit rloop for D ', &
+            '    should not appear'
+            write(nerrout_coli,111)' CalcDgpf: p10 = ',p10
+            write(nerrout_coli,111)' CalcDgpf: p21 = ',p21
+            write(nerrout_coli,111)' CalcDgpf: p32 = ',p32
+            write(nerrout_coli,111)' CalcDgpf: p30 = ',p30
+            write(nerrout_coli,111)' CalcDgpf: p20 = ',p20
+            write(nerrout_coli,111)' CalcDgpf: p31 = ',p31
+            write(nerrout_coli,111)' CalcDgpf: m02 = ',m02
+            write(nerrout_coli,111)' CalcDgpf: m12 = ',m12
+            write(nerrout_coli,111)' CalcDgpf: m22 = ',m22
+            write(nerrout_coli,111)' CalcDgpf: m32 = ',m32
+          end if
+        end if
+ 
+#else
+      if(maxval(Derr-acc_req_D*abs(D(0,0,0,0))).le.0d0.and.r.ge.rmax) then
+#endif
+
+        exit rloop
+
+      end if
+
+    end do rloop
+
+
+    ! calculating D_0000ijk.. exploiting eq. (5.71)
+    do r=4,rmax+1                 !  includes rmax+1  24.01.16
+      do n0=2,max(rmax,r/2)       !  includes rmax+1  24.01.16
+        do nl=r-2*n0,0,-1
+          do nlt=r-2*n0-nl,0,-1
+            nltt = r-2*n0-nl-nlt
+            inds0(l) = nl
+            inds0(lt) = nlt
+            inds0(ltt) = nltt
+
+            inds(l) = nl+1
+            inds(lt) = nlt
+            inds(ltt) = nltt
+            Daux = Shat(n0-1,inds(1),inds(2),inds(3),k)            &
+                 - f(k)*D(n0-1,inds(1),inds(2),inds(3))            &
+                 - Z(k,1)*D(n0-1,inds(1)+1,inds(2),inds(3))        &
+                 - Z(k,2)*D(n0-1,inds(1),inds(2)+1,inds(3))        &  
+                 - Z(k,3)*D(n0-1,inds(1),inds(2),inds(3)+1)
+
+            D(n0,inds0(1),inds0(2),inds0(3)) = Daux/(2*(nl+1))
+
+          end do
+        end do
+      end do
+    end do
+
+    ! reduction formula (5.10) for n0+n1+n2+N3=r, n0=1 only!!!!!! 
+    ! already calculated for rmax+1 with extension of 24.01.16 above
+!    do r=rmax+1,2*rmax
+#ifdef notneeded
+    do r=rmax+1,rmax+1
+      do n0=r-rmax,r/2
+        do n1=0,r-2*n0
+          do n2=0,r-2*n0-n1
+            n3 = r-2*n0-n1-n2
+
+            write(*,*) 'CalcDgpf exp rmax+1',r,n0,n1,n2,n3, D(n0,n1,n2,n3)
+
+            D(n0,n1,n2,n3) = (C_0(n0-1,n1,n2,n3) + 2*mm02*D(n0-1,n1,n2,n3)  &
+                + 4*Duv(n0,n1,n2,n3)  &
+                + f(1)*D(n0-1,n1+1,n2,n3) + f(2)*D(n0-1,n1,n2+1,n3)  &
+                + f(3)*D(n0-1,n1,n2,n3+1)) / (2*(r-1)) 
+
+            write(*,*) 'CalcDgpf dir rmax+1',r,n0,n1,n2,n3, D(n0,n1,n2,n3)
+
+          end do
+        end do
+      end do
+    end do
+#endif
+
+#ifdef Dgpftest
+      if(rmax.ge.2) then
+      write(*,*) 'CalcDgpf D(1,0,0,0) fin',D(1,0,0,0)
+      write(*,*) 'CalcDgpf D(0,0,0,2) fin',D(0,0,0,2)
+      if(rmax.ge.3) then
+      write(*,*) 'CalcDgpf D(1,0,1,0) fin',D(1,0,1,0)
+      write(*,*) 'CalcDgpf D(0,1,1,1) fin',D(0,1,1,1)
+      endif
+      endif
+
+    write(*,*) 'CalcDgpf final err',Derr
+    write(*,*) 'CalcDgpf final acc',Derr/abs(D(0,0,0,0))
+#endif
+
+!    write(*,*) 'CalcDgpf Derr ',Derr
+!    write(*,*) 'CalcDgpf Derr2',Derr2
+
+  end subroutine CalcDgpf
+
+
+
+
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !  subroutine CopyDimp3(D,D_alt,Derr,Derr_alt,Derr1,Derr1_alt,Derr2,Derr2_alt,Drmethod,Drmethod_alt,rmax)
@@ -8974,3 +9850,4 @@ contains
 
 
 end module reductionD
+

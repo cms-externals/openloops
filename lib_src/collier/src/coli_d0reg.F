@@ -7,7 +7,7 @@
 !!  COLLIER is licenced under the GNU GPL version 3, see COPYING for details.
 !!
 
-
+#include "global_coli.h"
 
 c#define WRITERP
 c#define WRITESD
@@ -705,10 +705,15 @@ c#define WRITESTD
       enddo
 
       call setErrFlag_coli(-10)
-      call ErrOut_coli('D0comb_coli',' no viable case found',
-     &    errorwriteflag)
+      call ErrOut_coli('D0comb_coli',' INCONSISTENT INPUT: '//
+     &                  'no viable case found'
+     &    ,errorwriteflag)
       if (errorwriteflag) then
-        write(nerrout_coli,*) 'D0comb_coli: no viable case found'
+        write(nerrout_coli,*) 'D0comb_coli: INCONSISTENT INPUT: '
+        write(nerrout_coli,'(14x,(a))')
+     &  'make sure that momentum invariants that correspond to'
+        write(nerrout_coli,'(14x,(a))')
+     &  'squared external masses assume their exact numerical value!'
         write(nerrout_coli,111)' D0comb_coli: p12 = ',p12
         write(nerrout_coli,111)' D0comb_coli: p23 = ',p23
         write(nerrout_coli,111)' D0comb_coli: p34 = ',p34

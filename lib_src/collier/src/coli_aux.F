@@ -7,7 +7,7 @@
 !!  COLLIER is licenced under the GNU GPL version 3, see COPYING for details.
 !!
 
-
+#include "global_coli.h"
 
 c#define WIB
 
@@ -341,7 +341,7 @@ c     sym = 0
       implicit   none
       complex*16 cspenh_coli,cln_coli,cz,x,x2
       real*8     eps
-      real*8 b(11)/
+      real*8 :: b(11) = (/
      1   0.1666666666666666666666666667d0,
      2  -0.0333333333333333333333333333d0,
      3   0.0238095238095238095238095238d0,
@@ -352,7 +352,7 @@ c     sym = 0
      8  -7.0921568627450980392156862745d0,
      9  54.97117794486215538847117794486d0,
      +  -529.124242424242424242424242424242d0,
-     1  6192.123188405797101449275362318d0  /
+     1  6192.123188405797101449275362318d0  /)
 c     note:                 b(n)=b2n
 c     b(1)=1./6.
 c     b(2)=-1./30.

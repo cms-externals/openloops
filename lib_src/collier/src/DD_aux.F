@@ -212,7 +212,8 @@ C       20.07.83    LAST CHANGED 10.05.89        ANSGAR DENNER        C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         COMPLEX*16 cspen_dd,W,SUM,Z,U                                     
         REAL*8 RZ,AZ,A1                                                
-        REAL*8 B(9)/                                                   
+c        REAL*8 B(9)/                                                   
+        REAL*8 :: B(9) = (/
      1   0.1666666666666666666666666667D0,                             
      2  -0.0333333333333333333333333333D0,                             
      3   0.0238095238095238095238095238D0,                             
@@ -221,7 +222,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
      6  -0.2531135531135531135531135531D0,                             
      7   1.1666666666666666666666666667D0,                             
      8  -7.09215686274509804D0         ,                               
-     9  54.97117794486215539D0         /                               
+     9  54.97117794486215539D0         /)
+c     9  54.97117794486215539D0         /                               
 C     BEACHTE:                 B(N)=B2N                                
 C     B(1)=1./6.                                                       
 C     B(2)=-1./30.                                                     
@@ -244,7 +246,7 @@ C
 C     IF((SNGL(RZ) .EQ. 0.0) .AND. (SNGL(DIMAG(Z)) .EQ. 0.0)) THEN     
 C ---> CHANGED  10.5.89                                                
       IF(AZ .LT. 1D-20) THEN                                           
-        cspen_dd=-CDLOG(1D0-Z)                                            
+        cspen_dd=-log(1D0-Z)                                            
         RETURN                                                         
       END IF                                                           
 c      IF((SNGL(RZ) .EQ. 1.0) .AND. (SNGL(DIMAG(Z)) .EQ. 0.0)) THEN     
@@ -255,52 +257,52 @@ c ---> changed 5.7.94
       END IF                                                           
       IF(RZ.GT.5D-1) GOTO 20                                           
       IF(AZ.GT.1D0) GOTO 10                                            
-      W=-CDLOG(1D0-Z)                                                  
+      W=-log(1D0-Z)                                                  
       SUM=W-0.25D0*W*W                                                 
       U=W                                                              
       IF(CDABS(U).LT.1D-10) GOTO 2                                     
       DO 1 K=1,9                                                       
-      U=U*W*W/DFLOAT(2*K*(2*K+1))                                      
+      U=U*W*W/dble(2*K*(2*K+1))                                      
       IF(CDABS(U*B(K)/SUM).LT.1D-20) GOTO 2                            
       SUM=SUM+U*B(K)                                                   
  1    CONTINUE                                                         
  2    cspen_dd=SUM                                                        
       RETURN                                                           
-10    W=-CDLOG(1D0-1D0/Z)                                              
+10    W=-log(1D0-1D0/Z)                                              
       SUM=W-0.25D0*W*W                                                 
       U=W                                                              
       IF(CDABS(U).LT.1D-10) GOTO 12                                    
                                                                        
       DO 11 K=1,9                                                      
-      U=U*W*W/DFLOAT(2*K*(2*K+1))                                      
+      U=U*W*W/dble(2*K*(2*K+1))                                      
       IF(CDABS(B(K)*U/SUM).LT.1D-20) GOTO 12                           
       SUM=SUM+U*B(K)                                                   
 11    CONTINUE                                                         
-12    cspen_dd=-SUM-1.64493406684822643D0-.5D0*CDLOG(-Z)**2               
+12    cspen_dd=-SUM-1.64493406684822643D0-.5D0*log(-Z)**2               
       RETURN                                                           
 20    IF(A1.GT.1D0) GOTO 30                                            
-      W=-CDLOG(Z)                                                      
+      W=-log(Z)                                                      
       SUM=W-0.25D0*W*W                                                 
       U=W                                                              
       IF(CDABS(U).LT.1D-10) GOTO 22                                    
       DO 21 K=1,9                                                      
-      U=U*W*W/DFLOAT(2*K*(2*K+1))                                      
+      U=U*W*W/dble(2*K*(2*K+1))                                      
       IF(CDABS(U*B(K)/SUM).LT.1D-20) GOTO 22                           
       SUM=SUM+U*B(K)                                                   
 21    CONTINUE                                                         
-22    cspen_dd=-SUM+1.64493406684822643D0-CDLOG(Z)*CDLOG(1D0-Z)           
+22    cspen_dd=-SUM+1.64493406684822643D0-log(Z)*log(1D0-Z)           
       RETURN                                                           
-30    W=CDLOG(1D0-1D0/Z)                                               
+30    W=log(1D0-1D0/Z)                                               
       SUM=W-0.25D0*W*W                                                 
       U=W                                                              
       IF(CDABS(U).LT.1D-10) GOTO 32                                    
       DO 31 K=1,9                                                      
-      U=U*W*W/DFLOAT(2*K*(2*K+1))                                      
+      U=U*W*W/dble(2*K*(2*K+1))                                      
       IF(CDABS(U*B(K)/SUM).LT.1D-20) GOTO 32                           
       SUM=SUM+U*B(K)                                                   
 31    CONTINUE                                                         
 32    cspen_dd=SUM+3.28986813369645287D0                                  
-     *               +.5D0*CDLOG(Z-1D0)**2-CDLOG(Z)*CDLOG(1D0-Z)       
+     *               +.5D0*log(Z-1D0)**2-log(Z)*log(1D0-Z)       
         END                                                            
 
 ***********************************************************************

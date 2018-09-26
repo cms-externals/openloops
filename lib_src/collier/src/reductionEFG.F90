@@ -393,22 +393,7 @@ contains
     end do
 
     ! for alternative error estimate
-    Z(1,1) = 2d0*q10
-    Z(2,1) = q10+q20-q21
-    Z(3,1) = q10+q30-q31
-    Z(4,1) = q10+q40-q41
-    Z(1,2) = Z(2,1)
-    Z(1,3) = Z(3,1)
-    Z(1,4) = Z(4,1)
-    Z(2,2) = 2d0*q20
-    Z(3,2) = q20+q30-q32
-    Z(4,2) = q20+q40-q42
-    Z(2,3) = Z(3,2)
-    Z(2,4) = Z(4,2)
-    Z(3,3) = 2d0*q30
-    Z(4,3) = q30+q40-q43
-    Z(3,4) = Z(4,3)
-    Z(4,4) = 2d0*q40
+    Z(1:4,1:4) = mx(1:4,1:4)
 
     zmxinv = matmul(z,mxinv(1:4,0:4)) 
 
@@ -454,14 +439,21 @@ contains
       end do
     end do
 
+!    write(*,*) 'CalcEred E0', -mxinv(0,0) -mxinv(1,0)  -mxinv(2,0) -mxinv(3,0)-mxinv(4,0)
+!    write(*,*) 'CalcEred E0', -mxinvs(0)
+!    write(*,*) 'CalcEred E0', -mxinvs(0)+mxinv(0,0),mxinv(0,0)
 
     ! scalar coefficient
     if (r0.eq.0) then
       E = 0d0
-      E(0,0,0,0,0) = -mxinv(0,0)*D_0(0,0,0,0,0)
+!      E(0,0,0,0,0) = -mxinv(0,0)*D_0(0,0,0,0,0)
+!      do k=1,4
+!        E(0,0,0,0,0) = E(0,0,0,0,0) &
+!           + mxinv(k,0)*(D_i(0,0,0,0,k)-D_0(0,0,0,0,0))
+!      end do
+      E(0,0,0,0,0) = -mxinvs(0)*D_0(0,0,0,0,0)
       do k=1,4
-        E(0,0,0,0,0) = E(0,0,0,0,0) &
-           + mxinv(k,0)*(D_i(0,0,0,0,k)-D_0(0,0,0,0,0))
+        E(0,0,0,0,0) = E(0,0,0,0,0) + mxinv(k,0)*D_i(0,0,0,0,k)
       end do
     end if
 
@@ -477,6 +469,11 @@ contains
                    abs(mxinv(3,0))*Derr2(3,0) , &
                    abs(mxinv(4,0))*Derr2(4,0) )
 
+!    do k=1,4
+!    write(*,*) 'CalcEred En', -mxinv(0,k) -mxinv(1,k)  -mxinv(2,k) -mxinv(3,k)-mxinv(4,k)
+!    write(*,*) 'CalcEred En', -mxinvs(k)
+!    end do
+
     ! formula (6.12) and (6.13)
     do r=r0,rmax
       do n0=0,r/2
@@ -487,7 +484,8 @@ contains
             
               if (n0.gt.0.or.r.le.rmax-1) then
                 do n=0,4
-                  S(n) = -D_0(n0,n1,n2,n3,n4)
+!                  S(n) = -D_0(n0,n1,n2,n3,n4)
+                  S(n) = 0d0
                 end do
               endif
 
@@ -579,6 +577,7 @@ contains
                 do k=1,4
                   Eaux(k) = mxinv(0,k)*S(0)+mxinv(1,k)*S(1)+mxinv(2,k)*S(2) &
                           + mxinv(3,k)*S(3)+mxinv(4,k)*S(4) &
+                          - mxinvs(k) * D_0(n0,n1,n2,n3,n4) &
                           + ((mxinv(1,k)*mxinv(2,0)-mxinv(2,k)*mxinv(1,0))*(S2(1,2)-S2(2,1)) &
                           +  (mxinv(1,k)*mxinv(3,0)-mxinv(3,k)*mxinv(1,0))*(S2(1,3)-S2(3,1)) &
                           +  (mxinv(1,k)*mxinv(4,0)-mxinv(4,k)*mxinv(1,0))*(S2(1,4)-S2(4,1)) &
@@ -596,7 +595,9 @@ contains
 
               if (n0.ge.1) then
                 Eaux2 = mxinv(1,0)*S(1)+mxinv(2,0)*S(2) &
-                      + mxinv(3,0)*S(3)+mxinv(4,0)*S(4)
+                      + mxinv(3,0)*S(3)+mxinv(4,0)*S(4) &
+                      - (mxinvs(0)-mxinv(0,0)) * D_0(n0,n1,n2,n3,n4) 
+                      
                 E(n0,n1,n2,n3,n4) = E(n0,n1,n2,n3,n4) + 2*n0*Eaux2/r
               end if
 
@@ -618,7 +619,13 @@ contains
                    abs(maxzmxinv(3))*Derr2(3,r) , &
                    abs(maxzmxinv(4))*Derr2(4,r) ) /maxZ
 
+!        write(*,*) 'CalcEred   s  ', maxval(abs(mxinvs(1:4)))
+!        write(*,*) 'CalcEred   1  ', maxval(abs(mxinv(1,1:4)))
+!        write(*,*) 'CalcEred   2  ', maxval(abs(mxinv(2,1:4)))
+!        write(*,*) 'CalcEred   3  ', maxval(abs(mxinv(3,1:4)))
+!        write(*,*) 'CalcEred   4  ', maxval(abs(mxinv(4,1:4)))
 !        write(*,*) 'CalcEred err ',r,Eerr(r+1)
+!        if (r.gt.0) write(*,*) 'CalcEred err ',1,Eerr(2)
 !        write(*,*) 'CalcEred err ',Derr(0:4,r)
 !        write(*,*) 'CalcEred err2',r,Eerr2(r+1)
 !        write(*,*) 'CalcEred err2',Derr2(0:4,r)
@@ -1096,31 +1103,7 @@ contains
     end do
 
     ! for alternative error estimate
-    Z(1,1) = 2d0*q10
-    Z(2,1) = q10+q20-q21
-    Z(3,1) = q10+q30-q31
-    Z(4,1) = q10+q40-q41
-    Z(5,1) = q10+q50-q51
-    Z(1,2) = Z(2,1)
-    Z(1,3) = Z(3,1)
-    Z(1,4) = Z(4,1)
-    Z(1,5) = Z(5,1)
-    Z(2,2) = 2d0*q20
-    Z(3,2) = q20+q30-q32
-    Z(4,2) = q20+q40-q42
-    Z(5,2) = q20+q50-q52
-    Z(2,3) = Z(3,2)
-    Z(2,4) = Z(4,2)
-    Z(2,5) = Z(5,2)
-    Z(3,3) = 2d0*q30
-    Z(4,3) = q30+q40-q43
-    Z(5,3) = q30+q50-q53
-    Z(3,4) = Z(4,3)
-    Z(3,5) = Z(5,3)
-    Z(4,4) = 2d0*q40
-    Z(5,4) = q40+q50-q54
-    Z(4,5) = Z(5,4)
-    Z(5,5) = 2d0*q50
+    Z(1:5,1:5) = mx(1:5,1:5)
 
     zmx0kinv = matmul(z,mx0kinv) 
 
@@ -1842,31 +1825,7 @@ contains
     end do
 
     ! for alternative error estimate
-    Z(1,1) = 2d0*q10
-    Z(2,1) = q10+q20-q21
-    Z(3,1) = q10+q30-q31
-    Z(4,1) = q10+q40-q41
-    Z(5,1) = q10+q50-q51
-    Z(1,2) = Z(2,1)
-    Z(1,3) = Z(3,1)
-    Z(1,4) = Z(4,1)
-    Z(1,5) = Z(5,1)
-    Z(2,2) = 2d0*q20
-    Z(3,2) = q20+q30-q32
-    Z(4,2) = q20+q40-q42
-    Z(5,2) = q20+q50-q52
-    Z(2,3) = Z(3,2)
-    Z(2,4) = Z(4,2)
-    Z(2,5) = Z(5,2)
-    Z(3,3) = 2d0*q30
-    Z(4,3) = q30+q40-q43
-    Z(5,3) = q30+q50-q53
-    Z(3,4) = Z(4,3)
-    Z(3,5) = Z(5,3)
-    Z(4,4) = 2d0*q40
-    Z(5,4) = q40+q50-q54
-    Z(4,5) = Z(5,4)
-    Z(5,5) = 2d0*q50
+    Z(1:5,1:5) = mx(1:5,1:5)
 
     zmx0kinv = matmul(z,mx0kinv) 
 

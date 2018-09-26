@@ -1,29 +1,31 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-#
-# This file is part of OpenLoops.
-#
-# OpenLoops is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# OpenLoops is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+#!******************************************************************************!
+#! Copyright (C) 2014-2018 OpenLoops Collaboration. For authors see authors.txt !
+#!                                                                              !
+#! This file is part of OpenLoops.                                              !
+#!                                                                              !
+#! OpenLoops is free software: you can redistribute it and/or modify            !
+#! it under the terms of the GNU General Public License as published by         !
+#! the Free Software Foundation, either version 3 of the License, or            !
+#! (at your option) any later version.                                          !
+#!                                                                              !
+#! OpenLoops is distributed in the hope that it will be useful,                 !
+#! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+#! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+#! GNU General Public License for more details.                                 !
+#!                                                                              !
+#! You should have received a copy of the GNU General Public License            !
+#! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+#!******************************************************************************!
 
 
+from __future__ import print_function
 import os
 import sys
 import shutil
-import urllib2
-import optparse
+import argparse
 import time
 import hashlib
 
@@ -33,37 +35,31 @@ sys.path.insert(0, os.path.abspath(os.path.join('pyol', 'tools')))
 import OLBaseConfig
 import OLToolbox
 
+if sys.version_info < (3,0,0):
+    from urllib2 import urlopen, HTTPError
+else:
+    from urllib.request import urlopen
+    from urllib.error import HTTPError
+
 commandline_options = [arg.split('=',1) for arg in sys.argv[1:] if ('=' in arg and not arg.startswith('-'))]
 config = OLBaseConfig.get_config(commandline_options)
 
-#import argparse
-#parser = argparse.ArgumentParser(
-    #description="""Download process code from a web server if a newer version
-                   #is available which is compatible with the installed
-                   #OpenLoops version.""")
-#parser.add_argument('processes', metavar='proc', nargs='*',
-                    #help="""process to download,
-                            #treated as a collection if it ends with '/'.""")
-#parser.add_argument('-i', '--ignore', action='store_true',
-                    #help='ignore non-existing processes and collections')
-#parser.add_argument('-f', '--force', action='store_true',
-                    #help='force download')
-#args = parser.parse_args()
-
-parser = optparse.OptionParser(
-    usage='%prog [options] proc [proc ...]',
+parser = argparse.ArgumentParser(
     description="""Download process code from a web server if a newer version
-                is available which is compatible with the installed
-                OpenLoops version. Positional argument(s) proc: process(es)
-                to download, treated as a collection if it ends with '/'.""")
-parser.add_option('-i', '--ignore', action='store_true', default=False,
-                  help='ignore non-existing processes and collections')
-parser.add_option('-f', '--force', action='store_true', default=False,
-                  help='force download')
-(args, procs) = parser.parse_args(
+                   is available which is compatible with the installed
+                   OpenLoops version.""")
+parser.add_argument('processes', metavar='proc', nargs='*',
+                    help="""process to download,
+                            treated as a collection if it ends with '/'.""")
+parser.add_argument('-i', '--ignore', action='store_true',
+                    help='ignore non-existing processes and collections')
+parser.add_argument('-f', '--force', action='store_true',
+                    help='force download')
+args = parser.parse_args(
     [arg for arg in sys.argv[1:] if (arg.startswith('-') or '=' not in arg)])
+procs = args.processes
 
-print '\n>>> OpenLoops Process Downloader <<<\n'
+print('\n>>> OpenLoops Process Downloader <<<\n')
 
 # collection notation: trailing slash or extension '.coll'
 process_list = set([proc for proc in procs
@@ -91,7 +87,7 @@ if sys.version_info[:2] < (2,5):
         import subprocess
         if subprocess.call(['tar', '-xzf', archive, '--overwrite',
                             '--directory=' + destinationpath]) != 0:
-            print 'ERROR in untar: process archive extraction failed.'
+            print('ERROR in untar: process archive extraction failed.')
             sys.exit(1)
 else:
     def untar(archive, destinationpath):
@@ -113,10 +109,13 @@ def update_channel_db(repo):
     else:
         local_hash = None
     try:
-        rfh = urllib2.urlopen(remote_channel_url)
-    except urllib2.HTTPError:
-        print ('*** Channel database update for repository ' + repo_name +
-               ' failed ***')
+        if remote_channel_url.startswith('/'):
+            rfh = open(remote_channel_url, 'r')
+        else:
+            rfh = urlopen(remote_channel_url)
+    except HTTPError:
+        print('*** Channel database update for repository ' + repo_name +
+              ' failed ***')
         sys.exit(1)
     hash_line = rfh.readline()
     if local_hash != hash_line.split()[0]:
@@ -132,10 +131,10 @@ def update_channel_db(repo):
         local_hash = local_hash.hexdigest()
         if local_hash == hash_line.split()[0]:
             os.rename(tmp_file, local_channel_file)
-            print 'updated channel database for repository', repo_name
+            print('updated channel database for repository', repo_name)
         else:
-            print ('ERROR: downloaded channel database inconsistent ' +
-                   'for repository ' + repo_name)
+            print('ERROR: downloaded channel database inconsistent ' +
+                  'for repository ' + repo_name)
             sys.exit(1)
     rfh.close()
 
@@ -147,7 +146,7 @@ def download(process, dbs):
     # - the version of the installed process (if any)
     #   differs from the version available on the server;
     # - download is forced by '--force' option;
-    print '- process:', process, '...',
+    print('- process:', process, '...', end=' ')
     sys.stdout.flush()
     local_process_dir = os.path.join(config['process_src_dir'], process)
     version_installed = OLToolbox.import_dictionary(
@@ -164,10 +163,10 @@ def download(process, dbs):
                  for repo, cont in dbs.items() if process in cont.content]
     if not available:
         if args.ignore:
-            print 'IGNORED: not available (installed: %s)' % version_installed
+            print('IGNORED: not available (installed: %s)' % version_installed)
             return
         else:
-            print 'ERROR: not available (installed: %s)' % version_installed
+            print('ERROR: not available (installed: %s)' % version_installed)
             sys.exit(1)
     # Only download, if the hash of the process to download differs
     # from the hash of the installed process, unless --force used.
@@ -175,7 +174,7 @@ def download(process, dbs):
         available = [src for src in available if src[1] != hash_installed]
     if not available:
         # the process is already available locally and is up-to-date.
-        print 'skipped: is up-to-date'
+        print('skipped: is up-to-date')
         return
     # In particular when --force is used,
     # select the process which was uploaded last.
@@ -187,12 +186,15 @@ def download(process, dbs):
     local_archive = os.path.join(local_process_dir + '.tar.gz')
 
     # download the process
-    print 'download ...',
+    print('download ...',end=' ')
     sys.stdout.flush()
     try:
-        rf = urllib2.urlopen(remote_archive)
-    except urllib2.HTTPError:
-        print '*** DOWNLOAD FAILED ***'
+        if remote_archive.startswith('/'):
+            rf = open(remote_archive, 'rb')
+        else:
+            rf = urlopen(remote_archive)
+    except HTTPError:
+        print('*** DOWNLOAD FAILED ***')
         if args.ignore:
             return
         else:
@@ -201,7 +203,7 @@ def download(process, dbs):
     lf.write(rf.read())
     rf.close()
     lf.close()
-    print 'extract ...',
+    print('extract ...', end=' ')
     sys.stdout.flush()
     # remove target directory if it already exists
     try:
@@ -220,7 +222,7 @@ def download(process, dbs):
     process_version['hash'] = available[1]
     OLToolbox.export_dictionary(process_version_file, process_version,
                                 form = '%-25s %s')
-    print 'done'
+    print('done')
 
 
 process_dbs = {}
@@ -248,7 +250,7 @@ for repo in config['process_repositories']:
     # the collections will already be resolved.
     for coll in collections:
         if coll == 'all.coll' or coll == repo_name + '.coll':
-            process_coll = process_dbs[repo].content.keys()
+            process_coll = list(process_dbs[repo].content.keys())
         else:
             if first_repo:
                 # check if the collection is available locally
@@ -268,19 +270,19 @@ for repo in config['process_repositories']:
 not_found_colls = [coll for coll in collections if coll not in found_colls]
 if not_found_colls:
     if args.ignore:
-        print 'IGNORED: process collection(s) ', not_found_colls, ' not found.'
+        print('IGNORED: process collection(s) ', not_found_colls, ' not found.')
     else:
-        print 'ERROR: process collection(s) ', not_found_colls, ' not found.'
+        print('ERROR: process collection(s) ', not_found_colls, ' not found.')
         sys.exit(1)
 
 if local_api_version == max_latest_api_version:
-    print 'process API version: %d' % local_api_version
+    print('process API version: %d' % local_api_version)
 elif local_api_version < max_latest_api_version:
-    print 'local process API version: %d (server: %d)' % (
-          local_api_version, max_latest_api_version)
-    print '******************************************'
-    print 'Please update your OpenLoops installation.'
-    print '******************************************'
+    print('local process API version: %d (server: %d)' % (
+          local_api_version, max_latest_api_version))
+    print('******************************************')
+    print('Please update your OpenLoops installation.')
+    print('******************************************')
 
 if not os.path.exists(config['process_src_dir']):
     os.mkdir(config['process_src_dir'])
@@ -288,4 +290,4 @@ if not os.path.exists(config['process_src_dir']):
 for process in process_list:
     download(process, process_dbs)
 
-print 'done\n'
+print('done\n')

@@ -1,5 +1,6 @@
 
 Collier legacy version from 19.03.2014.
 
-Collier version from 25.04.2016 (first public release).
-- removed global_coli.h (file and includes)
+Collier version 1.2 from 20.10.2017.
+
+27.03.2018: added a quad precision port of DD.

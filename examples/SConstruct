@@ -9,17 +9,18 @@ import OLBaseConfig
 OLBaseConfig.prefix = cwd
 config = OLBaseConfig.get_config(ARGLIST)
 
-if config['import_env']:
-    env_path = os.environ.get('PATH', '')
-    env_ld_library_path = os.environ.get('LD_LIBRARY_PATH', '')
+if '@all' in config['import_env']:
+    imported_env = os.environ
 else:
-    env_path = []
-    env_ld_library_path = []
+    imported_env = {}
+    for envvar in config['import_env']:
+        imported_env[envvar] = os.environ.get(envvar, '')
 
 env = Environment(tools = ['default', config['fortran_tool']],
-                  ENV = {"PATH": env_path, "LD_LIBRARY_PATH": env_ld_library_path},
+                  ENV = imported_env,
                   CXX = config['cxx'],
                   F90 = config['fortran_compiler'],
+                  CPPPATH = os.path.join(cwd, 'include'),
                   CCFLAGS = config['ccflags'] + config['generic_optimisation'],
                   FORTRAN = config['fortran_compiler'],
                   F90FLAGS = config['f90_flags'] + config['generic_optimisation'],

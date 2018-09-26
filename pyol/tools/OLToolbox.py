@@ -1,26 +1,28 @@
-
-# Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-#
-# This file is part of OpenLoops.
-#
-# OpenLoops is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# OpenLoops is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+#!******************************************************************************!
+#! Copyright (C) 2014-2018 OpenLoops Collaboration. For authors see authors.txt !
+#!                                                                              !
+#! This file is part of OpenLoops.                                              !
+#!                                                                              !
+#! OpenLoops is free software: you can redistribute it and/or modify            !
+#! it under the terms of the GNU General Public License as published by         !
+#! the Free Software Foundation, either version 3 of the License, or            !
+#! (at your option) any later version.                                          !
+#!                                                                              !
+#! OpenLoops is distributed in the hope that it will be useful,                 !
+#! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+#! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+#! GNU General Public License for more details.                                 !
+#!                                                                              !
+#! You should have received a copy of the GNU General Public License            !
+#! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+#!******************************************************************************!
 
 
 import os
 import collections
 import hashlib
 import time
+import sys
 
 timeformat = '%Y-%m-%d-%H-%M-%S'
 
@@ -50,22 +52,26 @@ def import_list(filename, lines=None, fatal=True,
             except IOError:
                 if fatal:
                     if '%s' in error_message:
-                        print error_message % (filename,)
+                        print(error_message % (filename,))
                     else:
-                        print error_message
+                        print(error_message)
                     raise
                 else:
                     return None
         else:
-            import urllib2
+            if sys.version_info < (3,0,0):
+                from urllib2 import urlopen, HTTPError
+            else:
+                from urllib.request import urlopen
+                from urllib.error import HTTPError
             try:
-                fh = urllib2.urlopen(filename)
-            except urllib2.HTTPError:
+                fh = urlopen(filename)
+            except HTTPError:
                 if fatal:
                     if '%s' in error_message:
-                        print error_message % (filename,)
+                        print(error_message % (filename,))
                     else:
-                        print error_message
+                        print(error_message)
                     raise
                 else:
                     return None
@@ -120,7 +126,7 @@ def export_list(filename, ls):
     try:
         fh = open(filename, 'w')
     except IOError:
-        print 'export_list: cannot open file', filename, 'for writing.'
+        print('export_list: cannot open file', filename, 'for writing.')
         raise
     for el in ls:
         fh.write(el)
@@ -162,14 +168,14 @@ def get_svn_revision(mandatory=False):
             pass
     revision = 'none'
     if not svninfo_exitcode:
-        for line in svninfo_out.split('\n'):
+        for line in svninfo_out.decode('utf-8').split('\n'):
             line = line.split()
             if len(line) == 2 and line[0] == 'Revision:' and line[1].isdigit():
                 revision = int(line[1])
                 break
     if mandatory and (revision == 'none' or svninfo_exitcode != 0):
         raise OSError(svninfo_exitcode,
-                      '`svn info` failed. ' + svninfo_err.strip())
+                      '`svn info` failed. ' + svninfo_err.decode('utf-8').strip())
     return revision
 
 
@@ -193,7 +199,7 @@ def get_subprocess_src(loops, sub_process, processlib_src_dir,
         try:
             fh = open(info_files[0], 'r')
         except IOError:
-            print "Error reading process info file", info_files[0]
+            print("Error reading process info file", info_files[0])
             raise
         info = fh.read()
         fh.close()
@@ -399,7 +405,7 @@ class ChannelDB:
                 data.extend([' '.join(ch) for ch in self.content[proc]])
             channels_hash = hashlib.md5()
             for iline in data:
-                channels_hash.update(iline)
+                channels_hash.update(iline.encode('utf-8'))
             data.insert(0, channels_hash.hexdigest() + '  ' +
                            time.strftime(timeformat))
             export_list(tmp_file, data)

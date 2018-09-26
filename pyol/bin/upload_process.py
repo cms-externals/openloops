@@ -19,12 +19,13 @@
 # along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
 
 
-#print '\n>>> OpenLoops Process Uploader <<<'
+#print('\n>>> OpenLoops Process Uploader <<<')
 
+from __future__ import print_function
 import sys
 
 if sys.version_info[:2] < (2,7):
-    print "This module requires Python 2.7 or later."
+    print("This module requires Python 2.7 or later.")
     sys.exit(1)
 
 import os
@@ -45,7 +46,7 @@ config = OLBaseConfig.get_config()
 backup_old_processes = True
 
 if not config['local_server_path']:
-    print 'option \'local_server_path\' must be specified in openloops.cfg'
+    print('option \'local_server_path\' must be specified in openloops.cfg')
     sys.exit(1)
 
 
@@ -114,9 +115,9 @@ if repository.endswith('*'):
 else:
     secret_repo = False
 
-existing_repos = filter(
+existing_repos = list(filter(
     lambda rep: os.path.isdir(os.path.join(config['local_server_path'], rep)),
-    os.listdir(config['local_server_path']))
+    os.listdir(config['local_server_path'])))
 
 if repository in existing_repos:
     repo_exists = True
@@ -130,24 +131,24 @@ else:
         repo_exists = True
         repo_key = matching_secret[0]
     else:
-        print 'ambiguous repository name, matches'
-        print ', '.join(matching_secret)
+        print('ambiguous repository name, matches')
+        print(', '.join(matching_secret))
         sys.exit(1)
 
 if args.create:
     if not args.repository:
-        print 'ERROR: repository to create must be explicitly specified.'
+        print('ERROR: repository to create must be explicitly specified.')
         sys.exit(1)
     if repo_exists:
-        print 'ERROR: repository already exists:', repo_key
+        print('ERROR: repository already exists:', repo_key)
         sys.exit(1)
     else:
         repo_key = create_repository(repository, secret_repo)
-        print 'created repository', repo_key
+        print('created repository', repo_key)
 else:
     if not repo_exists:
-        print ('repository \'' + repository +
-               '\' does not exist; use --create option to create it')
+        print('repository \'' + repository +
+              '\' does not exist; use --create option to create it')
         sys.exit(1)
 
 
@@ -192,7 +193,7 @@ def upload_process(process, db, ch_db, api):
     """Compress a process code folder and upload the archive
     to a repository on the web server."""
     # need: repository_path, deprecated_path, backup_old_processes
-    print '- upload process:', process, '...',
+    print('- upload process:', process, '...', end=' ')
     sys.stdout.flush()
     old_date, old_hash, old_descr = db.get(process, (None, None, None))
     process_dir = os.path.join(config['process_src_dir'], process)
@@ -214,10 +215,10 @@ def upload_process(process, db, ch_db, api):
 
     if not process_version:
         if args.ignore:
-            print 'IGNORED: not available'
+            print('IGNORED: not available')
             return
         else:
-            print 'ERROR: not available'
+            print('ERROR: not available')
             sys.exit(1)
     to_upload_api = int(process_version['process_api_version'])
     old_local_hash = process_version.get('hash', None)
@@ -225,39 +226,39 @@ def upload_process(process, db, ch_db, api):
 
     if to_upload_api != api:
         if args.ignore:
-            print 'IGNORED: process to upload does not match installed',
-            print '         OpenLoops version (process: %d, OpenLoops: %d)' % (
-                  to_upload_api, api)
+            print('IGNORED: process to upload does not match installed')
+            print('         OpenLoops version (process: %d, OpenLoops: %d)' % (
+                  to_upload_api, api))
             return
         else:
-            print 'ERROR: process to upload does not match installed',
-            print '       OpenLoops version (process: %d, OpenLoops: %d)' % (
-                  to_upload_api, api)
+            print('ERROR: process to upload does not match installed')
+            print('       OpenLoops version (process: %d, OpenLoops: %d)' % (
+                  to_upload_api, api))
             sys.exit(1)
 
     if old_local_hash:
         # the local process was downloaded or uploaded before
         if old_local_hash == old_hash:
-            print 'skipped: is up-to-date'
+            print('skipped: is up-to-date')
             return
         elif old_date is not None and (
               time.strptime(old_local_date, OLToolbox.timeformat) <
               time.strptime(old_date, OLToolbox.timeformat)):
-            print 'skipped: process on server is newer'
-            print '         (local: %s, server: %s)' % (
-                  old_local_date, old_date)
+            print('skipped: process on server is newer')
+            print('         (local: %s, server: %s)' % (
+                  old_local_date, old_date))
             return
 
     if backup_old_processes and old_hash is not None:
         try:
             os.rename(server_process_archive, server_backup_archive)
         except OSError:
-            print '[process backup failed]',
+            print('[process backup failed]', end=' ')
             sys.stdout.flush()
         try:
             os.rename(server_process_definition, server_backup_definition)
         except OSError:
-            print '[definition backup failed]',
+            print('[definition backup failed]', end=' ')
             sys.stdout.flush()
 
     # create process archive
@@ -265,7 +266,7 @@ def upload_process(process, db, ch_db, api):
     archive.add(process_dir, arcname=process)
     archive.close()
     # calculate archive hash and get upload time
-    with open(local_process_archive, 'r') as fh:
+    with open(local_process_archive, 'rb') as fh:
         archive_hash = hashlib.md5(fh.read()).hexdigest()
     upload_date = time.strftime(OLToolbox.timeformat)
     # store hash and upload time in local process directory
@@ -316,17 +317,17 @@ def upload_process(process, db, ch_db, api):
     shutil.copyfile(local_process_archive, server_process_archive)
     os.remove(local_process_archive)
     shutil.copyfile(local_process_definition, server_process_definition)
-    print 'done'
+    print('done')
 
 
 def delete_process(process, db, ch_db, api):
     """Delete a process from a repository on the server."""
     # need: repository_path, deprecated_path, backup_old_processes
-    print '- delete process:', process, '...',
+    print('- delete process:', process, '...', end=' ')
     sys.stdout.flush()
     old_date, old_hash, old_descr = db.get(process, (None, None, None))
     if not old_date:
-        print 'skipped: does not exist'
+        print('skipped: does not exist')
         return
     server_process_archive = os.path.join(repository_path, process + '.tar.gz')
     server_process_definition = os.path.join(repository_path, process + '.m')
@@ -340,46 +341,46 @@ def delete_process(process, db, ch_db, api):
         try:
             os.rename(server_process_archive, server_backup_archive)
         except OSError:
-            print '[process backup failed]',
+            print('[process backup failed]', end=' ')
             sys.stdout.flush()
         try:
             os.rename(server_process_definition, server_backup_definition)
         except OSError:
-            print '[definition backup failed]',
+            print('[definition backup failed]', end=' ')
             sys.stdout.flush()
     else:
         try:
             os.remove(server_process_archive)
         except OSError:
-            print '[deleting process failed]',
+            print('[deleting process failed]', end=' ')
             sys.stdout.flush()
             os.remove(server_process_definition)
         except OSError:
-            print '[deleting definition failed]',
+            print('[deleting definition failed]', end=' ')
             sys.stdout.flush()
     # update process and channel databases
     db.remove(process)
     ch_db.remove(process)
-    print 'done'
+    print('done')
 
 
-print 'repository:', repository
+print('repository:', repository)
 
 if local_api_version == latest_api_version:
-    print 'process API version: %d' % local_api_version
+    print('process API version: %d' % local_api_version)
     process_db = OLToolbox.ProcessDB(db=version_db_file)
     channel_db = OLToolbox.ChannelDB(db=channel_db_file)
 else:
     if local_api_version > latest_api_version:
-        print 'new process API version: %d (server: %d)' % (
-              local_api_version, latest_api_version)
+        print('new process API version: %d (server: %d)' % (
+              local_api_version, latest_api_version))
         OLToolbox.export_dictionary(
             latest_api_version_file,
             {'process_api_version': local_api_version})
     else:
-        print 'WARNING: local process API is outdated'
-        print '         (local: %d, server: %d)' % (
-              local_api_version, latest_api_version)
+        print('WARNING: local process API is outdated')
+        print('         (local: %d, server: %d)' % (
+              local_api_version, latest_api_version))
     if not os.path.isdir(repository_path):
         os.mkdir(repository_path)
         process_db = OLToolbox.ProcessDB()
@@ -394,7 +395,7 @@ for coll in collections:
     # Add content of collections to the process list.
     # The special collection 'all' selects all processes in the repository.
     if coll == 'all':
-        process_coll = process_db.content.keys()
+        process_coll = list(process_db.content.keys())
     else:
         process_coll = OLToolbox.import_list(
             os.path.join(collection_path, coll), fatal=False)
@@ -402,9 +403,9 @@ for coll in collections:
         process_list.update(process_coll)
     else:
         if args.ignore:
-            print 'IGNORED: process collection \'%s\' not found.' % coll
+            print('IGNORED: process collection \'%s\' not found.' % coll)
         else:
-            print 'ERROR: process collection \'%s\' not found.' % coll
+            print('ERROR: process collection \'%s\' not found.' % coll)
             sys.exit(1)
 
 for process in process_list:
@@ -418,9 +419,9 @@ for process in process_list:
         upload_process(process, process_db, channel_db, local_api_version)
 
 if process_db.updated or channel_db.updated:
-    print 'update process database ...',
+    print('update process database ...', end=' ')
     sys.stdout.flush()
     process_db.export_db(version_db_file)
     channel_db.export_db(channel_db_file)
 
-print 'done\n'
+print('done\n')

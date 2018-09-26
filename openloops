@@ -4,17 +4,6 @@
 # set paths #
 #############
 
-# Python 2 executable: if "python2" doesn't exist, use "python"
-command -v python2 > /dev/null && PYTHON="python2" || PYTHON="python"
-# SCons executable: prefer the user's installation and use scons-local as fallback
-command -v scons > /dev/null && SCONS="scons -Q" || SCONS="./scons -Q"
-# but if the user's version is not 2.x>2.0 use scons-local anyway
-if [ "$SCONS" == "scons -Q" ]; then
-  if [ `$SCONS -v | grep -c "engine: v2.[^0]"` == "0" ]; then
-    SCONS="./scons -Q"
-  fi
-fi
-
 # directory for generic libraries
 LIBDIR="lib"
 # directory for process libraries
@@ -24,8 +13,9 @@ PYOLBINDIR="pyol/bin"
 # directories for Python modules
 PYOLMODDIR="pyol/tools"
 
-if [ -z $BASH_VERSION ]; then
+if [ -z "$BASH_VERSION" ]; then
   # the script is sourced from a shell which is not Bash
+  BASEDIR="."
   export LIBRARY_PATH=$LIBRARY_PATH:"$LIBDIR":"$PROCLIBDIR"
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:"$LIBDIR":"$PROCLIBDIR"
   export PYTHONPATH=$PYTHONPATH:"$PYOLMODDIR"
@@ -67,6 +57,19 @@ else
 
 fi
 
+if [ -n "$OLPYTHON" ]; then
+  # OLPYTHON is set. Assume it points to a Python executable and use it
+  # both to run Python scripts and SCons.
+  PYTHON=$OLPYTHON
+  # Use scons-local (shipped with OpenLoops) with $OLPYTHON.
+  SCONS="$OLPYTHON $BASEDIR/scons -Q"
+else
+  PYTHON="python"
+  # If SCons is installed on the system, use this installation.
+  # Otherwise use scons-local shipped with OpenLoops.
+  command -v scons > /dev/null && SCONS="scons -Q" || SCONS="$BASEDIR/scons -Q"
+fi
+
 #####################
 # start actual work #
 #####################
@@ -83,10 +86,8 @@ case "$1" in
     echo ""
     echo "Available modes:"
     echo "  help                   -- display help message and exit."
+    echo "  compile [-c]           -- Compile [clean] (the process independent part) of OpenLoops."
     echo "  info                   -- show the process info file."
-    echo "  interactive(int)       -- open a Python interpreter with the openloops"
-    echo "                            module loaded and paths set;"
-    echo "                            options are passed to Python."
     echo "  update                 -- update OpenLoops and installed processes"
     echo "                            (only if installed from SVN)."
     echo "  update --processes     -- update installed processes."
@@ -104,44 +105,21 @@ case "$1" in
     echo "                            or as defined in the file <file>."
     echo "  execute(exe) <script>  -- run the Python script following 'execute';"
     echo "                            options are passed to Python."
-    echo "  show <file/proc>       -- show the content of a test data file."
     echo "  upload [opt] <procs>   -- upload processes to the process repository."
     echo ""
     exit 0;;
+
+  "compile")
+    shift
+    $SCONS "$@";;
 
   "info")
     shift
     cat "proclib/libopenloops_${1}_"*".info";;
 
-  "interactive"|"int")
-    shift
-    $PYTHON -i "$PYOLBINDIR/interactive_legacy.py" "$@";;
-
   "run")
     shift
     $PYTHON "$PYOLBINDIR/run.py" "$@";;
-
-  "runold")
-    shift
-    to_run="$1"
-    if [ -n "$to_run" ]; then
-      shift
-      $PYTHON "$PYOLBINDIR/run_legacy.py" "$to_run" "$@"
-    else
-      echo "A process must be specified."
-      exit 1
-    fi;;
-
-  "check"|"chk")
-    shift
-    to_run="$1"
-    if [ -n "$to_run" ]; then
-      shift
-      $PYTHON "$PYOLBINDIR/run_legacy.py" "--check" "$to_run" "$@"
-    else
-      echo "A process or a process check definition file must be specified."
-      exit 1
-    fi;;
 
   "execute"|"exe")
     shift
@@ -151,17 +129,6 @@ case "$1" in
       $PYTHON "$to_run" "$@"
     else
       echo "'$to_run' is not a file."
-      exit 1
-    fi;;
-
-  "show")
-    shift
-    to_show="$1"
-    if [ -n "$to_show" ]; then
-      shift
-      $PYTHON "$PYOLBINDIR/show.py" "$to_show" "$@"
-    else
-      echo "A process or test data file must be specified."
       exit 1
     fi;;
 
