@@ -1,0 +1,1 @@
+pplnjj_ckm nexeuccxdxg 1 EW=2,0 QCD=3,0 MODEL=sm_ckm Type=t CKMORDER=1 ME=0 nc=3 nf=6 MU=0 MD=0 MS=0 MC=0 LeadingColour=0 POLSEL=1

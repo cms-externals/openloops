@@ -1,0 +1,2 @@
+ppllj_nf5 eexddxg 1 EW=2,0 QCD=1,1 MODEL=sm OLMode=0 Type=lt nf=5 ME=0 CKMORDER=0 nc=3 MU=0 MD=0 MS=0 MC=0 LeadingColour=0 POLSEL=1
+ppllj_nf5 eexbbxg condmap=eexddxg MB=0

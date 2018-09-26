@@ -1,0 +1,7 @@
+pphbbj uuxddxbbxh 1 EW=1,0 QCD=4,0 MODEL=sm_yuksel OFMode=0 Type=t YukB=1 YukC=1 CKMORDER=0 nc=3 nf=6 MU=0 MD=0 MS=0 YU=0 YD=0 YS=0 LeadingColour=0 POLSEL=1
+pphbbj uuxccxbbxh map=uuxddxbbxh
+pphbbj ddxssxbbxh map=uuxddxbbxh
+pphbbj ccxddxbbxh map=uuxddxbbxh
+pphbbj ccxddxbbxh condmap=uuxddxbbxh MC=0 YC=0
+pphbbj uuxccxbbxh condmap=uuxddxbbxh MC=0 YC=0
+pphbbj ccxddxbbxh condmap=uuxddxbbxh MC=0 YC=0

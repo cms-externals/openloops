@@ -1,0 +1,2 @@
+ppajjj dddxdxagg 1 EW=1,0 QCD=4,0 MODEL=sm Type=t CKMORDER=0 nc=3 nf=6 MU=0 MD=0 MS=0 MC=0 LeadingColour=0 POLSEL=1
+ppajjj bbbxbxagg condmap=dddxdxagg MB=0

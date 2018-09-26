@@ -1,0 +1,1 @@
+heftpphhjj hhgggg 2 EW=2,0 QCD=-2,0 MODEL=heft Type=t MB=0 YB=0 CKMORDER=0 nc=3 nf=5 MU=0 MD=0 MS=0 MC=0 LeadingColour=0 POLSEL=1

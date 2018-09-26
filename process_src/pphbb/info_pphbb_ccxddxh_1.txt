@@ -1,0 +1,2 @@
+pphbb ccxddxh 1 EW=1,0 QCD=2,1 MODEL=sm_yuksel OFMode=0 Type=lt YukB=1 YukC=1 CKMORDER=0 nc=3 nf=6 MU=0 MD=0 MS=0 YU=0 YD=0 YS=0 LeadingColour=0 POLSEL=1
+pphbb uuxccxh map=ccxddxh[3,4,1,2,5]

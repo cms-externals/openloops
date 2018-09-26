@@ -1,0 +1,1 @@
+pptttt tttxtxgg 1 EW=0,0 QCD=4,1 MODEL=sm OFMode=0 Type=lt CKMORDER=0 nc=3 nf=6 MU=0 MD=0 MS=0 MC=0 LeadingColour=0 POLSEL=1

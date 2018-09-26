@@ -1,0 +1,2 @@
+pphjj_vbf ccxddxh 1 EW=3,0 QCD=0,1 MODEL=sm_yuksel Type=lt CKMORDER=0 nc=3 nf=6 MU=0 MD=0 MS=0 MC=0 YU=0 YD=0 YS=0 YC=0 LeadingColour=0 POLSEL=1
+pphjj_vbf uuxbbxh condmap=ccxddxh MB=0
