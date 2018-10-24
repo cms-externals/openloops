@@ -440,28 +440,25 @@ contains
   !
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
-  recursive function CalcFactorial(n) result(fact)
+  function CalcFactorial(n) result(fact)
   
     integer, intent(in) :: n
-    integer :: fact
+    integer :: fact,i
     
     if (n < 0) then 
       write (*,*) 'factorial not defined for negative integer'
       stop
     end if
     
-    if (n .eq. 0) then
-      fact = 1
-    else
-      fact = n * CalcFactorial(n-1)
+    fact = 1
+    if (n .gt. 1) then
+      do i=2,n
+        fact = fact * i
+      end do
     end if
     
   end function CalcFactorial
 
-  
-  
-  
-    
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !  functions 
   !  CalcOrderedCombis(n,k,opt)    CalcOrderedCombis0(n,k,opt)
