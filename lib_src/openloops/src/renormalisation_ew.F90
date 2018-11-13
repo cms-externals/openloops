@@ -41,7 +41,12 @@ subroutine ew_renormalisation
   use ol_loop_parameters_decl_/**/REALKIND
 #ifndef PRECISION_dp
   use ol_loop_parameters_decl_/**/DREALKIND, only: &
-    & nc, nf, N_lf, N_lu, N_ld, N_ll, nq_nondecoupl, CT_is_on, R2_is_on, TP_is_on, SwF, SwB
+    & nc, nf, N_lf, N_lu, N_ld, N_ll, nq_nondecoupl, CT_is_on, R2_is_on, TP_is_on, SwF, SwB, &
+    & a_switch, ew_renorm_switch, coli_cache_use
+#endif
+#if defined(USE_COLLIER) && !defined(COLLIER_LEGACY)
+  use collier, only: setmode_cll
+  use cache, only: SwitchOffCacheSystem_cll, SwitchOnCacheSystem_cll
 #endif
   implicit none
 
@@ -333,6 +338,16 @@ subroutine ew_renormalisation
     call masspowers(rMH, 0._/**/REALKIND, MH, MH2, rMH2)
   end if
 
+  if ((ew_renorm_switch == 1 .or. ew_renorm_switch == 7 .or. ew_renorm_switch == 99) &
+      .and. coli_cache_use == 1) then
+    call SwitchOffCacheSystem_cll
+  end if
+  if (ew_renorm_switch == 1 .or. ew_renorm_switch == 99) then
+    call setmode_cll(1)
+  end if
+  if (ew_renorm_switch == 7 .or. ew_renorm_switch == 99) then
+    call setmode_cll(2)
+  end if
 
   ! calculate one- and two-point functions
   A0W = calcA0(MW2)
@@ -456,6 +471,16 @@ subroutine ew_renormalisation
   B0ZLL   = calcB0(MZ2,ML2,ML2)
   dB0ZLL  = calcdB0(MZ2,ML2,ML2)
 
+  if ((ew_renorm_switch == 1 .or. ew_renorm_switch == 99) .and. a_switch == 7) then
+    call setmode_cll(2)
+  end if
+  if ((ew_renorm_switch == 7 .or. ew_renorm_switch == 99) .and. a_switch == 1) then
+    call setmode_cll(1)
+  end if
+  if ((ew_renorm_switch == 1 .or. ew_renorm_switch == 7 .or. ew_renorm_switch == 99) &
+      .and. coli_cache_use == 1) then
+    call SwitchOnCacheSystem_cll
+  end if
 
 
   ! calculate renormalisation constants
@@ -1888,12 +1913,8 @@ subroutine ew_renormalisation
 
 
   function calcB0(p2_in,m12_in,m22_in)
-    use ol_parameters_decl_/**/DREALKIND, only: ew_renorm_switch, coli_cache_use
-    use ol_loop_parameters_decl_/**/DREALKIND, only: a_switch
 #if defined(USE_COLLIER) && !defined(COLLIER_LEGACY)
-    use collier, only: setmode_cll
     use collier_coefs, only: B0_cll
-    use cache, only: SwitchOffCacheSystem_cll, SwitchOnCacheSystem_cll
 #endif
 #ifdef USE_ONELOOP
     use avh_olo_/**/REALKIND
@@ -1940,33 +1961,21 @@ subroutine ew_renormalisation
       end if
     end if
 #else
-    if ((ew_renorm_switch == 1 .or. ew_renorm_switch == 7 .or. ew_renorm_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOffCacheSystem_cll
-    end if
     if (ew_renorm_switch == 1 .or. ew_renorm_switch == 99) then
-      call setmode_cll(1)
       p2 = real(p2)
       call B0_cll(B0_coli,p2,m12,m22)
       calcB0 = B0_coli
       if (ew_renorm_switch == 99) then
         print*, "B0 CO:  ", B0_coli
       end if
-      if (a_switch == 7) call setmode_cll(2)
     end if
     if (ew_renorm_switch == 7 .or. ew_renorm_switch == 99) then
-      call setmode_cll(2)
       p2 = real(p2)
       call B0_cll(B0_coli,p2,m12,m22)
       calcB0 = B0_coli
       if (ew_renorm_switch == 99) then
         print*, "B0 DD:  ", B0_coli
       end if
-      if (a_switch == 1) call setmode_cll(1)
-    end if
-    if ((ew_renorm_switch == 1 .or. ew_renorm_switch == 7 .or. ew_renorm_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOnCacheSystem_cll
     end if
 #endif
 #endif
@@ -1987,12 +1996,8 @@ subroutine ew_renormalisation
 
 
   function calcdB0(p2_in,m12_in,m22_in)
-    use ol_parameters_decl_/**/DREALKIND, only: ew_renorm_switch, coli_cache_use
-    use ol_loop_parameters_decl_/**/DREALKIND, only: a_switch
 #if defined(USE_COLLIER) && !defined(COLLIER_LEGACY)
-    use collier, only: setmode_cll
     use collier_coefs, only: DB0_cll
-    use cache, only: SwitchOffCacheSystem_cll, SwitchOnCacheSystem_cll
 #endif
 #ifdef USE_ONELOOP
     use avh_olo_/**/REALKIND
@@ -2037,33 +2042,21 @@ subroutine ew_renormalisation
       end if
     end if
 #else
-    if ((ew_renorm_switch == 1 .or. ew_renorm_switch == 7 .or. ew_renorm_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOffCacheSystem_cll
-    end if
     if (ew_renorm_switch == 1 .or. ew_renorm_switch == 99) then
-      call setmode_cll(1)
       p2 = real(p2)
       call DB0_cll(DB0_coli,p2,m12,m22)
       calcdB0 = DB0_coli
       if (ew_renorm_switch == 99) then
         print*, "dB0 CO:  ", DB0_coli
       end if
-      if (a_switch == 7) call setmode_cll(2)
     end if
     if (ew_renorm_switch == 7 .or. ew_renorm_switch == 99) then
-      call setmode_cll(2)
       p2 = real(p2)
       call DB0_cll(DB0_coli,p2,m12,m22)
       calcdB0 = DB0_coli
       if (ew_renorm_switch == 99) then
         print*, "dB0 DD:  ", DB0_coli
       end if
-      if (a_switch == 1) call setmode_cll(1)
-    end if
-    if ((ew_renorm_switch == 1 .or. ew_renorm_switch == 7 .or. ew_renorm_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOnCacheSystem_cll
     end if
 #endif
 #endif
@@ -2088,12 +2081,8 @@ subroutine ew_renormalisation
 
 
   function calcB1(p2_in,m12_in,m22_in)
-    use ol_parameters_decl_/**/DREALKIND, only: ew_renorm_switch, coli_cache_use
-    use ol_loop_parameters_decl_/**/DREALKIND, only: a_switch
 #if defined(USE_COLLIER) && !defined(COLLIER_LEGACY)
-    use collier, only: setmode_cll
     use collier_coefs, only: B_cll
-    use cache, only: SwitchOffCacheSystem_cll, SwitchOnCacheSystem_cll
 #endif
 #ifdef USE_ONELOOP
     use avh_olo_/**/REALKIND
@@ -2142,33 +2131,21 @@ subroutine ew_renormalisation
       end if
     end if
 #else
-    if ((ew_renorm_switch == 1 .or. ew_renorm_switch == 7 .or. ew_renorm_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOffCacheSystem_cll
-    end if
     if (ew_renorm_switch == 1 .or. ew_renorm_switch == 99) then
-      call setmode_cll(1)
       p2 = real(p2)
       call B_cll(B,Buv,p2,m12,m22,1)
       calcB1 = B(1,0)
       if (ew_renorm_switch == 99) then
         print*, "B1 CO:  ", calcB1
       end if
-      if (a_switch == 7) call setmode_cll(2)
     end if
     if (ew_renorm_switch == 7 .or. ew_renorm_switch == 99) then
-      call setmode_cll(2)
       p2 = real(p2)
       call B_cll(B,Buv,p2,m12,m22,1)
       calcB1 = B(1,0)
       if (ew_renorm_switch == 99) then
         print*, "B1 DD:  ", calcB1
       end if
-      if (a_switch == 1) call setmode_cll(1)
-    end if
-    if ((ew_renorm_switch == 1 .or. ew_renorm_switch == 7 .or. ew_renorm_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOnCacheSystem_cll
     end if
 #endif
 #endif
@@ -2187,12 +2164,8 @@ subroutine ew_renormalisation
   end function calcB1
 
   function calcdB1(p2_in,m12_in,m22_in)
-    use ol_parameters_decl_/**/DREALKIND, only: ew_renorm_switch, coli_cache_use
-    use ol_loop_parameters_decl_/**/DREALKIND, only: a_switch
 #if defined(USE_COLLIER) && !defined(COLLIER_LEGACY)
-    use collier, only: setmode_cll
     use collier_coefs, only: DB1_cll
-    use cache, only: SwitchOffCacheSystem_cll, SwitchOnCacheSystem_cll
 #endif
     implicit none
     complex(REALKIND) calcdB1
@@ -2229,33 +2202,21 @@ subroutine ew_renormalisation
       end if
     end if
 #else
-    if ((ew_renorm_switch == 1 .or. ew_renorm_switch == 7 .or. ew_renorm_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOffCacheSystem_cll
-    end if
     if (ew_renorm_switch == 1 .or. ew_renorm_switch == 99) then
-      call setmode_cll(1)
       p2 = real(p2)
       call DB1_cll(DB1_coli,p2,m12,m22)
       calcdB1 = DB1_coli
       if (ew_renorm_switch == 99) then
         print*, "dB1 CO:  ", calcdB1
       end if
-      if (a_switch == 7) call setmode_cll(2)
     end if
     if (ew_renorm_switch == 7 .or. ew_renorm_switch == 99) then
-      call setmode_cll(2)
       p2 = real(p2)
       call DB1_cll(DB1_coli,p2,m12,m22)
       calcdB1 = DB1_coli
       if (ew_renorm_switch == 99) then
         print*, "dB1 DD:  ", calcdB1
       end if
-      if (a_switch == 1) call setmode_cll(1)
-    end if
-    if ((ew_renorm_switch == 1 .or. ew_renorm_switch == 7 .or. ew_renorm_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOnCacheSystem_cll
     end if
 #endif
 #endif
