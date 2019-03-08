@@ -2,9 +2,11 @@
 !!  File DD_5pt.F is part of COLLIER
 !!  - A Complex One-Loop Library In Extended Regularizations
 !!
-!!  Copyright (C) 2015, 2016   Ansgar Denner, Stefan Dittmaier, Lars Hofer
+!!  Copyright (C) 2015, 2016   
+!!  Ansgar Denner, Stefan Dittmaier, Lars Hofer
 !!
-!!  COLLIER is licenced under the GNU GPL version 3, see COPYING for details.
+!!  COLLIER is licenced under the GNU GPL version 3, 
+!!  see COPYING for details.
 !!
 
 **********************************************************************
@@ -43,8 +45,10 @@ c local variables
 c LH: variables for cache system
         complex*16 xcache(15), fct(NCoefmax5)
         integer n0,n1,n2,n3,n4,n1234,cnt,cntmax,r2cache
-        logical nocalc/.false./, wrica/.false./
-        save wrica
+c        logical nocalc/.false./, wrica/.false./
+c        save wrica
+         logical :: nocalc = .false.
+         logical, save :: wrica =.false.
 #endif
 
         if (id.eq.0) then
@@ -133,7 +137,8 @@ c =====================
               endif
 
               r2cache = r2
-              call ReadCache(fct(1:cntmax),cntmax,xcache,15,2,id,5,r2cache,nocalc,wrica)
+              call ReadCache(fct(1:cntmax),cntmax,xcache,15,2,id,5,
+     &                       r2cache,nocalc,wrica)
 
               if(nocalc)then
                 accflag   = nint(dreal(fct(1)))
@@ -322,8 +327,10 @@ c set identifiers for lower-point integrals
 c*** Tensor reduction
 c====================
         if (mode5.eq.0) then
+
           call Ex_dd(E,p1,p2,p3,p4,p5,p12,p23,p34,p45,p15,
      &           m02,m12,m22,m32,m42,z4,eta4,detx4,tx4,ttx4,r2,id,nid)
+
         elseif (mode5.eq.1) then
           call Ey_dd(E,p1,p2,p3,p4,p5,p12,p23,p34,p45,p15,
      &           m02,m12,m22,m32,m42,eta4,detz4,tz4,dety4,r2,id,nid)
@@ -447,16 +454,26 @@ c local variables
         data del/1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1/
         complex*16 E(0:r2/2,0:r2,0:r2,0:r2,0:r2)
         complex*16 Eb(0:4,0:r2,0:r2,0:r2,0:r2,0:r2)
-        complex*16 D0(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
-        complex*16 Duv0(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
-        complex*16 D_1(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
-        complex*16 Duv_1(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
-        complex*16 D_2(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
-        complex*16 Duv_2(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
-        complex*16 D_3(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
-        complex*16 Duv_3(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
-        complex*16 D_4(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
-        complex*16 Duv_4(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
+        complex*16 D0(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),
+     &                0:max(r2-1,0),0:max(r2-1,0))
+        complex*16 Duv0(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),
+     &                  0:max(r2-1,0),0:max(r2-1,0))
+        complex*16 D_1(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),
+     &                 0:max(r2-1,0))
+        complex*16 Duv_1(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),
+     &                   0:max(r2-1,0))
+        complex*16 D_2(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),
+     &                 0:max(r2-1,0))
+        complex*16 Duv_2(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),
+     &                   0:max(r2-1,0))
+        complex*16 D_3(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),
+     &                 0:max(r2-1,0))
+        complex*16 Duv_3(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),
+     &                   0:max(r2-1,0))
+        complex*16 D_4(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),
+     &                 0:max(r2-1,0))
+        complex*16 Duv_4(0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),
+     &                   0:max(r2-1,0))
         complex*16 m02,m12,m22,m32,m42,eta4(0:4)
         complex*16 detx4,tx4(0:4,0:4),ttx4(0:4,0:4,0:4,0:4),caux
         real*8 z4(4,4),maxc(0:4),maxzc(0:4)
@@ -571,13 +588,13 @@ c Ebar(k>0,i1,...) from Eq.(6.12)
      &          + 2d0*i(j)*( ttx4(k,1,0,j)+ttx4(k,2,0,j)
      &                      +ttx4(k,3,0,j)+ttx4(k,4,0,j) )
      &               *D0(i0/2+1,l(1),l(2),l(3),l(4)) 
-              if (l(1).eq.0) Eb(k,i0,i1,i2,i3,i4) = Eb(k,i0,i1,i2,i3,i4) 
+              if (l(1).eq.0) Eb(k,i0,i1,i2,i3,i4) = Eb(k,i0,i1,i2,i3,i4)
      &          - 2d0*i(j)*ttx4(k,1,0,j)*D_1(i0/2+1,l(2),l(3),l(4))
-              if (l(2).eq.0) Eb(k,i0,i1,i2,i3,i4) = Eb(k,i0,i1,i2,i3,i4) 
+              if (l(2).eq.0) Eb(k,i0,i1,i2,i3,i4) = Eb(k,i0,i1,i2,i3,i4)
      &          - 2d0*i(j)*ttx4(k,2,0,j)*D_2(i0/2+1,l(1),l(3),l(4))
-              if (l(3).eq.0) Eb(k,i0,i1,i2,i3,i4) = Eb(k,i0,i1,i2,i3,i4) 
+              if (l(3).eq.0) Eb(k,i0,i1,i2,i3,i4) = Eb(k,i0,i1,i2,i3,i4)
      &          - 2d0*i(j)*ttx4(k,3,0,j)*D_3(i0/2+1,l(1),l(2),l(4))
-              if (l(4).eq.0) Eb(k,i0,i1,i2,i3,i4) = Eb(k,i0,i1,i2,i3,i4) 
+              if (l(4).eq.0) Eb(k,i0,i1,i2,i3,i4) = Eb(k,i0,i1,i2,i3,i4)
      &          - 2d0*i(j)*ttx4(k,4,0,j)*D_4(i0/2+1,l(1),l(2),l(3))
             endif
 120       continue
@@ -652,7 +669,8 @@ c algebraic extra terms according to Eqs.(6.16) and (6.21)
 *                          2i    j    k    l    m  indices
 *       of rank r=i+j+k+l+m with r <= r2 <= 4
 *
-*       Method of A.Denner, S.Dittmaier, NPB658 (2003) 175 [hep-ph/0212259]
+*       Method of A.Denner, S.Dittmaier, 
+*                 NPB658 (2003) 175 [hep-ph/0212259]
 *---------------------------------------------------------------------
 *       10.9.2006 Stefan Dittmaier
 **********************************************************************
@@ -713,13 +731,13 @@ c local variables
         i(4) = i4
           E(i0/2,i1,i2,i3,i4) = -eta4(0)*D0(i0/2,i1,i2,i3,i4)
           if (i1.eq.0) E(i0/2,i1,i2,i3,i4) 
-     &                   = E(i0/2,i1,i2,i3,i4) - eta4(1)*D_1(i0/2,i2,i3,i4)
+     &                = E(i0/2,i1,i2,i3,i4) - eta4(1)*D_1(i0/2,i2,i3,i4)
           if (i2.eq.0) E(i0/2,i1,i2,i3,i4) 
-     &                   = E(i0/2,i1,i2,i3,i4) - eta4(2)*D_2(i0/2,i1,i3,i4)
+     &                = E(i0/2,i1,i2,i3,i4) - eta4(2)*D_2(i0/2,i1,i3,i4)
           if (i3.eq.0) E(i0/2,i1,i2,i3,i4) 
-     &                   = E(i0/2,i1,i2,i3,i4) - eta4(3)*D_3(i0/2,i1,i2,i4)
+     &                = E(i0/2,i1,i2,i3,i4) - eta4(3)*D_3(i0/2,i1,i2,i4)
           if (i4.eq.0) E(i0/2,i1,i2,i3,i4) 
-     &                   = E(i0/2,i1,i2,i3,i4) - eta4(4)*D_4(i0/2,i1,i2,i3)
+     &                = E(i0/2,i1,i2,i3,i4) - eta4(4)*D_4(i0/2,i1,i2,i3)
           do 120 j=1,4
           l(1) = i1-del(j,1)
           l(2) = i2-del(j,2)
@@ -796,8 +814,8 @@ c local variables
           do 101 i4=0,i12345-i1-i2-i3
             i5 = i12345-i1-i2-i3-i4
             E0(i0/2,i1,i2,i3,i4,i5) = -E0(i0/2,i1-1,i2,i3,i4,i5)
-     &         - E0(i0/2,i1-1,i2+1,i3,i4,i5) - E0(i0/2,i1-1,i2,i3+1,i4,i5)
-     &         - E0(i0/2,i1-1,i2,i3,i4+1,i5) - E0(i0/2,i1-1,i2,i3,i4,i5+1)
+     &       - E0(i0/2,i1-1,i2+1,i3,i4,i5) - E0(i0/2,i1-1,i2,i3+1,i4,i5)
+     &       - E0(i0/2,i1-1,i2,i3,i4+1,i5) - E0(i0/2,i1-1,i2,i3,i4,i5+1)
 101     continue
 
         end

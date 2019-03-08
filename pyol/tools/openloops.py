@@ -1,22 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2015 Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-#
-# This file is part of OpenLoops.
-#
-# OpenLoops is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# OpenLoops is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+#!******************************************************************************!
+#! Copyright (C) 2014-2019 OpenLoops Collaboration. For authors see authors.txt !
+#!                                                                              !
+#! This file is part of OpenLoops.                                              !
+#!                                                                              !
+#! OpenLoops is free software: you can redistribute it and/or modify            !
+#! it under the terms of the GNU General Public License as published by         !
+#! the Free Software Foundation, either version 3 of the License, or            !
+#! (at your option) any later version.                                          !
+#!                                                                              !
+#! OpenLoops is distributed in the hope that it will be useful,                 !
+#! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+#! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+#! GNU General Public License for more details.                                 !
+#!                                                                              !
+#! You should have received a copy of the GNU General Public License            !
+#! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+#!******************************************************************************!
 
 
 # TODO
@@ -69,7 +71,7 @@ class ProcessInfoError(OpenLoopsError):
 #from ctypes.util import find_library
 #libopenloops = find_library('openloops')
 #if not libopenloops:
-    #print 'ERROR: openloops library not found'
+    #print('ERROR: openloops library not found')
     #sys.exit(1)
 #ol = ctypes.CDLL(libopenloops)
 
@@ -87,19 +89,34 @@ class LibraryContent(object):
         self.pt = bool((content >> 3) & 1)
 
 # (const char* key, int val)
-setparameter_int = ol.ol_setparameter_int
-setparameter_int.argtypes = [c_char_p, c_int]
-setparameter_int.restype = None
+setparameter_int_c = ol.ol_setparameter_int
+setparameter_int_c.argtypes = [c_char_p, c_int]
+setparameter_int_c.restype = None
+def setparameter_int(key, val):
+    setparameter_int_c(c_char_p(key.encode('utf-8')), val)
+
+setparameter_bool_c = ol.ol_setparameter_bool
+setparameter_bool_c.argtypes = [c_char_p, c_int]
+setparameter_bool_c.restype = None
+def setparameter_bool(key, val):
+  if val:
+    setparameter_bool_c(c_char_p(key.encode('utf-8')), 1)
+  else:
+    setparameter_bool_c(c_char_p(key.encode('utf-8')), 0)
 
 # (const char* key, double val)
-setparameter_double = ol.ol_setparameter_double
-setparameter_double.argtypes = [c_char_p, c_double]
-setparameter_double.restype = None
+setparameter_double_c = ol.ol_setparameter_double
+setparameter_double_c.argtypes = [c_char_p, c_double]
+setparameter_double_c.restype = None
+def setparameter_double(key, val):
+    setparameter_double_c(c_char_p(key.encode('utf-8')), val)
 
 # (const char* key, char* val)
-setparameter_string = ol.ol_setparameter_string
-setparameter_string.argtypes = [c_char_p, c_char_p]
-setparameter_string.restype = None
+setparameter_string_c = ol.ol_setparameter_string
+setparameter_string_c.argtypes = [c_char_p, c_char_p]
+setparameter_string_c.restype = None
+def setparameter_string(key, val):
+    setparameter_string_c(c_char_p(key.encode('utf-8')), c_char_p(val.encode('utf-8')))
 
 # (const char* key, int[1] val)
 getparameter_int_c = ol.ol_getparameter_int
@@ -112,9 +129,11 @@ getparameter_double_c.argtypes = [c_char_p, c_double_ptr]
 getparameter_double_c.restype = None
 
 # (const char* proc, int amptype) -> int
-register_process = ol.ol_register_process
-register_process.argtypes = [c_char_p, c_int]
-register_process.restype = int
+register_process_c = ol.ol_register_process
+register_process_c.argtypes = [c_char_p, c_int]
+register_process_c.restype = int
+def register_process(proc, amptype):
+    return register_process_c(c_char_p(proc.encode('utf-8')), amptype)
 
 # (int id) -> int
 n_external = ol.ol_n_external
@@ -196,6 +215,12 @@ evaluate_ct_c.argtypes = [
     c_int, c_double_ptr, c_double_ptr, c_double_ptr]
 evaluate_ct_c.restype = None
 
+# (int id, double[5*n] pp, double[1] tree, double[1] r2)
+evaluate_r2_c = ol.ol_evaluate_r2
+evaluate_r2_c.argtypes = [
+    c_int, c_double_ptr, c_double_ptr, c_double_ptr]
+evaluate_r2_c.restype = None
+
 # (int id, double[5*n] pp, double[1] tree, double[1] pt, double[1] loop)
 evaluate_pt = ol.ol_evaluate_pt
 evaluate_pt.argtypes = [c_int, c_double_ptr, c_double_ptr,
@@ -215,15 +240,17 @@ atexit.register(finish)
 
 
 def set_parameter(key, val):
-    if isinstance(val, int):
+    if type(val) == int:
         setparameter_int(key, val)
+    elif type(val) == bool:
+        setparameter_bool(key, val)
     elif isinstance(val, float):
         setparameter_double(key, val)
     elif isinstance(val, str):
         if key.startswith('alpha') and '/' in val:
             try:
                 valnum, valden = val.split('/')
-                val = float(valnum)/float(valden)
+                val = float(valnum) / float(valden)
             except ValueError:
                 raise OpenLoopsError(
                     'Invalid option \'{}={}\''.format(key, val))
@@ -236,12 +263,12 @@ def set_parameter(key, val):
 
 def get_parameter_int(key):
     val_c = c_int()
-    getparameter_int_c(key, byref(val_c))
+    getparameter_int_c(c_char_p(key.encode('utf-8')), byref(val_c))
     return val_c.value
 
 def get_parameter_double(key):
     val_c = c_double()
-    getparameter_double_c(key, byref(val_c))
+    getparameter_double_c(c_char_p(key.encode('utf-8')), byref(val_c))
     return val_c.value
 
 
@@ -317,6 +344,10 @@ class MatrixElement(object):
             return 'tree={} {} acc={}'.format(self.tree, self.loop, self.acc)
         elif self.amptype == LOOP2:
             return 'loop2={} acc={}'.format(self.loop2.finite, self.acc)
+        elif self.amptype == 'ct':
+            return 'tree={} ct={}'.format(self.tree, self.ct)
+        elif self.amptype == 'r2':
+            return 'tree={} r2={}'.format(self.tree, self.r2)
         else:
             return ('MatrixElement.__str__ not implemented for amptype {}'
                    ).format(self.amptype)
@@ -329,6 +360,10 @@ class MatrixElement(object):
                                            self.acc)
         elif self.amptype == LOOP2:
             return (2*numberformat).format(self.loop2.finite, self.acc)
+        elif self.amptype == 'ct':
+            return (2*numberformat).format(self.tree, self.ct)
+        elif self.amptype == 'r2':
+            return (2*numberformat).format(self.tree, self.r2)
         else:
             return ('MatrixElement.valuestr not implemented for amptype {}'
                    ).format(self.amptype)
@@ -423,7 +458,16 @@ class Process(object):
         or for a random phase space point of given or default energy.
 
         'amptype' overrides the amptype of the process -- if you use this,
-                  it's up to you to figure out if what you do makes sense."""
+                  it's up to you to figure out if what you do makes sense.
+                  'ct' calculates the counterterms only."""
+        ct_only = False
+        r2_only = False
+        if amptype == 'ct':
+          ct_only = True
+          amptype = None
+        elif amptype == 'r2':
+          r2_only = True
+          amptype = None
         if not amptype:
             amptype = self.amptype
         if not start.started:
@@ -437,17 +481,25 @@ class Process(object):
             psp = PhaseSpacePoint(pp_or_sqrt_s, self.n)
 
         if amptype in (LOOP, LOOP2):
-            evaluate_full_c(self.id, psp, Process._tree_buf,
-                            Process._loop_buf, Process._ir1_buf,
-                            Process._loop2_buf, Process._ir2_buf,
-                            Process._acc_buf)
-            me = MatrixElement(
-                amptype, psp, tree=Process._tree_buf.value,
-                loop=LoopME(*Process._loop_buf),
-                iop=IOperator(*Process._ir1_buf),
-                loop2=Loop2ME(*Process._loop2_buf),
-                acc=Process._acc_buf.value)
-
+            if ct_only:
+                evaluate_ct_c(self.id, psp, Process._tree_buf, Process._ct_buf)
+                me = MatrixElement('ct', psp, tree=Process._tree_buf.value,
+                                   ct=Process._ct_buf.value)
+            elif r2_only:
+                evaluate_r2_c(self.id, psp, Process._tree_buf, Process._ct_buf)
+                me = MatrixElement('r2', psp, tree=Process._tree_buf.value,
+                                   r2=Process._ct_buf.value)
+            else:
+                evaluate_full_c(self.id, psp, Process._tree_buf,
+                                Process._loop_buf, Process._ir1_buf,
+                                Process._loop2_buf, Process._ir2_buf,
+                                Process._acc_buf)
+                me = MatrixElement(
+                    amptype, psp, tree=Process._tree_buf.value,
+                    loop=LoopME(*Process._loop_buf),
+                    iop=IOperator(*Process._ir1_buf),
+                    loop2=Loop2ME(*Process._loop2_buf),
+                    acc=Process._acc_buf.value)
         elif amptype == TREE:
             evaluate_tree_c(self.id, psp, Process._tree_buf)
             me = MatrixElement(amptype, psp, tree=Process._tree_buf.value)
@@ -477,6 +529,7 @@ class ProcessInfo(object):
         with open(os.path.join(proclib_dir, info_files[0])) as fh:
             info = fh.readlines()
         for inf in info:
+            if inf.startswith('options'): continue
             inf = inf.split()
             if inf[2].startswith('map='):
                 # mapping[from] = to
@@ -528,5 +581,5 @@ if __name__ == '__main__':
     set_parameter('stability_mode',11)
     proc = Process('1 -1 -> 22 21')
     me = proc.evaluate()
-    print 'pp =', me.psp
-    print me
+    print('pp =', me.psp)
+    print(me)

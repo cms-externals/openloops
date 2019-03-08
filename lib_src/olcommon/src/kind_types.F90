@@ -1,20 +1,21 @@
-
-! Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-!
-! This file is part of OpenLoops.
-!
-! OpenLoops is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! OpenLoops is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-! GNU General Public License for more details.
-!
-! You should have received a copy of the GNU General Public License
-! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+!******************************************************************************!
+! Copyright (C) 2014-2019 OpenLoops Collaboration. For authors see authors.txt !
+!                                                                              !
+! This file is part of OpenLoops.                                              !
+!                                                                              !
+! OpenLoops is free software: you can redistribute it and/or modify            !
+! it under the terms of the GNU General Public License as published by         !
+! the Free Software Foundation, either version 3 of the License, or            !
+! (at your option) any later version.                                          !
+!                                                                              !
+! OpenLoops is distributed in the hope that it will be useful,                 !
+! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+! GNU General Public License for more details.                                 !
+!                                                                              !
+! You should have received a copy of the GNU General Public License            !
+! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+!******************************************************************************!
 
 
 module kind_types
@@ -26,32 +27,24 @@ module kind_types
   integer, parameter :: sp = selected_real_kind(6)
   complex(sp), parameter :: cI_sp = (0._sp, 1._sp)
 #endif
-! #ifdef USE_dp
   integer, parameter :: dp = selected_real_kind(15)
   complex(dp), parameter :: cI_dp = (0._dp, 1._dp)
-! #endif
 #ifdef USE_ep
   integer, parameter :: ep = selected_real_kind(18)
   complex(ep), parameter :: cI_ep = (0._ep, 1._ep)
 #endif
-! #ifdef USE_qp
   integer, parameter :: qp = selected_real_kind(33)
   complex(qp), parameter :: cI_qp = (0._qp, 1._qp)
-! #endif
 
   interface cmplx_wp
 #ifdef USE_sp
     module procedure cmplx_sp
 #endif
-#ifdef USE_dp
     module procedure cmplx_dp
-#endif
 #ifdef USE_ep
     module procedure cmplx_ep
 #endif
-#ifdef USE_qp
     module procedure cmplx_qp
-#endif
   end interface cmplx_wp
   contains
 #ifdef USE_sp
@@ -64,7 +57,6 @@ module kind_types
     if (present(im)) cmplx_sp = cmplx(re,im,sp)
   end function cmplx_sp
 #endif
-#ifdef USE_dp
   function cmplx_dp(re, im)
     implicit none
     real(dp), intent(in) :: re
@@ -73,7 +65,6 @@ module kind_types
     cmplx_dp = re
     if (present(im)) cmplx_dp = cmplx(re,im,dp)
   end function cmplx_dp
-#endif
 #ifdef USE_ep
   function cmplx_ep(re, im)
     implicit none
@@ -84,7 +75,6 @@ module kind_types
     if (present(im)) cmplx_ep = cmplx_ep + im * cI_ep
   end function cmplx_ep
 #endif
-#ifdef USE_qp
   function cmplx_qp(re, im)
     implicit none
     real(qp), intent(in) :: re
@@ -93,5 +83,4 @@ module kind_types
     cmplx_qp = re
     if (present(im)) cmplx_qp = cmplx_qp + im * cI_qp
   end function cmplx_qp
-#endif
 end module kind_types

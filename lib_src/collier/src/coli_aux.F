@@ -7,9 +7,10 @@
 !!  COLLIER is licenced under the GNU GPL version 3, see COPYING for details.
 !!
 
-
+#include "global_coli.h"
 
 c#define WIB
+# define ERREST
 
 ************************************************************************
 *                                                                      *
@@ -218,7 +219,7 @@ c     sym = 0
 
 #ifdef CHECK
       if(argcheck) then
-         if(abs(dimag(cz)).lt.impacc*abs(real(cz)).and.
+         if(abs(aimag(cz)).lt.impacc*abs(real(cz)).and.
      &        real(cz).le.0d0.and.eps.eq.0d0.or.
      &        abs(cz).eq.0d0) then
             call setErrFlag_coli(-4)
@@ -233,18 +234,19 @@ c     sym = 0
       endif
 #endif
 
-      if(abs(dimag(cz)).gt.impacc*abs(real(cz)).or.real(cz).gt.0d0)
+      if(abs(aimag(cz)).gt.impacc*abs(real(cz)).or.real(cz).gt.0d0)
      &    then
         cln_coli=log(cz)
       elseif(eps.ne.0) then
         cln_coli=log(-cz)+dcmplx(0d0,pi)*sign(1d0,eps)
-      elseif(dimag(cz).ne.0d0) then
+      elseif(aimag(cz).ne.0d0) then
         cln_coli=log(cz)
         call setErrFlag_coli(-1)
         call ErrOut_coli('cln_coli', 'argument effectively on cut',
      &          errorwriteflag)
         if (errorwriteflag) then
-          write(nerrout_coli,*) 'cln_coli:  argument effectively on cut '
+          write(nerrout_coli,*)
+     &         'cln_coli:  argument effectively on cut '
           write(nerrout_coli,*) 'cln_coli:  eps = ',eps
           write(nerrout_coli,*) 'cln_coli:  cz  = ',cz
         endif
@@ -286,7 +288,7 @@ c     sym = 0
 #ifdef CHECK
       if(argcheck) then
          if(real(cz).gt.1d0.and.
-     &        abs(dimag(cz)).lt.impacc*abs(real(cz)).and.eps.eq.0)then
+     &        abs(aimag(cz)).lt.impacc*abs(real(cz)).and.eps.eq.0)then
            call setErrFlag_coli(-4)
            call ErrOut_coli('cspenc_coli', 'argument on cut',
      &          errorwriteflag)
@@ -341,7 +343,7 @@ c     sym = 0
       implicit   none
       complex*16 cspenh_coli,cln_coli,cz,x,x2
       real*8     eps
-      real*8 b(11)/
+      real*8 :: b(11) = (/
      1   0.1666666666666666666666666667d0,
      2  -0.0333333333333333333333333333d0,
      3   0.0238095238095238095238095238d0,
@@ -352,7 +354,7 @@ c     sym = 0
      8  -7.0921568627450980392156862745d0,
      9  54.97117794486215538847117794486d0,
      +  -529.124242424242424242424242424242d0,
-     1  6192.123188405797101449275362318d0  /
+     1  6192.123188405797101449275362318d0  /)
 c     note:                 b(n)=b2n
 c     b(1)=1./6.
 c     b(2)=-1./30.
@@ -471,7 +473,8 @@ c
           call ErrOut_coli('cspcon_coli','inconsistent arguments',
      &        errorwriteflag)
           if (errorwriteflag) then
-            write(nerrout_coli,*) 'cspcon_coli:  arguments inconsistent  '
+            write(nerrout_coli,*)
+     &         'cspcon_coli:  arguments inconsistent  '
             write(nerrout_coli,100) 'cspcon_coli: z1 = ',z1
             write(nerrout_coli,100) 'cspcon_coli: z2 = ',z2
             write(nerrout_coli,100) 'cspcon_coli: zp = ',pz,z1*z2
@@ -657,7 +660,8 @@ c to ensure correct continuation for infinitesimal imaginary parts
      &         ' arguments inconsistent',
      &         errorwriteflag)
            if (errorwriteflag) then
-             write(nerrout_coli,*) 'csp2con_coli:  arguments inconsistent'
+             write(nerrout_coli,*)
+     &         'csp2con_coli:  arguments inconsistent'
              write(nerrout_coli,100) 'csp2con_coli: z1 = ',z1
              write(nerrout_coli,100) 'csp2con_coli: z2 = ',z2
              write(nerrout_coli,100) 'csp2con_coli: zp = ',pz,z1*z2
@@ -820,7 +824,8 @@ c to ensure correct continuation for infinitesimal imaginary parts
      &        ' arguments inconsistent',
      &         errorwriteflag)
           if (errorwriteflag) then
-            write(nerrout_coli,*) 'csp3con_coli:  arguments inconsistent  '
+            write(nerrout_coli,*)
+     &         'csp3con_coli:  arguments inconsistent  '
             write(nerrout_coli,100) 'csp3con_coli: z1 = ',z1
             write(nerrout_coli,100) 'csp3con_coli: z2 = ',z2
             write(nerrout_coli,100) 'csp3con_coli: z3 = ',z3
@@ -920,7 +925,8 @@ c to ensure correct continuation for infinitesimal imaginary parts
      &        ' arguments inconsistent',
      &        errorwriteflag)
           if (errorwriteflag) then
-            write(nerrout_coli,*) 'csp4con_coli:  arguments inconsistent  '
+            write(nerrout_coli,*)
+     &         'csp4con_coli:  arguments inconsistent  '
             write(nerrout_coli,100) 'csp4con_coli: z1 = ',z1
             write(nerrout_coli,100) 'csp4con_coli: z2 = ',z2
             write(nerrout_coli,100) 'csp4con_coli: z3 = ',z3
@@ -1024,9 +1030,9 @@ c to ensure correct continuation for infinitesimal imaginary parts
       endif
 #endif
 
-      im1   = dimag(z1)
-      im2   = dimag(z2)
-      imp   = dimag(pz)
+      im1   = aimag(z1)
+      im2   = aimag(z2)
+      imp   = aimag(pz)
       re1   = real(z1)
       re2   = real(z2)
       rep   = real(pz)
@@ -1113,9 +1119,9 @@ c to ensure correct continuation for infinitesimal imaginary parts
 
       pz=z1*z2
 
-      im1 = dimag(z1)
-      im2 = dimag(z2)
-      imp = dimag(pz)
+      im1 = aimag(z1)
+      im2 = aimag(z2)
+      imp = aimag(pz)
       re1 = real(z1)
       re2 = real(z2)
       rep = real(pz)
@@ -1257,7 +1263,7 @@ c multiplication of a(i,j) with the transformation matrix
         do 300 k=j+1,n
           csum = 0d0
           do 400 i=j,n
-            csum = csum + dconjg(ca(i,j))*ca(i,k)
+            csum = csum + conjg(ca(i,j))*ca(i,k)
  400      continue
           csum = csum*beta
           do 500 i=j,n
@@ -1287,12 +1293,12 @@ c calculation of matrix Q
  800    continue
         cq(j,j) = 1 - 2d0 * abs(ca(j,j))**2/norm
         do 900 i=j+1,n
-          cq(i,j) = - 2d0 * ca(i,j)*dconjg(ca(j,j))/norm
+          cq(i,j) = - 2d0 * ca(i,j)*conjg(ca(j,j))/norm
  900    continue
         do 1000 k=j+1,n
           csum = 0d0
           do 1100 i=j+1,n
-            csum = csum + dconjg(ca(i,j))*cq(i,k)
+            csum = csum + conjg(ca(i,j))*cq(i,k)
  1100     continue
           csum = 2d0*csum/norm
           cq(j,k) =  - ca(j,j) * csum
@@ -1320,7 +1326,7 @@ c check of unitarity of Q
       do 1500 k=1,n
         catest(i,k) = 0d0
       do 1500 j=1,n
-        catest(i,k) = catest(i,k) + cq(i,j)*dconjg(cq(k,j))
+        catest(i,k) = catest(i,k) + cq(i,j)*conjg(cq(k,j))
  1500 continue
 
 c check of decomposition
@@ -1333,8 +1339,251 @@ c check of decomposition
 
       end
 
+!***********************************************************************
+      subroutine chinve(n,cai,cainv,cdeta,cdetaaccloss)
+!***********************************************************************
+!     Calculation of the inverse of a complex n x n matrix             *
+!     The matrix is first reduced via Householder transformations into *
+!     the form A = QR                                                  *
+!     where  Q is a hermitean and R a upper triangular matrix.         *
+!     See Stoer, Numerische Mathematik, chapter 4.7                    *
+!     The inverse is then obtained as                                  *
+!     Ainv = Rinv * Qadj                                               *
+!     ca(i,j) j.ge.i contains the elements of u_i that form the        *
+!             Householder matrix P_i = 1 - beta_i u x u^H              *
+!     ca(i,j) j.lt.i contains the nondiagonal entries of R             *
+!     cd contains the diagonal elements of R                           *
+!     flag = 1 signals vanishing determinant                           *
+!     cdetaaccloss:  error in cdeta propto  1/cdetaaccloss             *
+!       log(cdetaaccloss)/log(10d0) = number of lost digits of cdeta   *
+!----------------------------------------------------------------------*
+!     07.06.05  Ansgar Denner     last changed  24.01.19               *
+!***********************************************************************
+      implicit   none
+      complex*16, intent(out) :: cdeta
+      real*8,    intent(out) :: cdetaaccloss
+      integer    n
+      complex*16 chdet
+      real*8     aabs,sigma,rs,beta,norm
+      complex*16 ca(n,n),cd(n),cq(n,n),cr(n,n),catest(n,n),crtest(n,n)
+      complex*16 cai(n,n),crinv(n,n),cainv(n,n)
+      complex*16 csum,cs,canew
+      real*8     caaccloss(n),cdaccloss(n),csaccloss
+      integer    i,j,k
+      logical    errorwriteflag
+
+! saving of input
+      do 10 j=1,n
+        caaccloss(j) = 1d0
+        do 20 i=1,n
+          ca(i,j) = cai(i,j)
+ 20     continue
+ 10   continue
+
+ 2    format(5('(',g11.4,',',g11.4,') ':))
+
+!  Householder transformation
+
+      do 100 j=1,n
+
+!  calculation of transformation matrix
+
+        aabs = abs(ca(j,j))
+        sigma = aabs**2
+        do 200 i=j+1,n
+           sigma = sigma +  abs(ca(i,j))**2
+ 200    continue
+        if (sigma.eq.0) then
+          cdeta = 0d0
+#ifdef NONE
+!         det=0 taken care of by reduction subroutines!
+          call setErrFlag_coli(-7)
+          call ErrOut_coli('chinve',' zero determinant',
+     &       errorwriteflag)
+          if (errorwriteflag) then
+            write(nerrout_coli,*) 'sigma = cdeta =',cdeta
+            write(nerrout_coli,*) 'n = ',n
+          endif
+#endif
+          return
+        end if
+        rs = sqrt(sigma)
+        if (aabs.gt.0d0) then
+          cs = rs* (ca(j,j)/aabs)
+#ifdef ERREST
+!          csaccloss = caaccloss(j)
+!  propagation of error of ca(j,j)
+          if (imag(ca(j,j))*real(ca(j,j)).ne.0d0) then
+            csaccloss = min(1d0, caaccloss(j)*sigma/aabs**2,
+     &          caaccloss(j)*aabs**2/abs(imag(ca(j,j))*real(ca(j,j))))
+          else
+            csaccloss = min(1d0,caaccloss(j)*sigma/aabs**2)
+          end if
+#endif
+        else
+          cs = rs
+#ifdef ERREST
+          csaccloss = 1d0
+#endif
+        end if
+
+        beta = 1d0/(sigma + rs * aabs)
+        ca(j,j) = ca(j,j) + cs
+
+! multiplication of a(i,j) with the transformation matrix
+
+        cd(j) = -cs
+#ifdef ERREST
+        cdaccloss(j) = csaccloss
+#endif
+        do 300 k=j+1,n
+          csum = 0d0
+          do 400 i=j,n
+            csum = csum + conjg(ca(i,j))*ca(i,k)
+ 400      continue
+          csum = csum*beta
+          do 500 i=j,n
+            canew = ca(i,k) - ca(i,j) * csum
+#ifdef ERREST
+!  estimate error of ca(k,k)
+            if (i.eq.k) then
+              if(ca(i,k).ne.0d0) then
+                if(ca(i,j)*csum.ne.0d0) then
+                  caaccloss(i) = min(1d0,
+     &                caaccloss(i)* abs(canew/abs(ca(i,k))),
+     &                abs(canew/abs(ca(i,j)*csum)))
+                else
+                  caaccloss(i) = min(1d0,
+     &                caaccloss(i)* abs(canew/abs(ca(i,k))))
+                endif
+              else
+                caaccloss(i) = 1d0
+              endif
+            end if
+#endif
+            ca(i,k) = canew
+ 500      continue
+ 300    continue
+
+ 100  continue
+
+!      write(*,*) 'chinve cdaccloss = ',cdaccloss
+
+! calculation of determinant
+      cdeta = 1d0
+#ifdef ERREST
+      cdetaaccloss = 1d0
+#endif
+      do 600 i=1,n
+        cdeta = -cdeta * cd(i)
+#ifdef ERREST
+        cdetaaccloss = cdetaaccloss * cdaccloss(i)
+#endif
+ 600  continue
+
+
+! calculation of matrix Q
+
+      do 700 j=n,1,-1
+        norm = 0d0
+        do 800 i=j,n
+          norm = norm + abs(ca(i,j))**2
+ 800    continue
+        cq(j,j) = 1 - 2d0 * abs(ca(j,j))**2/norm
+        do 900 i=j+1,n
+          cq(i,j) = - 2d0 * ca(i,j)*conjg(ca(j,j))/norm
+ 900    continue
+        do 1000 k=j+1,n
+          csum = 0d0
+          do 1100 i=j+1,n
+            csum = csum + conjg(ca(i,j))*cq(i,k)
+ 1100     continue
+          csum = 2d0*csum/norm
+          cq(j,k) =  - ca(j,j) * csum
+          do 1200 i=j+1,n
+            cq(i,k) = cq(i,k) - ca(i,j) * csum
+ 1200     continue
+ 1000   continue
+ 700  continue
+
+! determination of matrix R
+
+      do 1300 i=1,n
+      do 1300 k=1,n
+        cr(i,k) = 0d0
+ 1300 continue
+      do 1400 i=1,n
+        cr(i,i) = cd(i)
+      do 1400 k=i+1,n
+        cr(i,k) = ca(i,k)
+ 1400 continue
+
+! determination of inverse of R
+
+      do 2000 i=1,n
+      do 2000 k=1,n
+        crinv(i,k) = 0d0
+ 2000 continue
+      do 2100 k=1,n
+        crinv(k,k) = 1d0/cr(k,k)
+      do 2100 i=1,k-1
+      do 2200 j=i,k-1
+        crinv(i,k) = crinv(i,k) - crinv(i,j)* cr(j,k)/cr(k,k)
+ 2200 continue
+ 2100 continue
+
+! determination of inverse of A
+
+      do 2300 i=1,n
+      do 2300 k=1,n
+        cainv(i,k) = 0d0
+      do 2300 j=1,n
+        cainv(i,k) = cainv(i,k) + crinv(i,j)*conjg(cq(k,j))
+ 2300 continue
+
+      return
+
+! check of unitarity of Q
+
+      do 1500 i=1,n
+      do 1500 k=1,n
+        catest(i,k) = 0d0
+      do 1500 j=1,n
+        catest(i,k) = catest(i,k) + cq(i,j)*conjg(cq(k,j))
+ 1500 continue
+
+
+! check of decomposition
+
+      do 1600 i=1,n
+      do 1600 k=1,n
+        catest(i,k) = 0d0
+      do 1600 j=1,k
+        catest(i,k) = catest(i,k) + cq(i,j)*cr(j,k)
+ 1600 continue
+
+
+! check of inverse of Q
+      do 2400 i=1,n
+      do 2400 k=1,n
+        crtest(i,k) = 0d0
+      do 2400 j=1,n
+        crtest(i,k) = crtest(i,k) + cr(i,j)*crinv(j,k)
+ 2400 continue
+
+! check of inverse of A
+
+      do 2500 i=1,n
+      do 2500 k=1,n
+        catest(i,k) = 0d0
+      do 2500 j=1,n
+        catest(i,k) = catest(i,k) + cai(i,j)*cainv(j,k)
+ 2500 continue
+
+      end
+
 ************************************************************************
-      subroutine chinv(n,cai,cainv)
+      subroutine chinv(n,cai,cainv,cdeta)
 ************************************************************************
 *     Calculation of the inverse of a complex n x n matrix             *
 *     The matrix is first reduced via Householder transformations into *
@@ -1347,13 +1596,12 @@ c check of decomposition
 *             Householder matrix P_i = 1 - beta_i u x u^H              *
 *     ca(i,j) j.lt.i contains the nondiagonal entries of R             *
 *     cd contains the diagonal elements of R                           *
+*     flag = 1 signals vanishing determinant                           *
 *----------------------------------------------------------------------*
-*     07.06.05  Ansgar Denner     last changed  16.06.05               *
+*     07.06.05  Ansgar Denner     last changed  21.06.18               *
 ************************************************************************
-#ifndef ADcode
-      use coli_aux2
-#endif
       implicit   none
+      complex*16, intent(out), optional :: cdeta
       integer    n
       complex*16 chdet
       real*8     aabs,sigma,rs,beta,norm
@@ -1362,8 +1610,6 @@ c check of decomposition
       complex*16 csum,cs
       integer    i,j,k
       logical    errorwriteflag
-
-#include "params_coli.h"
 
 c saving of input
       do 10 j=1,n
@@ -1387,7 +1633,8 @@ c  calculation of transformation matrix
  200    continue
         if (sigma.eq.0) then
           chdet = 0d0
-#ifdef CHECK
+#ifdef NONE
+!         det=0 taken care of by reduction subroutines!
           call setErrFlag_coli(-7)
           call ErrOut_coli('chinv',' zero determinant',
      &       errorwriteflag)
@@ -1396,6 +1643,7 @@ c  calculation of transformation matrix
             write(nerrout_coli,*) 'n = ',n
           endif
 #endif
+          if(present(cdeta)) cdeta = chdet
           return
         end if
         rs = sqrt(sigma)
@@ -1413,7 +1661,7 @@ c multiplication of a(i,j) with the transformation matrix
         do 300 k=j+1,n
           csum = 0d0
           do 400 i=j,n
-            csum = csum + dconjg(ca(i,j))*ca(i,k)
+            csum = csum + conjg(ca(i,j))*ca(i,k)
  400      continue
           csum = csum*beta
           do 500 i=j,n
@@ -1425,6 +1673,10 @@ c multiplication of a(i,j) with the transformation matrix
 
 
 c calculation of determinant
+      cdeta = 1d0
+      do 600 i=1,n
+        cdeta = -cdeta * cd(i)
+ 600  continue
 
 
 c calculation of matrix Q
@@ -1436,12 +1688,12 @@ c calculation of matrix Q
  800    continue
         cq(j,j) = 1 - 2d0 * abs(ca(j,j))**2/norm
         do 900 i=j+1,n
-          cq(i,j) = - 2d0 * ca(i,j)*dconjg(ca(j,j))/norm
+          cq(i,j) = - 2d0 * ca(i,j)*conjg(ca(j,j))/norm
  900    continue
         do 1000 k=j+1,n
           csum = 0d0
           do 1100 i=j+1,n
-            csum = csum + dconjg(ca(i,j))*cq(i,k)
+            csum = csum + conjg(ca(i,j))*cq(i,k)
  1100     continue
           csum = 2d0*csum/norm
           cq(j,k) =  - ca(j,j) * csum
@@ -1483,7 +1735,7 @@ c determination of inverse of A
       do 2300 k=1,n
         cainv(i,k) = 0d0
       do 2300 j=1,n
-        cainv(i,k) = cainv(i,k) + crinv(i,j)*dconjg(cq(k,j))
+        cainv(i,k) = cainv(i,k) + crinv(i,j)*conjg(cq(k,j))
  2300 continue
 
       return
@@ -1494,7 +1746,7 @@ c check of unitarity of Q
       do 1500 k=1,n
         catest(i,k) = 0d0
       do 1500 j=1,n
-        catest(i,k) = catest(i,k) + cq(i,j)*dconjg(cq(k,j))
+        catest(i,k) = catest(i,k) + cq(i,j)*conjg(cq(k,j))
  1500 continue
 
 

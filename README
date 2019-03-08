@@ -3,14 +3,21 @@
 OpenLoops
 =========
 
-Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
+Copyright 2014-2019 
+Federico Buccioni, J.-N. Lang, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini, Hantian Zhang, Max Zoller 
 
 Authors
 
-    Fabio Cascioli, cascioli@physik.uzh.ch
-    Jonas Lindert, lindert@physik.uzh.ch
+    Federico Buccioni, buccioni@physik.uzh.ch
+    Jean-Nicolas Lang, jlang@physik.uzh.ch
+    Jonas Lindert, jonas.m.lindert@durham.ac.uk
     Philipp Maierhoefer, philipp@physik.uzh.ch
     Stefano Pozzorini, pozzorin@physik.uzh.ch
+    Hantian Zhang, hantian.zhang@physik.uzh.ch
+    Max Zoller, zoller@physik.uzh.ch
+
+Former Authors
+    Fabio Cascioli, cascioli@physik.uzh.ch
 
 Contact
 
@@ -50,16 +57,16 @@ Installation
 Requirements
 
     gfortran 4.6 or later, or ifort
-    Python 2.x starting with 2.4
-    Apache Subversion (optional, to install from SVN)
+    Python 2.7 or Python >= 3.5
+    git (optional)
 
-You can either download OpenLoops from SVN (recommended)
+You can either download OpenLoops from the Git repository (recommended)
 
-    svn checkout http://openloops.hepforge.org/svn/OpenLoops/branches/public OpenLoops
+    git clone https://gitlab.com/openloops/OpenLoops.git
 
 or from the OpenLoops web page
 
-    http://www.hepforge.org/downloads
+    https://openloops.hepforge.org/downloads
 
 Compile
 
@@ -102,14 +109,14 @@ Update OpenLoops and process libraries
 ======================================
 
 Note that automatic updates of the process independent OpenLoops code
-are only supported when OpenLoops was installed from SVN.
+are only supported when OpenLoops was installed from Git.
 
-To update from SVN and update all installed processes
+To update from Git and update all installed processes
 
     ./openloops update
 
 To only update installed processes, but not OpenLoops itself
-(this also works when OpenLoops was not installed from SVN)
+(this also works when OpenLoops was not installed from Git)
 
     ./openloops update --processes
 

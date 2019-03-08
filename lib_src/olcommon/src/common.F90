@@ -1,24 +1,25 @@
-
-! Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-!
-! This file is part of OpenLoops.
-!
-! OpenLoops is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! OpenLoops is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-! GNU General Public License for more details.
-!
-! You should have received a copy of the GNU General Public License
-! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+!******************************************************************************!
+! Copyright (C) 2014-2019 OpenLoops Collaboration. For authors see authors.txt !
+!                                                                              !
+! This file is part of OpenLoops.                                              !
+!                                                                              !
+! OpenLoops is free software: you can redistribute it and/or modify            !
+! it under the terms of the GNU General Public License as published by         !
+! the Free Software Foundation, either version 3 of the License, or            !
+! (at your option) any later version.                                          !
+!                                                                              !
+! OpenLoops is distributed in the hope that it will be useful,                 !
+! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+! GNU General Public License for more details.                                 !
+!                                                                              !
+! You should have received a copy of the GNU General Public License            !
+! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+!******************************************************************************!
 
 
 ! ol_dilog configuration
-! stop series expansion when the result doesn't change anymore
+! stop series expansion when the result does not change anymore
 #define COMPARE
 ! check expansion depth required to achieve full precision;
 ! store the number of points which required n terms in bin(n)
@@ -37,12 +38,17 @@ module ol_generic
   interface to_string
     module procedure integer_to_string, integer1_to_string, integer2_to_string, &
           & double_to_string, complex_to_string, single_to_string, &
-          & integerlist_to_string, doublelist_to_string, complexlist_to_string
+          & integerlist_to_string, doublelist_to_string, complexlist_to_string, &
+          logical_to_string
   end interface to_string
 
   interface to_int
     module procedure string_to_integer
   end interface to_int
+
+  interface relative_deviation
+    module procedure relative_deviation_dp, relative_deviation_qp
+  end interface relative_deviation
 
   contains
 
@@ -97,6 +103,18 @@ module ol_generic
       if (del) integerlist_to_string = trim(integerlist_to_string) // "]"
     end if
   end function integerlist_to_string
+
+  function logical_to_string(x)
+    implicit none
+    logical :: x
+    character(5) :: logical_to_string
+    !write(integer_to_string,*) x
+    if (x .eqv. .true.) then
+      logical_to_string = "True"
+    else
+      logical_to_string = "False"
+    end if
+  end function logical_to_string
 
   function doublelist_to_string(x,del,sep)
     use KIND_TYPES, only: DREALKIND
@@ -343,7 +361,7 @@ module ol_generic
 
   function nth_permutation(arr, n)
     ! return the n-th permutation of arr, defined by the set of canonically
-    ! order permutations of [1,..,size(arr)] (same ordering as Mathematica's Permutation[]).
+    ! order permutations of [1,..,size(arr)] (same ordering as Mathematicas Permutation[]).
     implicit none
     integer, intent(in) :: arr(:), n
     integer :: nth_permutation(size(arr))
@@ -364,7 +382,7 @@ module ol_generic
   function perm_pos(perm)
     ! Unique mapping of a permutation perm(1:n) -> integer in [1..n!].
     ! In a canonically ordered list of all permutations
-    ! (like Mathematica's Permutations[Range[n]]),
+    ! (like Mathematicas Permutations[Range[n]]),
     ! perm is at position perm_pos
     implicit none
     integer :: perm_pos
@@ -474,7 +492,7 @@ module ol_generic
   end function compositions
 
 
-  function relative_deviation(a, b)
+  function relative_deviation_dp(a, b) result (relative_deviation)
     use KIND_TYPES, only: DREALKIND
     implicit none
     real(DREALKIND), intent(in) :: a, b
@@ -486,7 +504,22 @@ module ol_generic
     else
       relative_deviation = max(abs(a/b-1), abs(b/a-1))
     end if
-  end function relative_deviation
+  end function relative_deviation_dp
+
+
+  function relative_deviation_qp(a, b) result (relative_deviation)
+    use KIND_TYPES, only: QREALKIND
+    implicit none
+    real(QREALKIND), intent(in) :: a, b
+    real(QREALKIND) :: relative_deviation
+    if (a == b) then
+      relative_deviation = 0
+    else if ( a == 0 .or. b == 0) then
+      relative_deviation = huge(a)
+    else
+      relative_deviation = max(abs(a/b-1), abs(b/a-1))
+    end if
+  end function relative_deviation_qp
 
 
   function digit_agreement(a, b)
@@ -661,7 +694,7 @@ module ol_iso_c_utilities
 !     slen = strlen(c_str_ptr)
 !     call c_f_pointer(c_str_ptr, f_str_ptr, shape = [slen])
 !     if (allocated(f_str)) deallocate(f_str)
-!     allocate(character(len=size(f_str_ptr))::f_str) ! len=slen doesn't work
+!     allocate(character(len=size(f_str_ptr))::f_str) ! len=slen does not work
 !     do i = 1, slen
 !       f_str(i:i) = f_str_ptr(i)
 !     end do

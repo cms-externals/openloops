@@ -2,9 +2,11 @@
 !!  File DD_6pt.F is part of COLLIER
 !!  - A Complex One-Loop Library In Extended Regularizations
 !!
-!!  Copyright (C) 2015, 2016   Ansgar Denner, Stefan Dittmaier, Lars Hofer
+!!  Copyright (C) 2015, 2016   
+!!  Ansgar Denner, Stefan Dittmaier, Lars Hofer
 !!
-!!  COLLIER is licenced under the GNU GPL version 3, see COPYING for details.
+!!  COLLIER is licenced under the GNU GPL version 3, 
+!!  see COPYING for details.
 !!
 
 **********************************************************************
@@ -43,8 +45,10 @@ c local variables
 c LH: variables for cache system
         complex*16 xcache(21), fct(NCoefmax6)
         integer n0,n1,n2,n3,n4,n5,n12345,cnt,cntmax,r2cache
-        logical nocalc/.false./, wrica/.false./
-        save wrica
+c        logical nocalc/.false./, wrica/.false./
+c        save wrica
+         logical :: nocalc = .false.
+         logical, save :: wrica =.false.
 #endif
 
         if (id.eq.0) then
@@ -144,7 +148,8 @@ c =====================
               endif
 
               r2cache = r2
-              call ReadCache(fct(1:cntmax),cntmax,xcache,21,2,id,6,r2cache,nocalc,wrica)
+              call ReadCache(fct(1:cntmax),cntmax,xcache,21,2,id,6,
+     &                       r2cache,nocalc,wrica)
   
               if(nocalc)then
                 accflag   = nint(dreal(fct(1)))
@@ -463,12 +468,18 @@ c local variables
         complex*16 F(0:r2/2,0:r2,0:r2,0:r2,0:r2,0:r2)
         complex*16 Fb(0:5,0:r2,0:r2,0:r2,0:r2,0:r2,
      &                0:r2)
-        complex*16 E0(0:max(r2-1,0)/2,0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
-        complex*16 E_1(0:max(r2-1,0)/2,0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
-        complex*16 E_2(0:max(r2-1,0)/2,0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
-        complex*16 E_3(0:max(r2-1,0)/2,0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
-        complex*16 E_4(0:max(r2-1,0)/2,0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
-        complex*16 E_5(0:max(r2-1,0)/2,0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
+        complex*16 E0(0:max(r2-1,0)/2,0:max(r2-1,0),0:max(r2-1,0),
+     &                0:max(r2-1,0),0:max(r2-1,0),0:max(r2-1,0))
+        complex*16 E_1(0:max(r2-1,0)/2,0:max(r2-1,0),0:max(r2-1,0),
+     &                 0:max(r2-1,0),0:max(r2-1,0))
+        complex*16 E_2(0:max(r2-1,0)/2,0:max(r2-1,0),0:max(r2-1,0),
+     &                 0:max(r2-1,0),0:max(r2-1,0))
+        complex*16 E_3(0:max(r2-1,0)/2,0:max(r2-1,0),0:max(r2-1,0),
+     &                 0:max(r2-1,0),0:max(r2-1,0))
+        complex*16 E_4(0:max(r2-1,0)/2,0:max(r2-1,0),0:max(r2-1,0),
+     &                 0:max(r2-1,0),0:max(r2-1,0))
+        complex*16 E_5(0:max(r2-1,0)/2,0:max(r2-1,0),0:max(r2-1,0),
+     &                 0:max(r2-1,0),0:max(r2-1,0))
         complex*16 m02,m12,m22,m32,m42,m52,eta5(0:5),c(5,5)
         complex*16 tx5(0:5,0:5),ttx5(0:5,0:5,0:5,0:5),caux
         real*8 z5(5,5),maxc(0:5),maxzc(0:5)
@@ -618,7 +629,7 @@ c F(i0,i1,...) from symmetrization as in Eq.(6.14)
      &                                   + i4*Fb(4,i0,i1,i2,i3,i4-1,i5)
           if (i5.gt.0) F(i0/2,i1,i2,i3,i4,i5) = F(i0/2,i1,i2,i3,i4,i5)
      &                                   + i5*Fb(5,i0,i1,i2,i3,i4,i5-1)
-          F(i0/2,i1,i2,i3,i4,i5) = F(i0/2,i1,i2,i3,i4,i5) / dfloat(r)
+          F(i0/2,i1,i2,i3,i4,i5) = F(i0/2,i1,i2,i3,i4,i5) / dble(r)
 120     continue
 
         Fij_err(tid(id),r)  = 0d0
@@ -697,15 +708,15 @@ c local variables
         i5 = r-i0-i1-i2-i3-i4
           F(i0/2,i1,i2,i3,i4,i5) = -eta5(0)*E0(i0/2,i1,i2,i3,i4,i5)
           if (i1.eq.0) F(i0/2,i1,i2,i3,i4,i5) 
-     &           = F(i0/2,i1,i2,i3,i4,i5) - eta5(1)*E_1(i0/2,i2,i3,i4,i5)
+     &         = F(i0/2,i1,i2,i3,i4,i5) - eta5(1)*E_1(i0/2,i2,i3,i4,i5)
           if (i2.eq.0) F(i0/2,i1,i2,i3,i4,i5) 
-     &           = F(i0/2,i1,i2,i3,i4,i5) - eta5(2)*E_2(i0/2,i1,i3,i4,i5)
+     &         = F(i0/2,i1,i2,i3,i4,i5) - eta5(2)*E_2(i0/2,i1,i3,i4,i5)
           if (i3.eq.0) F(i0/2,i1,i2,i3,i4,i5) 
-     &           = F(i0/2,i1,i2,i3,i4,i5) - eta5(3)*E_3(i0/2,i1,i2,i4,i5)
+     &         = F(i0/2,i1,i2,i3,i4,i5) - eta5(3)*E_3(i0/2,i1,i2,i4,i5)
           if (i4.eq.0) F(i0/2,i1,i2,i3,i4,i5) 
-     &           = F(i0/2,i1,i2,i3,i4,i5) - eta5(4)*E_4(i0/2,i1,i2,i3,i5)
+     &         = F(i0/2,i1,i2,i3,i4,i5) - eta5(4)*E_4(i0/2,i1,i2,i3,i5)
           if (i5.eq.0) F(i0/2,i1,i2,i3,i4,i5) 
-     &           = F(i0/2,i1,i2,i3,i4,i5) - eta5(5)*E_5(i0/2,i1,i2,i3,i4)
+     &         = F(i0/2,i1,i2,i3,i4,i5) - eta5(5)*E_5(i0/2,i1,i2,i3,i4)
 110     continue
 
         Fij_err(tid(id),r) = max(abs(eta5(0))*Eij_err(tid(nid(0)),r),

@@ -2,9 +2,11 @@
 !!  File DD_to_COLLIER.F is part of COLLIER
 !!  - A Complex One-Loop Library In Extended Regularizations
 !!
-!!  Copyright (C) 2015, 2016   Ansgar Denner, Stefan Dittmaier, Lars Hofer
+!!  Copyright (C) 2015, 2016   
+!!  Ansgar Denner, Stefan Dittmaier, Lars Hofer
 !!
-!!  COLLIER is licenced under the GNU GPL version 3, see COPYING for details.
+!!  COLLIER is licenced under the GNU GPL version 3, 
+!!  see COPYING for details.
 !!
 
 **********************************************************************
@@ -68,5 +70,21 @@ c local variables
         integer val
 
         val = stopflag
+
+        end
+**********************************************************************
+        subroutine SetErrFlag_dd(val)
+**********************************************************************
+*       set error flag of DD
+*---------------------------------------------------------------------
+*       07.07.2017 Ansgar Denner
+**********************************************************************
+        use DD_global
+        implicit real*8 (a-z)
+
+c local variables
+        integer val
+
+        stopflag = val
 
         end

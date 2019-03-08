@@ -1,20 +1,21 @@
-
-! Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-!
-! This file is part of OpenLoops.
-!
-! OpenLoops is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! OpenLoops is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-! GNU General Public License for more details.
-!
-! You should have received a copy of the GNU General Public License
-! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+!******************************************************************************!
+! Copyright (C) 2014-2019 OpenLoops Collaboration. For authors see authors.txt !
+!                                                                              !
+! This file is part of OpenLoops.                                              !
+!                                                                              !
+! OpenLoops is free software: you can redistribute it and/or modify            !
+! it under the terms of the GNU General Public License as published by         !
+! the Free Software Foundation, either version 3 of the License, or            !
+! (at your option) any later version.                                          !
+!                                                                              !
+! OpenLoops is distributed in the hope that it will be useful,                 !
+! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+! GNU General Public License for more details.                                 !
+!                                                                              !
+! You should have received a copy of the GNU General Public License            !
+! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+!******************************************************************************!
 
 
 module openloops_blha
@@ -28,6 +29,7 @@ module openloops_blha
   use ol_parameters_decl_/**/DREALKIND, only: max_parameter_length
   use ol_debug, only: ol_error, ol_msg, ol_fatal
   use openloops, only: ol_printparameter
+  use ol_data_types_/**/DREALKIND, only: correlator
   implicit none
   private
   ! BLHA interface
@@ -39,6 +41,8 @@ module openloops_blha
 
   character (len=max_parameter_length), allocatable :: blha_answer(:)
 
+  type(correlator) corr
+
   type flag
     integer :: InterfaceVersion ! 1=BLHA1, 2=BLHA2
     integer :: CorrectionType ! 1=QCD, 2=EW
@@ -48,6 +52,7 @@ module openloops_blha
   end type flag
 
   type(flag) flags
+
 
   interface olp_printparameter
     module procedure ol_printparameter
@@ -61,7 +66,8 @@ module openloops_blha
     ! Evaluate matrix elements for the process corresponding
     ! to process_handles(id) (including crossing).
     use openloops, only: amplitudetype, rval_size, n_external, &
-                   evaluate_tree, evaluate_cc, evaluate_loop, evaluate_loop2
+                   evaluate_tree, evaluate_loop, evaluate_cc, evaluate_sc, &
+                   evaluate_loop2, evaluate_cc2, evaluate_sc2
     implicit none
     integer, intent(in) :: id
     real(DREALKIND), intent(in) :: psp(:,:)
@@ -81,19 +87,30 @@ module openloops_blha
         call ol_fatal("[OpenLoops] Error: spin correlations in BLHA notation are not implemented")
         return
       case (4) ! scTree_polvect
-        call ol_fatal("[OpenLoops] Error: spin correlations in BLHA notation are not implemented")
-        return
+        call evaluate_sc2(id, psp, corr%emitter, corr%mom, rval(1:rval_size(n_external(id),4)))
       case (11) ! Loop
         call evaluate_loop(id, psp, m2l0, m2l1, acc)
         rval(1:4) = [m2l1(2), m2l1(1), m2l1(0), m2l0]
       case (12) ! LoopInduced
         call evaluate_loop2(id, psp, rval(1), acc)
+      case (22) ! ccLoop^2
+        call evaluate_cc2(id, psp, m2l0, rval(1:rval_size(n_external(id),2)), m2l1(0))
+      case (24) ! scLoop^2_polvect
+        call evaluate_sc2(id, psp, corr%emitter, corr%mom, rval(1:rval_size(n_external(id),4)))
       case default
         call ol_fatal("invalid amplitude type")
         return
     end select
   end subroutine olp_evalsubprocess2
 
+  subroutine olp_scpolvec(emitter, mom)
+    ! sets the emitter and polarization vector for the spin correlators
+    implicit none
+    integer, intent(in) :: emitter
+    real(DREALKIND), intent(in) :: mom
+      corr%emitter = emitter
+      corr%mom = mom
+  end subroutine olp_scpolvec
 
   subroutine olp_evalsubprocess(id, psp, mu, alpha_s, rval)
     ! Fortran BLHA-like olp_evalsubprocess routine.
@@ -230,6 +247,19 @@ module openloops_blha
     rval = f_rval
     acc = f_acc
   end subroutine olp_evalsubprocess2_c
+
+
+  subroutine olp_scpolvec_c(emitter, mom) bind(c,name="olp_scpolvec")
+    ! sets the emitter and polarization vector for the spin correlators
+    implicit none
+    integer(c_int), intent(in) :: emitter
+    real(c_double), intent(in) :: mom
+    integer          :: f_emitter
+    real(DREALKIND)  :: f_mom
+    f_emitter = emitter
+    f_mom = mom
+    call olp_scpolvec(f_emitter, f_mom)
+  end subroutine olp_scpolvec_c
 
 
   subroutine olp_info_c(olp_name, olp_version, message) bind(c,name="OLP_Info")
@@ -450,11 +480,6 @@ module openloops_blha
 
     ierr = 1
 
-    call get_environment_variable("OpenLoopsPath", librarypath)
-    if (len_trim(librarypath) /= 0) then
-      call set_parameter("install_path", librarypath, ierrparam)
-    end if
-
     ! everything but subprocesses should be either general initialisation and/or parameters
     if (index(line, '->')==0) then
 
@@ -546,6 +571,12 @@ module openloops_blha
             case ("loopinduced")
               lineout = trim(line) // "      | OK"
               flags%AmplitudeType = 12
+            case ("ccloopinduced")
+              lineout = trim(line) // "      | OK"
+              flags%AmplitudeType = 22
+            case ("scloopinduced_polvect")
+              lineout = trim(line) // "      | OK"
+              flags%AmplitudeType = 24
             case default
               lineout = trim(line) // "      | Error: unsupported flag. Supported: Tree, ccTree, scTree, Loop, LoopInduced."
               ierr = 0

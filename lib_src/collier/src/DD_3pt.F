@@ -2,12 +2,14 @@
 !!  File DD_3pt.F is part of COLLIER
 !!  - A Complex One-Loop Library In Extended Regularizations
 !!
-!!  Copyright (C) 2015, 2016   Ansgar Denner, Stefan Dittmaier, Lars Hofer
+!!  Copyright (C) 2015, 2016   
+!!  Ansgar Denner, Stefan Dittmaier, Lars Hofer
 !!
-!!  COLLIER is licenced under the GNU GPL version 3, see COPYING for details.
+!!  COLLIER is licenced under the GNU GPL version 3, 
+!!  see COPYING for details.
 !!
 
-*********************************************************************r
+**********************************************************************
         subroutine C_dd(C,Cuv,p01,p12,p20,m02,m12,m22,r2,id)
 **********************************************************************
 *       3-point coefficients  
@@ -57,8 +59,10 @@ c local variables
 c LH: variables for cache system
         complex*16 xcache(6), fct(NCoefmax3)
         integer n0,n1,n2,cntmax,r2cache
-        logical nocalc/.false./, wrica/.false./
-        save wrica
+c        logical nocalc/.false./, wrica/.false./
+c        save wrica
+         logical :: nocalc = .false.
+         logical, save :: wrica =.false.
 #endif
 
 c       if (id.eq.18) then
@@ -344,7 +348,8 @@ c =====================
               endif
 
               r2cache = r2
-              call ReadCache(fct(1:cntmax),cntmax,xcache,6,2,id,3,r2cache,nocalc,wrica)
+              call ReadCache(fct(1:cntmax),cntmax,xcache,6,2,id,3,
+     &                       r2cache,nocalc,wrica)
 
               if (nocalc) then
                 accflag   = nint(dreal(fct(1)))
@@ -487,8 +492,8 @@ c       accumulating tensor rank supported
 
         if ((acc.lt.cacc).or.(mode34.eq.0)) goto 599
 
-c mode34=2: improvement by expansion in small Gram/kinematical determinants
-c--------------------------------------------------------------------------
+c mode34=2: improvement by expansion in small Gram/kin. determinants
+c-------------------------------------------------------------------
         if (mode34.eq.2) then
 
 c previous calculation sufficient
@@ -523,6 +528,8 @@ c some criteria / parameter for expansions
 
 c determine indices k,l for expansions
             maxtz_kl = 0d0
+            k = 1
+            l = 1
             do i1=1,2
             do i2=i1,2  
               if (abs(tz2(i1,i2)).ge.maxtz_kl) then 
@@ -557,6 +564,8 @@ c determine indices i=igc,j=jgc for Gram/Cayley
 
 c determine indices i=igc,j=jgc for Gram/Cayley
             maxtx2ij = 0d0
+            igc = 1
+            jgc = 1
             do i1=1,2
             do i2=i1,2
               if (abs(tx2(i1,i2)).ge.maxtx2ij) then
@@ -576,6 +585,7 @@ c determine indices i=igc,j=jgc for Gram/Cayley
 
 c determine index k=ksm for small-momentum expansion
             maxf = 0d0
+            ksm = 1
             do i1=1,2
               if (abs(f(i1)).ge.maxf) then
                 maxf = abs(f(i1))
@@ -822,7 +832,7 @@ c*** result acceptable
               Cij_err_newprelim_max = 0d0
               do r=0,r2
                  Cij_err_newprelim_max = max( Cij_err_newprelim_max,
-     &                                        Cij_err_newprelim(tid(id),r) )
+     &                                    Cij_err_newprelim(tid(id),r) )
               enddo
               if (Cij_err_newprelim_max.lt.Cij_err_new_max) then
                 qmethod_new(id) = qmethod_newprelim
@@ -846,7 +856,8 @@ c*** result acceptable
 c*** try other expansions if previous expansion was inappropriate
 
             if ((accnewprelim.gt.cacc).and.(.not.qnewmethodfixed)) then
-c             write(*,*) 'new method failed ',qmethod_newprelim,accnewprelim,id
+c             write(*,*) 'new method failed ',
+c     &                   qmethod_newprelim,accnewprelim,id
               goto 777
             endif
 
@@ -879,7 +890,7 @@ c================
         Cij_err_new_max = 0d0
         if (qmethod_new(id).gt.0) then
           do r=0,r2
-            Cij_err_new_max = max(Cij_err_new_max,Cij_err_new(tid(id),r))
+            Cij_err_new_max= max(Cij_err_new_max,Cij_err_new(tid(id),r))
           enddo
         endif
 
@@ -889,7 +900,8 @@ c================
           qmethod(id) = qmethod_new(id)
 
           do 550 r=0,r2
-            if ((accr2_aux(tid(id),r).ne.0d0).and.(Cij_err(tid(id),r).ne.0d0).and.
+            if ((accr2_aux(tid(id),r).ne.0d0).and.
+     &          (Cij_err(tid(id),r).ne.0d0).and.
      &          (Cij_err(tid(id),r).lt.Cij_err_new(tid(id),r))) goto 550
             Cij_err(tid(id),r)  = Cij_err_new(tid(id),r)
             Cij_err2(tid(id),r) = Cij_err(tid(id),r)
@@ -1086,8 +1098,8 @@ c local variables
         C00_err_prelim(0)  = 0d0
         accr2_prelim(0)    = scalint_err(id)/abs(scalint(id))
 
-        call Cpave_kernel_dd(C,Cuv,Cij_err_prelim,Cij_err2_prelim,C00_err_prelim,
-     &                      p01,p12,p20,m02,m12,m22,acc,accr2_prelim,
+        call Cpave_kernel_dd(C,Cuv,Cij_err_prelim,Cij_err2_prelim,
+     &        C00_err_prelim,p01,p12,p20,m02,m12,m22,acc,accr2_prelim,
      &                      z2,z2i,r2,nid)
 
         do r=1,r2
@@ -1204,7 +1216,8 @@ c Gram and related matrices
         endif
 
         if (case1) then 
-          call Cpave_kernel_dd(Cshift,Cuvshift,Cij_err_prelim,Cij_err2_prelim,C00_err_prelim,
+          call Cpave_kernel_dd(Cshift,Cuvshift,Cij_err_prelim,
+     &                         Cij_err2_prelim,C00_err_prelim,
      &                      p01,p20,p12,m12,m02,m22,acc,accr2_prelim,
      &                      z2,z2i,r2,xnid)
           do 101 r=0,r2
@@ -1227,7 +1240,8 @@ c Gram and related matrices
 101       continue
 
         elseif (case2) then
-          call Cpave_kernel_dd(Cshift,Cuvshift,Cij_err_prelim,Cij_err2_prelim,C00_err_prelim,
+          call Cpave_kernel_dd(Cshift,Cuvshift,Cij_err_prelim,
+     &                         Cij_err2_prelim,C00_err_prelim,
      &                      p12,p01,p20,m22,m12,m02,acc,accr2_prelim,
      &                      z2,z2i,r2,xnid)
           do 102 r=0,r2
@@ -1323,8 +1337,8 @@ c local variables
           do i1=0,r
             i2 = r-i1
             S(n,i1,i2) = -B0(0,i1,i2)
-            if ((n.eq.1).and.(i1.eq.0)) S(1,i1,i2) = S(1,i1,i2) + B_n(0,i2)
-            if ((n.eq.2).and.(i2.eq.0)) S(2,i1,i2) = S(2,i1,i2) + B_n(0,i1)
+            if ((n.eq.1).and.(i1.eq.0)) S(1,i1,i2)= S(1,i1,i2)+B_n(0,i2)
+            if ((n.eq.2).and.(i2.eq.0)) S(2,i1,i2)= S(2,i1,i2)+B_n(0,i1)
           enddo
           enddo
         enddo
@@ -1350,11 +1364,11 @@ c PaVe reduction of C_{00...} of rank r -- Eq.(5.10)
           do 102 i1=0,i12
             i2 = i12-i1
             Cuv(i0/2,i1,i2) = 1d0/2d0/(i0+i12)*( 
-     &              Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
-     &            + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
+     &            Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
+     &          + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
             C(i0/2,i1,i2)   = 1d0/2d0/(i0+i12)*( 4d0*Cuv(i0/2,i1,i2)
-     &            + B0(i0/2-1,i1,i2) + 2d0*m02*C(i0/2-1,i1,i2) 
-     &            + f(1)*C(i0/2-1,i1+1,i2) + f(2)*C(i0/2-1,i1,i2+1) )
+     &          + B0(i0/2-1,i1,i2) + 2d0*m02*C(i0/2-1,i1,i2) 
+     &          + f(1)*C(i0/2-1,i1+1,i2) + f(2)*C(i0/2-1,i1,i2+1) )
 102       continue
 
 c PaVe reduction of C(0,...) -- Eq.(5.11)
@@ -1421,11 +1435,11 @@ c PaVe reduction of C_{00...} of rank r=r2+1, ... ,r2+r2 -- Eq.(5.10)
           do 105 i1=0,i12
             i2 = i12-i1
             Cuv(i0/2,i1,i2) = 1d0/2d0/(i0+i12)*( 
-     &              Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
-     &            + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
+     &            Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
+     &          + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
             C(i0/2,i1,i2)   = 1d0/2d0/(i0+i12)*( 4d0*Cuv(i0/2,i1,i2)
-     &            + B0(i0/2-1,i1,i2) + 2d0*m02*C(i0/2-1,i1,i2) 
-     &            + f(1)*C(i0/2-1,i1+1,i2) + f(2)*C(i0/2-1,i1,i2+1) )
+     &          + B0(i0/2-1,i1,i2) + 2d0*m02*C(i0/2-1,i1,i2) 
+     &          + f(1)*C(i0/2-1,i1+1,i2) + f(2)*C(i0/2-1,i1,i2+1) )
 105       continue
 
         end
@@ -1491,8 +1505,10 @@ c initialization of error propagation for alternative PaVe
           do i1=0,r-i0
             i2 = r-i0-i1
             Sh(n,i0/2,i1,i2) = -B0(i0/2,i1,i2) 
-            if ((n.eq.1).and.(i1.eq.0)) Sh(1,i0/2,i1,i2) = Sh(1,i0/2,i1,i2) + B_n(i0/2,i2)
-            if ((n.eq.2).and.(i2.eq.0)) Sh(2,i0/2,i1,i2) = Sh(2,i0/2,i1,i2) + B_n(i0/2,i1)
+            if ((n.eq.1).and.(i1.eq.0)) 
+     &         Sh(1,i0/2,i1,i2) = Sh(1,i0/2,i1,i2) + B_n(i0/2,i2)
+            if ((n.eq.2).and.(i2.eq.0)) 
+     &         Sh(2,i0/2,i1,i2) = Sh(2,i0/2,i1,i2) + B_n(i0/2,i1)
           enddo
           enddo
           enddo
@@ -1523,22 +1539,22 @@ c Cuv_{00...} from conventional PaVe reduction -- Eq.(5.10)
             Cuv(0,i1+1,i2) = 0d0 
             Cuv(0,i1,i2+1) = 0d0 
           endif
-          Cuv(i0/2+1,i1,i2) = 1d0/dfloat(2*r+2)*( 
+          Cuv(i0/2+1,i1,i2) = 1d0/dble(2*r+2)*( 
      &            Buv0(i0/2,i1,i2) + 2d0*m02*Cuv(i0/2,i1,i2) 
      &          + f(1)*Cuv(i0/2,i1+1,i2) + f(2)*Cuv(i0/2,i1,i2+1) )
 
 c alternative PaVe reduction of C_{00...} -- Eq.(5.16)
-          C(i0/2+1,i1,i2) = 1d0/dfloat(2*r+2)*( 
+          C(i0/2+1,i1,i2) = 1d0/dble(2*r+2)*( 
      &            4d0*Cuv(i0/2+1,i1,i2) + B0(i0/2,i1,i2) 
      &          + detx2/tx2(0,0)*C(i0/2,i1,i2) )
           do n=1,2
             l(1) = i1-del(n,1)
             l(2) = i2-del(n,2)
             C(i0/2+1,i1,i2) = C(i0/2+1,i1,i2) 
-     &           - tx2(0,n)/tx2(0,0)/dfloat(2*r+2)*Sh(n,i0/2,i1,i2)
+     &           - tx2(0,n)/tx2(0,0)/dble(2*r+2)*Sh(n,i0/2,i1,i2)
             if (i(n).gt.0) then
               C(i0/2+1,i1,i2) = C(i0/2+1,i1,i2)
-     &           + tx2(0,n)/tx2(0,0)*i(n)/dfloat(r+1)*C(i0/2+1,l(1),l(2))
+     &           + tx2(0,n)/tx2(0,0)*i(n)/dble(r+1)*C(i0/2+1,l(1),l(2))
             endif
           enddo
 105     continue
@@ -1579,10 +1595,13 @@ c       and deduce error estimate from difference
 c error propagation for alternative PaVe
         C00_err_newprelim(tid(id),r+1) = max( Bij_err,
      &    abs(detx2/tx2(0,0))*Cij_err_newprelim(tid(id),r-1),
-     &    maxtx20n/abs(tx2(0,0))*max(Bij_err,C00_err_newprelim(tid(id),r)) )
+     &    maxtx20n/abs(tx2(0,0))
+     &      *max(Bij_err,C00_err_newprelim(tid(id),r)) )
         Cij_err_newprelim(tid(id),r) = max(Csym_err, 
-     &    maxtx20n/abs(detx2)*max(C00_err_newprelim(tid(id),r+1),Bij_err),
-     &    maxtx2kn/abs(detx2)*max(C00_err_newprelim(tid(id),r),Bij_err) )
+     &    maxtx20n/abs(detx2)
+     &      *max(C00_err_newprelim(tid(id),r+1),Bij_err),
+     &    maxtx2kn/abs(detx2)
+     &      *max(C00_err_newprelim(tid(id),r),Bij_err) )
 
 c find maximal value for |C(0,...)| of rank r
         i0=0
@@ -1605,11 +1624,11 @@ c PaVe reduction of C_{00...} of rank r=r2+1, ... ,r2+r2 -- Eq.(5.10)
           do 400 i1=0,i12
             i2 = i12-i1
             Cuv(i0/2,i1,i2) = 1d0/2d0/(i0+i12)*( 
-     &              Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
-     &            + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
+     &            Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
+     &          + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
             C(i0/2,i1,i2)   = 1d0/2d0/(i0+i12)*( 4d0*Cuv(i0/2,i1,i2)
-     &            + B0(i0/2-1,i1,i2) + 2d0*m02*C(i0/2-1,i1,i2) 
-     &            + f(1)*C(i0/2-1,i1+1,i2) + f(2)*C(i0/2-1,i1,i2+1) )
+     &          + B0(i0/2-1,i1,i2) + 2d0*m02*C(i0/2-1,i1,i2) 
+     &          + f(1)*C(i0/2-1,i1+1,i2) + f(2)*C(i0/2-1,i1,i2+1) )
 400       continue
 
         end
@@ -1641,7 +1660,8 @@ c local variables
         data del/1,0,0,1/
         complex*16 B0(0:ritmax+2,0:ritmax+2,0:ritmax+2)
         complex*16 Buv0(0:ritmax+2,0:ritmax+2,0:ritmax+2)
-        complex*16 B_n(0:ritmax+2,0:ritmax+2),Buv_n(0:ritmax+2,0:ritmax+2)
+        complex*16 B_n(0:ritmax+2,0:ritmax+2)
+        complex*16 Buv_n(0:ritmax+2,0:ritmax+2)
         complex*16 Cstore(2,0:rmax3)
         complex*16 C(0:rmax3,0:rmax3,0:rmax3)
         complex*16 Cuv(0:rmax3,0:rmax3,0:rmax3)
@@ -1713,9 +1733,9 @@ c Cuv_{00...} from PaVe reduction -- Eq.(5.10)
           if (i0.eq.0) then
             Cuv(i0/2,i1,i2) = 0
           else
-            Cuv(i0/2,i1,i2) = 1d0/2d0/dfloat(r)*( 
-     &              Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
-     &            + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
+            Cuv(i0/2,i1,i2) = 1d0/2d0/dble(r)*( 
+     &            Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
+     &          + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
           endif
         enddo
         enddo
@@ -1767,7 +1787,7 @@ crrr terms rearranged - end
      &      - Sh3(1,i0/2-1,i1+1,i2) 
      &      - Sh3(2,i0/2-1,i1,i2+1)
      &      - ttz2(k,n,l,m)/tz2(k,l)*f(n)*Sh3(m,i0/2-1,i1,i2) 
-crrr     &      + ttz2(k,n,l,m)/tz2(k,l)*f(n)*f(m)*C(i0/2-1,i1,i2)       
+crrr     &      + ttz2(k,n,l,m)/tz2(k,l)*f(n)*f(m)*C(i0/2-1,i1,i2)
      &      ) 
           if (i(n).ne.0) C(i0/2,i1,i2) = C(i0/2,i1,i2) 
      &      - i(n)/(1d0+i0+2*i1+2*i2)*ttz2(k,n,l,m)/tz2(k,l)
@@ -1839,8 +1859,8 @@ crrr     &             ttzff_kl(id)*Cij_err_newprelim(tid(id),r-1),
      &         /abs(tz2(k,l)) )
           endif
           Cij_err_newprelim(tid(id),r) = 
-     &          max( maxtz_nj(id)*max(Bij_err,C00_err_newprelim(tid(id),r+1))
-     &            ,abs(detz2)*Cij_err_newprelim(tid(id),r+1) )/abs(tx2(0,j)) 
+     &     max( maxtz_nj(id)*max(Bij_err,C00_err_newprelim(tid(id),r+1))
+     &        ,abs(detz2)*Cij_err_newprelim(tid(id),r+1) )/abs(tx2(0,j))
           accr2_newprelim(tid(id),r) = max(accr2_newprelim(tid(id),r),
      &            Cij_err_newprelim(tid(id),r)/Cmax(r))
 800       continue
@@ -1868,11 +1888,11 @@ c PaVe reduction of C_{00...} of rank r=rup+1, ... ,2*rup -- Eq.(5.10)
           do 601 i1=0,i12
             i2 = i12-i1
             Cuv(i0/2,i1,i2) = 1d0/2d0/(i0+i12)*( 
-     &              Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
-     &            + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
+     &            Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
+     &          + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
             C(i0/2,i1,i2)   = 1d0/2d0/(i0+i12)*( 4d0*Cuv(i0/2,i1,i2)
-     &            + B0(i0/2-1,i1,i2) + 2d0*m02*C(i0/2-1,i1,i2) 
-     &            + f(1)*C(i0/2-1,i1+1,i2) + f(2)*C(i0/2-1,i1,i2+1) )
+     &          + B0(i0/2-1,i1,i2) + 2d0*m02*C(i0/2-1,i1,i2) 
+     &          + f(1)*C(i0/2-1,i1+1,i2) + f(2)*C(i0/2-1,i1,i2+1) )
 601       continue
 
 c final absolute error
@@ -1884,7 +1904,7 @@ c final absolute error
           i2=i12-i1
           Cmax(r) = max(Cmax(r),abs(C(i0/2,i1,i2)))
         enddo
-        Cij_err_newprelim(tid(id),r) = accr2_newprelim(tid(id),r)*Cmax(r)
+        Cij_err_newprelim(tid(id),r)= accr2_newprelim(tid(id),r)*Cmax(r)
         enddo
 
         end
@@ -1917,8 +1937,10 @@ c local variables
         data del/1,0,0,1/
         complex*16 B0(0:ritmax+2,0:ritmax+2,0:ritmax+2)
         complex*16 Buv0(0:ritmax+2,0:ritmax+2,0:ritmax+2)
-        complex*16 B_1(0:ritmax+2,0:ritmax+2),Buv_1(0:ritmax+2,0:ritmax+2)
-        complex*16 B_2(0:ritmax+2,0:ritmax+2),Buv_2(0:ritmax+2,0:ritmax+2)
+        complex*16 B_1(0:ritmax+2,0:ritmax+2)
+        complex*16 Buv_1(0:ritmax+2,0:ritmax+2)
+        complex*16 B_2(0:ritmax+2,0:ritmax+2)
+        complex*16 Buv_2(0:ritmax+2,0:ritmax+2)
         complex*16 Cstore(2,0:rmax3)
         complex*16 C(0:rmax3,0:rmax3,0:rmax3)
         complex*16 Cuv(0:rmax3,0:rmax3,0:rmax3)
@@ -1961,9 +1983,9 @@ c Cuv_{00...} from PaVe reduction -- Eq.(5.10)
           if (i0.lt.2) then
             Cuv(i0/2,i1,i2) = 0d0
           else
-            Cuv(i0/2,i1,i2) = 1d0/2d0/dfloat(i0+i1+i2)*( 
-     &              Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
-     &            + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
+            Cuv(i0/2,i1,i2) = 1d0/2d0/dble(i0+i1+i2)*( 
+     &            Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
+     &          + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
           endif
         enddo
         enddo
@@ -2035,7 +2057,8 @@ c         acc1 = abs(C(0,0,0)/scalint(id)-1d0)
 c error propagation for Gram expansion
         scale2 = ( abs(p01)+abs(p12)+abs(p20)
      &            +abs(m02)+abs(m12)+abs(m22) )/6d0
-        Bij_err = dprec_dd * max(1d0,abs(B0(0,0,0)),abs(B_1(0,0)),abs(B_2(0,0)))
+        Bij_err = dprec_dd * max(1d0,abs(B0(0,0,0)),abs(B_1(0,0)),
+     &                           abs(B_2(0,0)))
         B00_err = Bij_err * scale2
 
         do 800 r=rup,0,-1
@@ -2043,7 +2066,7 @@ c error propagation for Gram expansion
      &             abs(detz2/detx2)*B00_err
      &           + maxtx20n/abs(detx2)*B00_err
           Cij_err_newprelim(tid(id),r) =
-     &             abs(detz2/detx2)*(C00_err_newprelim(tid(id),r+2)+Bij_err )
+     &        abs(detz2/detx2)*(C00_err_newprelim(tid(id),r+2)+Bij_err )
      &           + maxtx20n/abs(detx2)
      &               *(Bij_err+C00_err_newprelim(tid(id),r+1))
           accr2_newprelim(tid(id),r) = max(accr2_newprelim(tid(id),r),
@@ -2074,7 +2097,7 @@ c final absolute error
           i2=i12-i1
           Cmax(r) = max(Cmax(r),abs(C(i0/2,i1,i2)))
         enddo
-        Cij_err_newprelim(tid(id),r) = accr2_newprelim(tid(id),r)*Cmax(r)
+        Cij_err_newprelim(tid(id),r)= accr2_newprelim(tid(id),r)*Cmax(r)
         enddo
 
         end
@@ -2107,7 +2130,8 @@ c local variables
         data del/1,0,0,1/
         complex*16 B0(0:ritmax+4,0:ritmax+4,0:ritmax+4)
         complex*16 Buv0(0:ritmax+4,0:ritmax+4,0:ritmax+4)
-        complex*16 B_n(0:ritmax+4,0:ritmax+4),Buv_n(0:ritmax+4,0:ritmax+4)
+        complex*16 B_n(0:ritmax+4,0:ritmax+4)
+        complex*16 Buv_n(0:ritmax+4,0:ritmax+4)
         complex*16 Cstore(2,0:rmax3)
         complex*16 C(0:rmax3,0:rmax3,0:rmax3)
         complex*16 Cuv(0:rmax3,0:rmax3,0:rmax3)
@@ -2169,9 +2193,9 @@ c Cuv_{00...} from PaVe reduction -- Eq.(5.10)
           if (i0.eq.0) then
             Cuv(i0/2,i1,i2) = 0d0
           else
-            Cuv(i0/2,i1,i2) = 1d0/2d0/dfloat(r)*( 
-     &              Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
-     &            + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
+            Cuv(i0/2,i1,i2) = 1d0/2d0/dble(r)*( 
+     &            Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
+     &          + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
           endif
         enddo
         enddo
@@ -2219,14 +2243,14 @@ c C_{00...} from iteration Eq.(5.40)
         h(m) = im
 
 c coefficients C_{00...} from Eq.(5.49)
-          C(i0/2,h(1),h(2)) = 1d0/2d0/dfloat(il+1)/tz2(k,l)*(
+          C(i0/2,h(1),h(2)) = 1d0/2d0/dble(il+1)/tz2(k,l)*(
      &        tz2(k,1)*Sh3(1,i0/2-1,h(1)+del(1,l),h(2)+del(2,l))
      &      + tz2(k,2)*Sh3(2,i0/2-1,h(1)+del(1,l),h(2)+del(2,l))
      &      + tx2(k,0)*C(i0/2-1,h(1)+del(1,l),h(2)+del(2,l))
      &      - detz2*C(i0/2-1,h(1)+del(1,l)+del(1,k),
      &                     h(2)+del(2,l)+del(2,k))              )
           if (im.gt.0) C(i0/2,h(1),h(2)) = C(i0/2,h(1),h(2)) 
-     &      + 1d0/2d0/dfloat(il+1)/tz2(k,l)*(
+     &      + 1d0/2d0/dble(il+1)/tz2(k,l)*(
      &          - 2d0*im*tz2(k,m)*C(i0/2,h(1)-del(1,m)+del(1,l),
      &                              h(2)-del(2,m)+del(2,l))     )
 
@@ -2264,8 +2288,8 @@ c         acc1 = abs(C(0,0,0)/scalint(id)-1d0)
             acc1 = max(acc1,abs(Cstore(2,n)-C(0,0,n))/Cmax(n))
             accr2_newprelim(tid(id),n) = acc1
           enddo
-          accr2_newprelim(tid(id),rup)   = accr2_newprelim(tid(id),rup-1)
-          accr2_newprelim(tid(id),rup+1) = accr2_newprelim(tid(id),rup-1)
+          accr2_newprelim(tid(id),rup)  = accr2_newprelim(tid(id),rup-1)
+          accr2_newprelim(tid(id),rup+1)= accr2_newprelim(tid(id),rup-1)
           acc = accr2_newprelim(tid(id),r2) 
         endif
 
@@ -2273,12 +2297,12 @@ c error propagation for Gram/Cayley expansion
           Bij_err = dprec_dd * max(1d0,maxB0)
           do 800 r=rup,0,-1
             C00_err_newprelim(tid(id),r+2) = max( Bij_err,
-     &        abs(tx2(k,0))/abs(tz2(k,l))*Cij_err_newprelim(tid(id),r+1),
-     &        abs(detz2)/abs(tz2(k,l))*Cij_err_newprelim(tid(id),r+2) )
+     &       abs(tx2(k,0))/abs(tz2(k,l))*Cij_err_newprelim(tid(id),r+1),
+     &       abs(detz2)/abs(tz2(k,l))*Cij_err_newprelim(tid(id),r+2) )
             Cij_err_newprelim(tid(id),r) = max( 
-     &        abs(tx2(0,j))*Cij_err_newprelim(tid(id),r+1),        
-     &        abs(tz2(i,j))*max(C00_err_newprelim(tid(id),r+2),Bij_err),
-     &        maxttx0ijm(id)*max(Bij_err,C00_err_newprelim(tid(id),r+1)) 
+     &       abs(tx2(0,j))*Cij_err_newprelim(tid(id),r+1),        
+     &       abs(tz2(i,j))*max(C00_err_newprelim(tid(id),r+2),Bij_err),
+     &       maxttx0ijm(id)*max(Bij_err,C00_err_newprelim(tid(id),r+1)) 
      &                             )/abs(tx2(i,j))
           accr2_newprelim(tid(id),r) = max(accr2_newprelim(tid(id),r),
      &                    Cij_err_newprelim(tid(id),r)/Cmax(r))
@@ -2308,11 +2332,11 @@ c PaVe reduction of C_{00...} of rank r=rup+1, ... ,2*rup -- Eq.(5.10)
           do 601 i1=0,i12
             i2 = i12-i1
             Cuv(i0/2,i1,i2) = 1d0/2d0/(i0+i12)*( 
-     &              Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
-     &            + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
+     &             Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
+     &           + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
             C(i0/2,i1,i2)   = 1d0/2d0/(i0+i12)*( 4d0*Cuv(i0/2,i1,i2)
-     &            + B0(i0/2-1,i1,i2) + 2d0*m02*C(i0/2-1,i1,i2) 
-     &            + f(1)*C(i0/2-1,i1+1,i2) + f(2)*C(i0/2-1,i1,i2+1) )
+     &           + B0(i0/2-1,i1,i2) + 2d0*m02*C(i0/2-1,i1,i2) 
+     &           + f(1)*C(i0/2-1,i1+1,i2) + f(2)*C(i0/2-1,i1,i2+1) )
 601       continue
 
 c final absolute error
@@ -2324,7 +2348,7 @@ c final absolute error
           i2=i12-i1
           Cmax(r) = max(Cmax(r),abs(C(i0/2,i1,i2)))
         enddo
-        Cij_err_newprelim(tid(id),r) = accr2_newprelim(tid(id),r)*Cmax(r)
+        Cij_err_newprelim(tid(id),r)= accr2_newprelim(tid(id),r)*Cmax(r)
         enddo
 
         end
@@ -2356,8 +2380,10 @@ c local variables
         data del/1,0,0,1/
         complex*16 B0(0:ritmax+4,0:ritmax+4,0:ritmax+4)
         complex*16 Buv0(0:ritmax+4,0:ritmax+4,0:ritmax+4)
-        complex*16 B_1(0:ritmax+4,0:ritmax+4),Buv_1(0:ritmax+4,0:ritmax+4)
-        complex*16 B_2(0:ritmax+4,0:ritmax+4),Buv_2(0:ritmax+4,0:ritmax+4)
+        complex*16 B_1(0:ritmax+4,0:ritmax+4)
+        complex*16 Buv_1(0:ritmax+4,0:ritmax+4)
+        complex*16 B_2(0:ritmax+4,0:ritmax+4)
+        complex*16 Buv_2(0:ritmax+4,0:ritmax+4)
         complex*16 Cstore(2,0:rmax3)
         complex*16 C(0:rmax3,0:rmax3,0:rmax3)
         complex*16 Cuv(0:rmax3,0:rmax3,0:rmax3)
@@ -2403,9 +2429,9 @@ c Cuv_{00...} from PaVe reduction -- Eq.(5.10)
           if (i0.eq.0) then
             Cuv(i0/2,i1,i2) = 0d0
           else
-            Cuv(i0/2,i1,i2) = 1d0/2d0/dfloat(r)*( 
-     &              Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
-     &            + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
+            Cuv(i0/2,i1,i2) = 1d0/2d0/dble(r)*( 
+     &            Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
+     &          + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
           endif
         enddo
         enddo
@@ -2444,7 +2470,7 @@ c C_{00...} from iteration Eq.(5.63)
           do 102 m=1,2
           do 102 n=1,2
           C(i0/2,i1,i2) = C(i0/2,i1,i2) - 1d0/2d0/(2d0+i0+2*i1+2*i2)
-     &      * z2(m,n)*C(i0/2-1,i1+del(m,1)+del(n,1),i2+del(m,2)+del(n,2))
+     &      *z2(m,n)*C(i0/2-1,i1+del(m,1)+del(n,1),i2+del(m,2)+del(n,2))
 102     continue
 
 c coefficients C(0,i1,i2) from Eq.(5.62)
@@ -2481,7 +2507,8 @@ c         acc1 = abs(C(0,0,0)/scalint(id)-1d0)
         endif
 
 c error propagation for small momentum expansion - variant 1
-          Bij_err = dprec_dd * max(1d0,abs(B0(0,0,0)),abs(B_1(0,0)),abs(B_2(0,0)))
+          Bij_err = dprec_dd * max(1d0,abs(B0(0,0,0)),abs(B_1(0,0)),
+     &                             abs(B_2(0,0)))
           do 800 r=rup,0,-1
           if (r.ge.1) then
             C00_err_newprelim(tid(id),r+1) = max( Bij_err,
@@ -2519,11 +2546,11 @@ c PaVe reduction of C_{00...} of rank r=rup+1, ... ,2*rup -- Eq.(5.10)
           do 601 i1=0,i12
             i2 = i12-i1
             Cuv(i0/2,i1,i2) = 1d0/2d0/(i0+i12)*( 
-     &              Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
-     &            + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
+     &            Buv0(i0/2-1,i1,i2) + 2d0*m02*Cuv(i0/2-1,i1,i2) 
+     &          + f(1)*Cuv(i0/2-1,i1+1,i2) + f(2)*Cuv(i0/2-1,i1,i2+1) )
             C(i0/2,i1,i2)   = 1d0/2d0/(i0+i12)*( 4d0*Cuv(i0/2,i1,i2)
-     &            + B0(i0/2-1,i1,i2) + 2d0*m02*C(i0/2-1,i1,i2) 
-     &            + f(1)*C(i0/2-1,i1+1,i2) + f(2)*C(i0/2-1,i1,i2+1) )
+     &          + B0(i0/2-1,i1,i2) + 2d0*m02*C(i0/2-1,i1,i2) 
+     &          + f(1)*C(i0/2-1,i1+1,i2) + f(2)*C(i0/2-1,i1,i2+1) )
 601       continue
 
 c final absolute error
@@ -2535,7 +2562,7 @@ c final absolute error
           i2=i12-i1
           Cmax(r) = max(Cmax(r),abs(C(i0/2,i1,i2)))
         enddo
-        Cij_err_newprelim(tid(id),r) = accr2_newprelim(tid(id),r)*Cmax(r)
+        Cij_err_newprelim(tid(id),r)= accr2_newprelim(tid(id),r)*Cmax(r)
         enddo
 
         end

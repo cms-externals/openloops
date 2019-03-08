@@ -1,5 +1,3 @@
 
-Collier legacy version from 19.03.2014.
-
-Collier version from 25.04.2016 (first public release).
-- removed global_coli.h (file and includes)
+Collier version 1.2.3 from 18.02.2019.
+Includes patch to fix subroutine chinv from 27.02.2019

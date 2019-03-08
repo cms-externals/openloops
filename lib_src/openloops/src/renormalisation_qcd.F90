@@ -1,20 +1,21 @@
-
-! Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-!
-! This file is part of OpenLoops.
-!
-! OpenLoops is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! OpenLoops is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-! GNU General Public License for more details.
-!
-! You should have received a copy of the GNU General Public License
-! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+!******************************************************************************!
+! Copyright (C) 2014-2019 OpenLoops Collaboration. For authors see authors.txt !
+!                                                                              !
+! This file is part of OpenLoops.                                              !
+!                                                                              !
+! OpenLoops is free software: you can redistribute it and/or modify            !
+! it under the terms of the GNU General Public License as published by         !
+! the Free Software Foundation, either version 3 of the License, or            !
+! (at your option) any later version.                                          !
+!                                                                              !
+! OpenLoops is distributed in the hope that it will be useful,                 !
+! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+! GNU General Public License for more details.                                 !
+!                                                                              !
+! You should have received a copy of the GNU General Public License            !
+! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+!******************************************************************************!
 
 
 module ol_qcd_renormalisation_/**/REALKIND
@@ -48,7 +49,8 @@ subroutine qcd_renormalisation
 #ifndef PRECISION_dp
   use ol_parameters_decl_/**/DREALKIND, only: LeadingColour, model
   use ol_loop_parameters_decl_/**/DREALKIND, only: &
-    & nc, nf, nf_up, nf_down, N_lf, nq_nondecoupl, CT_is_on, R2_is_on, SwF, SwB
+    & nc, nf, nf_up, nf_down, N_lf, nq_nondecoupl, CT_is_on, R2_is_on, SwF, SwB, &
+    bubble_vertex
 #endif
   implicit none
 
@@ -145,16 +147,16 @@ subroutine qcd_renormalisation
     if (nf > 3) then
       if (MC /= 0) then
         dZg = dZg - (4*tf)/3 * deC_UV
-        if (nq_nondecoupl < 4 .or. mureg <= rMC) then
-          dgQCD = dgQCD + (2*tf)*real(log(mureg2/MC2))/3
+        if (nq_nondecoupl < 4 .or. muren <= rMC) then
+          dgQCD = dgQCD + (2*tf)*real(log(muren2/MC2))/3
         end if
       end if
     end if
     if (nf > 4) then
       if (MB /= 0) then
         dZg = dZg - (4*tf)/3 * deB_UV
-        if (nq_nondecoupl < 5 .or. mureg <= rMB) then
-          dgQCD = dgQCD + (2*tf)*real(log(mureg2/MB2))/3
+        if (nq_nondecoupl < 5 .or. muren <= rMB) then
+          dgQCD = dgQCD + (2*tf)*real(log(muren2/MB2))/3
         end if
       end if
     end if
@@ -162,8 +164,8 @@ subroutine qcd_renormalisation
       if (MT /= 0) then
         dZg = dZg - (4*tf)/3 * deT_UV
         ! top-quark decoupling term
-        if (nq_nondecoupl < 6 .or. mureg <= rMT) then
-          dgQCD = dgQCD + (2*tf)*real(log(mureg2/MT2))/3
+        if (nq_nondecoupl < 6 .or. muren <= rMT) then
+          dgQCD = dgQCD + (2*tf)*real(log(muren2/MT2))/3
         end if
       end if
     end if
@@ -290,16 +292,25 @@ subroutine qcd_renormalisation
 
   if (CT_is_on /= 0) then
     ! Only UV counterterms
-    dummy_complex = dZq
-    ctqq   = [ dummy_complex, ZERO ]
-    dummy_complex = dZc
-    ctcc   = [ dummy_complex, MC * (dZMC + dZc) ]
-    dummy_complex = dZb
-    ctbb   = [ dummy_complex, MB * (dZMB + dZb) ]
-    dummy_complex = dZt
-    cttt   = [ dummy_complex, MT * (dZMT + dZt) ]
-    dummy_complex = dZg
-    ctGG   = [ dummy_complex, ZERO , ZERO ]
+
+    if (bubble_vertex .eq. 1) then
+      ctqq   = [ ZERO, ZERO ]
+      ctcc   = [ ZERO, ZERO ]
+      ctbb   = [ ZERO, ZERO ]
+      cttt   = [ ZERO, ZERO ]
+      ctGG   = [ ZERO, ZERO , ZERO ]
+    else
+      dummy_complex = dZq
+      ctqq   = [ dummy_complex, ZERO ]
+      dummy_complex = dZc
+      ctcc   = [ dummy_complex, MC * (dZMC + dZc) ]
+      dummy_complex = dZb
+      ctbb   = [ dummy_complex, MB * (dZMB + dZb) ]
+      dummy_complex = dZt
+      cttt   = [ dummy_complex, MT * (dZMT + dZt) ]
+      dummy_complex = dZg
+      ctGG   = [ dummy_complex, ZERO , ZERO ]
+    end if
     ctGqq = (dgQCD + dZq + dZg/2)
     ctGcc = (dgQCD + dZc + dZg/2)
     ctGbb = (dgQCD + dZb + dZg/2)
@@ -361,12 +372,16 @@ subroutine qcd_renormalisation
     if (SwB /= 0) then
       ! non-fermionic
       dummy_complex = -cf
-      ctqq   = ctqq + [ dummy_complex, ZERO ]
-      ctcc   = ctcc + [ dummy_complex, -2*MC*cf ]
-      ctbb   = ctbb + [ dummy_complex, -2*MB*cf ]
-      cttt   = cttt + [ dummy_complex, -2*MT*cf ]
+      if (bubble_vertex .eq. 0) then
+        ctqq   = ctqq + [ dummy_complex, ZERO ]
+        ctcc   = ctcc + [ dummy_complex, -2*MC*cf ]
+        ctbb   = ctbb + [ dummy_complex, -2*MB*cf ]
+        cttt   = cttt + [ dummy_complex, -2*MT*cf ]
+      end if
       dummy_complex = -0.5_/**/REALKIND*ca
-      ctGG   = ctGG + [ dummy_complex, ZERO , cONE ]
+      if (bubble_vertex .eq. 0) then
+        ctGG   = ctGG + [ dummy_complex, ZERO , cONE ]
+      end if
       ctGqq = ctGqq - 2*cf
       ctGcc = ctGcc - 2*cf
       ctGbb = ctGbb - 2*cf
@@ -424,7 +439,9 @@ subroutine qcd_renormalisation
     if (SwF /= 0) then
       ! fermionic
       dummy_complex = -(2*tf*nf)/3
-      ctGG   = ctGG + [ dummy_complex, 4*tf*MQ2sum , ZERO ]
+      if (bubble_vertex .eq. 0) then
+        ctGG   = ctGG + [ dummy_complex, 4*tf*MQ2sum , ZERO ]
+      end if
       ctVVV  = ctVVV - (4*tf*nf)/3
       ! pure R2 terms
       ! ZGG R2 coupling: 4/3*sum_q(a_q)
@@ -474,3 +491,160 @@ subroutine qcd_renormalisation
 end subroutine qcd_renormalisation
 
 end module ol_qcd_renormalisation_/**/REALKIND
+
+
+module ol_qcd_offshell_selfenergies/**/REALKIND
+  use KIND_TYPES, only: REALKIND, DREALKIND
+  use ol_loop_parameters_decl_/**/REALKIND, only: de1_IR, de1_UV, de2_i_IR
+  use ol_debug, only: ol_msg, ol_error, ol_fatal
+  use ol_generic, only: to_string
+  use ol_self_energy_integrals_/**/REALKIND
+  implicit none
+
+  contains
+
+    ! Gluon self-energy
+function gluon_ofsse(p2,pid)
+  use KIND_TYPES, only: DREALKIND, REALKIND
+  use ol_parameters_decl_/**/REALKIND
+  use ol_loop_parameters_decl_/**/REALKIND
+#ifndef PRECISION_dp
+  use ol_loop_parameters_decl_/**/DREALKIND, only: &
+    & nc, nf, N_lf, bubble_vertex, CT_is_on, R2_is_on
+#endif
+  complex(REALKIND), intent(in) :: p2
+  integer,           intent(in) :: pid
+  complex(REALKIND) :: cc1,gluon_ofsse(3),B01,B02,B03,B04
+  complex(REALKIND) :: cc1R1,dZ
+
+  !complex(REALKIND) :: B0_1,B0_2,B1_1,B1_2,B11_1,B11_2,B00_1,B00_2
+  real(REALKIND) :: ncc,nlf
+  integer :: i
+
+  if (pid .ne. 21) then
+    call ol_fatal('Cannot use gluon_ofsse for pid other than 21. pid=' //  &
+                  trim(to_string(pid)) // '.')
+  end if
+
+  ncc = real(nc,kind=REALKIND)
+  nlf = real(N_lf,kind=REALKIND)
+  ! gs**2/(16*pi**2) stripped, assert(Nf == 6)
+
+  B01 = calcB0(p2,ZERO,ZERO)
+  cc1 = +(5*ncc-2*nlf)*(B01)/real(3,kind=REALKIND)
+
+  do i = N_lf, 5
+    select case (i)
+    case (5)
+      B02 = calcB0(ZERO,MT2,MT2)
+      B03 = calcB0(p2,MT2,MT2)
+      cc1 = cc1 + 4*MT2*(B02-B03)/(3*p2) &
+                - 2*B03/3
+    case (4)
+      B02 = calcB0(ZERO,MB2,MB2)
+      B03 = calcB0(p2,MB2,MB2)
+      cc1 = cc1 + 4*MB2*(B02-B03)/(3*p2) &
+                - 2*B03/3
+    case (3)
+      B02 = calcB0(ZERO,MC2,MC2)
+      B03 = calcB0(p2,MC2,MC2)
+      cc1 = cc1 + 4*MC2*(B02-B03)/(3*p2) &
+                - 2*B03/3
+    case default
+      call ol_fatal('Flavor scheme N_lf=' // trim(to_string(N_lf)) // ' not implemented for bubble_vertex.')
+  end select
+  end do
+
+  if (CT_is_on .eq. 0) then
+    dZ = 0
+  else
+    dZ = dZg
+  end if
+
+  ! only R1
+  cc1R1 = (12 + ncc)/real(9,kind=REALKIND)
+  gluon_ofsse(1) =  (dZ - cc1 - cc1R1)  ! w^\mu_out = p^2 w^\mu_in
+  gluon_ofsse(2) =  0                   ! w^\mu_out = w^\mu_in
+  gluon_ofsse(3) = -(-cc1 + cc1R1)      ! w^\mu_out = (w_in.p) p^\mu
+
+  if (R2_is_on .eq. 0) then
+    gluon_ofsse(1) = gluon_ofsse(1) + ca/2 + (2*tf*nf)/3
+    gluon_ofsse(2) = gluon_ofsse(2) - 4*tf*MQ2sum
+    gluon_ofsse(3) = gluon_ofsse(3) - cONE
+  end if
+
+  end function
+
+    ! Quark self-energy
+function quark_ofsse(p2,pid)
+  use KIND_TYPES, only: DREALKIND, REALKIND
+  use ol_parameters_decl_/**/REALKIND
+  use ol_loop_parameters_decl_/**/REALKIND
+  use ol_self_energy_integrals_/**/REALKIND
+#ifndef PRECISION_dp
+  use ol_loop_parameters_decl_/**/DREALKIND, only: &
+    & nc, N_lf, bubble_vertex, CT_is_on, R2_is_on
+#endif
+  complex(REALKIND), intent(in) :: p2
+  integer,           intent(in) :: pid
+  complex(REALKIND) :: cc1,cc2,cc3,quark_ofsse(2),B01,B02,B03
+  complex(REALKIND) :: cc1R1,cc2R1,cc3R1,fac
+  complex(REALKIND) :: cc1R2,cc2R2,cc3R2
+
+  complex(REALKIND) :: B0_1,A0_1,dZ,dM,M,M2
+
+
+  select case (pid)
+  case (1)
+    dZ = dZq
+    dM = 0
+    M = MD
+    M2 = MD2
+  case (2)
+    dZ = dZq
+    dM = 0
+    M = MU
+    M2 = MU2
+  case (3)
+    dZ = dZq
+    dM = 0
+    M = MS
+    M2 = MS2
+  case (4)
+    dZ = dZc
+    dM = dZMC
+    M = MC
+    M2 = MC2
+  case (5)
+    dZ = dZb
+    dM = dZMB
+    M = MB
+    M2 = MB2
+  case (6)
+    dZ = dZt
+    dM = dZMT
+    M = MT
+    M2 = MT2
+  case default
+    call ol_fatal('Cannot use quark_ofsse for pidse other than 1,2,3,4,5,6. ' // &
+                  'pid=' // trim(to_string(pid)) // '.')
+  end select
+  if (CT_is_on .eq. 0) then
+    dZ = 0
+    dM = 0
+  end if
+
+  B0_1 = calcB0(p2,ZERO,M2)
+  A0_1 = calcA0(M2)
+  fac = rONE*cf
+  quark_ofsse(1) = dZ + fac*((M2+p2) * B0_1 - A0_1 -p2)/p2  ! w^i_out = pslash^{ij} w^j_in
+  quark_ofsse(2) = M*(dM + dZ) + fac*(4*M*B0_1-2*M)         ! w^i_out = w^i_in
+
+  if (R2_is_on .eq. 0) then
+    quark_ofsse(1) = quark_ofsse(1) + cf
+    quark_ofsse(2) = quark_ofsse(2) + 2*M*cf
+  end if
+
+  end function
+
+end module ol_qcd_offshell_selfenergies/**/REALKIND

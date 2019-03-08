@@ -43,7 +43,7 @@ module collier_init
   end interface SetMaxCritPoints_cll
   
   
-  character(len=80) :: foldername_cll
+  character(len=230) :: foldername_cll
 !  logical :: qopened_critcoli,qopened_crit,qopened_crit2,qopened_statscoli
 
 contains
@@ -143,13 +143,20 @@ contains
     call SetErrOutLev_cll(0)
  
     call InitCheckCnt_cll(.not.reset)
-
+    call InitMaxCheck_cll(.not.reset)
+    if(.not.reset) then
+      if (Monitoring) then
+        call InitPointsCnt_cll(.not.reset)
+        call initMaxCritPoints_cll(.not.reset)        
+      end if
+    else
+      Monitoring=.false.   
+    end if
+    
     if (reset) then
       call InitOutChan_cp_cll
-      call InitOutChan_cll
-      Monitoring=.false.      
+      call InitOutChan_cll      
       
-      call InitMaxCheck_cll
       call InitCheckCntDB_cll
       call InitMaxCheckDB_cll
       
@@ -160,7 +167,7 @@ contains
 
       if (erroutlev.ge.1) then
 ! set output-file for potential errors
-        call system('mkdir -p '//trim(foldername_cll))
+        call execute_command_line('mkdir -p '//trim(foldername_cll))
         
         call InitErrCnt_cll(0)
         call OpenErrOutFile_cll(trim(foldername_cll)//'/ErrOut.cll')
@@ -245,7 +252,7 @@ contains
     call InitCacheSystem_cll(0,Nmax)
 
     ! initialize table of binomial coefficients
-    call SetBinomTable(rmax0+max(Nmax-2,3))
+    call SetBinomTable(rmax0+max(Nmax-2,4))
 
     ! initialization for tensors
     call SetIndCombisEq(Nmax-1,rmax0)
@@ -290,7 +297,7 @@ contains
 
     if (reset) then
 
-    ! set standard output for infos 
+    ! set standard output for infos
     call WriteIntro_cll(stdout_cll)
     if (infoutlev.ge.1) then
       write(unit=stdout_cll,fmt=*) '                                                          '
@@ -456,12 +463,15 @@ contains
     if(allocated(PointsCntTN_cll)) deallocate(PointsCntTN_cll)
     if(allocated(CritPointsCntTN_cll)) deallocate(CritPointsCntTN_cll)
     if(allocated(AccPointsCntTN_cll)) deallocate(AccPointsCntTN_cll)
+    if(allocated(sAccPointsCntTN_cll)) deallocate(sAccPointsCntTN_cll)
     if(allocated(PointsCntTN2_cll)) deallocate(PointsCntTN2_cll)
     if(allocated(CritPointsCntTN2_cll)) deallocate(CritPointsCntTN2_cll)
     if(allocated(AccPointsCntTN2_cll)) deallocate(AccPointsCntTN2_cll)
+    if(allocated(sAccPointsCntTN2_cll)) deallocate(sAccPointsCntTN2_cll)
     if(allocated(PointsCntTNten_cll)) deallocate(PointsCntTNten_cll)
     if(allocated(CritPointsCntTNten_cll)) deallocate(CritPointsCntTNten_cll)
     if(allocated(AccPointsCntTNten_cll)) deallocate(AccPointsCntTNten_cll)
+    if(allocated(sAccPointsCntTNten_cll)) deallocate(sAccPointsCntTNten_cll)
     if(allocated(PointsCntTN_coli)) deallocate(PointsCntTN_coli)
     if(allocated(PointsCntTN_dd)) deallocate(PointsCntTN_dd)
     if(allocated(PointsCntTNten_coli)) deallocate(PointsCntTNten_coli)
@@ -471,7 +481,6 @@ contains
     if(allocated(DiffCnt_cll)) deallocate(DiffCnt_cll)
     if(allocated(CheckCntten_cll)) deallocate(CheckCntten_cll)
     if(allocated(DiffCntten_cll)) deallocate(DiffCntten_cll)
-
 
   end subroutine Reset_cll
 
@@ -507,6 +516,23 @@ contains
     EventCnt_cll = EventCnt_cll+1
 
   end subroutine InitEvent_cll
+
+
+
+
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !  subroutine GetVersionNumber_cll(version)
+  !
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  subroutine GetVersionNumber_cll(version)
+
+    character(len=5) :: version
+    
+    version = version_cll
+
+  end subroutine GetVersionNumber_cll
 
 
 
@@ -754,7 +780,7 @@ contains
     integer :: i
     logical :: infwri
     character(len=*),parameter :: fmt13 = "(A13,d25.18)"
-
+#include "global_coli.h"
 
 #ifdef SING
     DeltaUV_cll = delta
@@ -818,7 +844,7 @@ contains
     integer :: i
     logical :: infwri
     character(len=*),parameter :: fmt14 = "(A14,d25.18)"
-
+#include "global_coli.h"
 
 #ifdef SING
     DeltaIR1_cll = delta1
@@ -890,6 +916,11 @@ contains
     logical :: infwri
     character(len=*),parameter :: fmt92 = "(A10,I3,A4,'dcmplx(',d25.18,' ,',d25.18,' )')"
 
+    if(m2.eq.0d0) then
+      if (infoutlev_cll.ge.1) call InfOut_cll('AddMinf2_cll','zero cannot be added to list of infinitesimal masses:',infwri)
+      return
+    end if
+    
     if (nminf_cll.eq.0) then
       nminf_cll = 1
       if (allocated(minf2_cll)) then
@@ -920,7 +951,6 @@ contains
 
     ! add m2 to small masses in COLI
     call Setminf2_coli(minf2_cll(nminf_cll))
-
 
     ! add m2 to small masses in DD
     if (nminf_cll.gt.nminf_colidd) then
@@ -1708,6 +1738,7 @@ contains
     character(len=*),parameter :: fmt45 = "(A45,Es17.10)"
     
     reqacc_cll = acc0
+    sreqacc_cll = sqrt(acc0)
     critacc_cll = acc1
     checkacc_cll = acc2
 
@@ -1803,6 +1834,7 @@ contains
     character(len=*),parameter :: fmt48 = "(A48,Es17.10)"
 
     reqacc_cll = acc
+    sreqacc_cll = sqrt(acc)
 
     call DDgetmode(cacc_dd,dacc_dd,mode34_dd,mode5_dd,mode6_dd,outlevel_dd,outchannel_dd)
     call DDsetmode(reqacc_cll,reqacc_cll,mode34_dd,mode5_dd,mode6_dd,outlevel_dd,outchannel_dd)
@@ -2112,6 +2144,8 @@ contains
   subroutine InitErrFlag_cll()
 
     call SetErrFlag_cll(0)
+    call SetErrFlag_coli(0)
+    call SetErrFlag_dd(0)
 
   end subroutine InitErrFlag_cll
 
@@ -2129,7 +2163,8 @@ contains
     integer, intent(in) :: val
 
     ErrFlag_cll = val
-    call SetErrFlag_coli(val)
+!    call SetErrFlag_coli(val)
+!    call SetErrFlag_dd(val)
 
   end subroutine SetErrFlag_cll
 
@@ -2161,7 +2196,7 @@ contains
 
   subroutine PropagateErrFlag_cll()
 
-    integer :: efcoli,efdd
+    integer :: efcoli,efdd,efcll,ef
 
 
   ! error flags in COLI
@@ -2178,21 +2213,29 @@ contains
   ! default for ErrorStopFlag:  -8
 
 
+  ! changed AD 31.07.2017
+
     call GetErrFlag_coli(efcoli)
     call GetErrFlag_dd(efdd)
-    ErrFlag_cll = min(efcoli,efdd)
+    call GetErrFlag_cll(efcll)
+    ef = min(efcoli,efdd,efcll)
 
-    if (ErrFlag_cll.le.ErrorStop_cll) then
-      if (efcoli.le.ErrorStop_cll) then
-        write(stdout_cll,*) 'COLLIER: fatal error in COLI'
+  ! added AD 19.10.2017
+    ErrFlag_cll = ef
+
+    if (ef.le.ErrorStop_cll) then
+      if (efcoli.eq.ef) then
+        write(stdout_cll,*) 'COLLIER: fatal error in COLI: ',efcoli
         write(stdout_cll,*) 'execution of program stopped'
         write(stdout_cll,*) 'error output written to the file ErrOut.coli'
-      end if
-      if (efdd.le.ErrorStop_cll) then
-        write(stdout_cll,*) efdd
-        write(stdout_cll,*) 'COLLIER: fatal error in DD'
+      else if (efdd.eq.ef) then
+        write(stdout_cll,*) 'COLLIER: fatal error in DD: ',efdd
         write(stdout_cll,*) 'execution of program stopped'
         write(stdout_cll,*) 'error output written to the file ErrOut.dd'
+      else if (efcll.eq.ef) then
+        write(stdout_cll,*) 'COLLIER: fatal error in COLLIER: ',efcll
+        write(stdout_cll,*) 'execution of program stopped'
+        write(stdout_cll,*) 'error output written to the file ErrOut.cll'
       end if
       stop
     end if
@@ -2201,7 +2244,7 @@ contains
       ErrCnt(1)           = ErrCnt(1)           + 1
       ErrCntcoli(efcoli)  = ErrCntcoli(efcoli)  + 1
       ErrCntdd(efdd  )    = ErrCntdd(efdd)      + 1
-      ErrCnt(ErrFlag_cll) = ErrCnt(ErrFlag_cll) + 1
+      ErrCnt(ef)          = ErrCnt(ef) + 1
     end if
 
   end subroutine PropagateErrFlag_cll
@@ -2470,162 +2513,299 @@ contains
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !  subroutine InitPointsCnt_cll
+  !  subroutine InitPointsCnt_cll(noreset)
   !
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine InitPointsCnt_cll()
+  subroutine InitPointsCnt_cll(noreset)
 
-    if(allocated(PointsCntTN_cll)) deallocate(PointsCntTN_cll)
-    if(allocated(AccPointsCntTN_cll)) deallocate(AccPointsCntTN_cll)
-    if(allocated(CritPointsCntTN_cll)) deallocate(CritPointsCntTN_cll)
-    if(allocated(AccPointsCntTN2_cll)) deallocate(AccPointsCntTN2_cll)
-    if(allocated(CritPointsCntTN2_cll)) deallocate(CritPointsCntTN2_cll)
-    if(allocated(PointsCntTN_coli)) deallocate(PointsCntTN_coli)
-    if(allocated(PointsCntTN_dd)) deallocate(PointsCntTN_dd)
-    if(allocated(PointsCntTNten_cll)) deallocate(PointsCntTNten_cll)
-    if(allocated(AccPointsCntTNten_cll)) deallocate(AccPointsCntTNten_cll)
-    if(allocated(CritPointsCntTNten_cll)) deallocate(CritPointsCntTNten_cll)
-    if(allocated(PointsCntTNten_coli)) deallocate(PointsCntTNten_coli)
-    if(allocated(PointsCntTNten_dd)) deallocate(PointsCntTNten_dd)
+    logical, optional :: noreset
+    integer :: Nold
+    integer, allocatable :: saveCnt(:)
 
 
-    ! re-allocate Counters for Critical Points
-    allocate(PointsCntTN_cll(Nmax_cll))
-    allocate(AccPointsCntTN_cll(Nmax_cll))
-    allocate(CritPointsCntTN_cll(Nmax_cll))
-    allocate(AccPointsCntTN2_cll(Nmax_cll))
-    allocate(CritPointsCntTN2_cll(Nmax_cll))
-    allocate(PointsCntTN_coli(Nmax_cll))
-    allocate(PointsCntTN_dd(Nmax_cll))
-    allocate(PointsCntTNten_cll(Nmax_cll))
-    allocate(AccPointsCntTNten_cll(Nmax_cll))
-    allocate(CritPointsCntTNten_cll(Nmax_cll))
-    allocate(PointsCntTNten_coli(Nmax_cll))
-    allocate(PointsCntTNten_dd(Nmax_cll))
+    if (present(noreset).and.noreset) then
+      Nold = size(CheckCnt_cll)
+      if (Nold.lt.Nmax_cll) then
+        allocate(saveCnt(Nold))
 
-    PointsCntA_cll = 0
-    PointsCntB_cll = 0
-    PointsCntC_cll = 0
-    PointsCntD_cll = 0
-    PointsCntE_cll = 0
-    PointsCntF_cll = 0
-    PointsCntG_cll = 0
-    PointsCntTN_cll = 0
-    PointsCntDB_cll = 0
-    AccPointsCntA_cll = 0
-    AccPointsCntB_cll = 0
-    AccPointsCntC_cll = 0
-    AccPointsCntD_cll = 0
-    AccPointsCntE_cll = 0
-    AccPointsCntF_cll = 0
-    AccPointsCntG_cll = 0
-    AccPointsCntTN_cll = 0
-    AccPointsCntDB_cll = 0
-    CritPointsCntA_cll = 0
-    CritPointsCntB_cll = 0
-    CritPointsCntC_cll = 0
-    CritPointsCntD_cll = 0
-    CritPointsCntE_cll = 0
-    CritPointsCntF_cll = 0
-    CritPointsCntG_cll = 0
-    CritPointsCntTN_cll = 0
-    CritPointsCntDB_cll = 0
+        saveCnt = PointsCntTN_cll  
+        deallocate(PointsCntTN_cll)
+        allocate(PointsCntTN_cll(Nmax_cll))      
+        PointsCntTN_cll(1:Nold) = saveCnt
+        PointsCntTN_cll(Nold+1:Nmax_cll) = 0
 
-    AccPointsCntA2_cll = 0
-    AccPointsCntB2_cll = 0
-    AccPointsCntC2_cll = 0
-    AccPointsCntD2_cll = 0
-    AccPointsCntE2_cll = 0
-    AccPointsCntF2_cll = 0
-    AccPointsCntG2_cll = 0
-    AccPointsCntTN2_cll = 0
-    AccPointsCntDB2_cll = 0
-    CritPointsCntA2_cll = 0
-    CritPointsCntB2_cll = 0
-    CritPointsCntC2_cll = 0
-    CritPointsCntD2_cll = 0
-    CritPointsCntE2_cll = 0
-    CritPointsCntF2_cll = 0
-    CritPointsCntG2_cll = 0
-    CritPointsCntTN2_cll = 0
-    CritPointsCntDB2_cll = 0
+        saveCnt = AccPointsCntTN_cll  
+        deallocate(AccPointsCntTN_cll)
+        allocate(AccPointsCntTN_cll(Nmax_cll))      
+        AccPointsCntTN_cll(1:Nold) = saveCnt
+        AccPointsCntTN_cll(Nold+1:Nmax_cll) = 0
 
-    PointsCntA_coli = 0
-    PointsCntB_coli = 0
-    PointsCntC_coli = 0
-    PointsCntD_coli = 0
-    PointsCntE_coli = 0
-    PointsCntF_coli = 0
-    PointsCntG_coli = 0
-    PointsCntTN_coli = 0
-    PointsCntDB_coli = 0
+        saveCnt = sAccPointsCntTN_cll  
+        deallocate(sAccPointsCntTN_cll)
+        allocate(sAccPointsCntTN_cll(Nmax_cll))      
+        sAccPointsCntTN_cll(1:Nold) = saveCnt
+        sAccPointsCntTN_cll(Nold+1:Nmax_cll) = 0
 
-    PointsCntA_dd = 0
-    PointsCntB_dd = 0
-    PointsCntC_dd = 0
-    PointsCntD_dd = 0
-    PointsCntE_dd = 0
-    PointsCntF_dd = 0
-    PointsCntG_dd = 0
-    PointsCntTN_dd = 0
-    PointsCntDB_dd = 0
+        saveCnt = CritPointsCntTN_cll  
+        deallocate(CritPointsCntTN_cll)
+        allocate(CritPointsCntTN_cll(Nmax_cll))      
+        CritPointsCntTN_cll(1:Nold) = saveCnt
+        CritPointsCntTN_cll(Nold+1:Nmax_cll) = 0
 
-    PointsCntAten_cll = 0
-    PointsCntBten_cll = 0
-    PointsCntCten_cll = 0
-    PointsCntDten_cll = 0
-    PointsCntEten_cll = 0
-    PointsCntFten_cll = 0
-    PointsCntGten_cll = 0
-    PointsCntTNten_cll = 0
-    PointsCntDBten_cll = 0
-    AccPointsCntAten_cll = 0
-    AccPointsCntBten_cll = 0
-    AccPointsCntCten_cll = 0
-    AccPointsCntDten_cll = 0
-    AccPointsCntEten_cll = 0
-    AccPointsCntFten_cll = 0
-    AccPointsCntGten_cll = 0
-    AccPointsCntTNten_cll = 0
-    AccPointsCntDBten_cll = 0
-    CritPointsCntAten_cll = 0
-    CritPointsCntBten_cll = 0
-    CritPointsCntCten_cll = 0
-    CritPointsCntDten_cll = 0
-    CritPointsCntEten_cll = 0
-    CritPointsCntFten_cll = 0
-    CritPointsCntGten_cll = 0
-    CritPointsCntTNten_cll = 0
-    CritPointsCntDBten_cll = 0
+        saveCnt = AccPointsCntTN2_cll  
+        deallocate(AccPointsCntTN2_cll)
+        allocate(AccPointsCntTN2_cll(Nmax_cll))      
+        AccPointsCntTN2_cll(1:Nold) = saveCnt
+        AccPointsCntTN2_cll(Nold+1:Nmax_cll) = 0
+
+        saveCnt = sAccPointsCntTN2_cll  
+        deallocate(sAccPointsCntTN2_cll)
+        allocate(sAccPointsCntTN2_cll(Nmax_cll))      
+        sAccPointsCntTN2_cll(1:Nold) = saveCnt
+        sAccPointsCntTN2_cll(Nold+1:Nmax_cll) = 0
+
+        saveCnt = CritPointsCntTN2_cll  
+        deallocate(CritPointsCntTN2_cll)
+        allocate(CritPointsCntTN2_cll(Nmax_cll))      
+        CritPointsCntTN2_cll(1:Nold) = saveCnt
+        CritPointsCntTN2_cll(Nold+1:Nmax_cll) = 0
+
+        saveCnt = PointsCntTN_coli  
+        deallocate(PointsCntTN_coli)
+        allocate(PointsCntTN_coli(Nmax_cll))      
+        PointsCntTN_coli(1:Nold) = saveCnt
+        PointsCntTN_coli(Nold+1:Nmax_cll) = 0
+
+        saveCnt = PointsCntTN_dd  
+        deallocate(PointsCntTN_dd)
+        allocate(PointsCntTN_dd(Nmax_cll))      
+        PointsCntTN_dd(1:Nold) = saveCnt
+        PointsCntTN_dd(Nold+1:Nmax_cll) = 0
+
+        saveCnt = PointsCntTNten_cll  
+        deallocate(PointsCntTNten_cll)
+        allocate(PointsCntTNten_cll(Nmax_cll))      
+        PointsCntTNten_cll(1:Nold) = saveCnt
+        PointsCntTNten_cll(Nold+1:Nmax_cll) = 0
+
+        saveCnt = AccPointsCntTNten_cll  
+        deallocate(AccPointsCntTNten_cll)
+        allocate(AccPointsCntTN_cll(Nmax_cll))      
+        AccPointsCntTN_cll(1:Nold) = saveCnt
+        AccPointsCntTN_cll(Nold+1:Nmax_cll) = 0
+
+        saveCnt = sAccPointsCntTNten_cll  
+        deallocate(sAccPointsCntTNten_cll)
+        allocate(sAccPointsCntTN_cll(Nmax_cll))      
+        sAccPointsCntTN_cll(1:Nold) = saveCnt
+        sAccPointsCntTN_cll(Nold+1:Nmax_cll) = 0
+
+        saveCnt = CritPointsCntTNten_cll  
+        deallocate(CritPointsCntTNten_cll)
+        allocate(CritPointsCntTNten_cll(Nmax_cll))      
+        CritPointsCntTNten_cll(1:Nold) = saveCnt
+        CritPointsCntTNten_cll(Nold+1:Nmax_cll) = 0
+
+        saveCnt = PointsCntTNten_coli  
+        deallocate(PointsCntTNten_coli)
+        allocate(PointsCntTNten_coli(Nmax_cll))      
+        PointsCntTNten_coli(1:Nold) = saveCnt
+        PointsCntTNten_coli(Nold+1:Nmax_cll) = 0
+
+        saveCnt = PointsCntTNten_dd  
+        deallocate(PointsCntTNten_dd)
+        allocate(PointsCntTNten_dd(Nmax_cll))      
+        PointsCntTNten_dd(1:Nold) = saveCnt
+        PointsCntTNten_dd(Nold+1:Nmax_cll) = 0
+        
+      end if
+    
+    else
+      if(allocated(PointsCntTN_cll)) deallocate(PointsCntTN_cll)
+      if(allocated(AccPointsCntTN_cll)) deallocate(AccPointsCntTN_cll)
+      if(allocated(sAccPointsCntTN_cll)) deallocate(sAccPointsCntTN_cll)
+      if(allocated(CritPointsCntTN_cll)) deallocate(CritPointsCntTN_cll)
+      if(allocated(AccPointsCntTN2_cll)) deallocate(AccPointsCntTN2_cll)
+      if(allocated(sAccPointsCntTN2_cll)) deallocate(sAccPointsCntTN2_cll)
+      if(allocated(CritPointsCntTN2_cll)) deallocate(CritPointsCntTN2_cll)
+      if(allocated(PointsCntTN_coli)) deallocate(PointsCntTN_coli)
+      if(allocated(PointsCntTN_dd)) deallocate(PointsCntTN_dd)
+      if(allocated(PointsCntTNten_cll)) deallocate(PointsCntTNten_cll)
+      if(allocated(AccPointsCntTNten_cll)) deallocate(AccPointsCntTNten_cll)
+      if(allocated(sAccPointsCntTNten_cll)) deallocate(sAccPointsCntTNten_cll)
+      if(allocated(CritPointsCntTNten_cll)) deallocate(CritPointsCntTNten_cll)
+      if(allocated(PointsCntTNten_coli)) deallocate(PointsCntTNten_coli)
+      if(allocated(PointsCntTNten_dd)) deallocate(PointsCntTNten_dd)
+
+      ! re-allocate Counters for Critical Points
+      allocate(PointsCntTN_cll(Nmax_cll))
+      allocate(AccPointsCntTN_cll(Nmax_cll))
+      allocate(sAccPointsCntTN_cll(Nmax_cll))
+      allocate(CritPointsCntTN_cll(Nmax_cll))
+      allocate(AccPointsCntTN2_cll(Nmax_cll))
+      allocate(sAccPointsCntTN2_cll(Nmax_cll))
+      allocate(CritPointsCntTN2_cll(Nmax_cll))
+      allocate(PointsCntTN_coli(Nmax_cll))
+      allocate(PointsCntTN_dd(Nmax_cll))
+      allocate(PointsCntTNten_cll(Nmax_cll))
+      allocate(AccPointsCntTNten_cll(Nmax_cll))
+      allocate(sAccPointsCntTNten_cll(Nmax_cll))
+      allocate(CritPointsCntTNten_cll(Nmax_cll))
+      allocate(PointsCntTNten_coli(Nmax_cll))
+      allocate(PointsCntTNten_dd(Nmax_cll))
+
+      PointsCntA_cll = 0
+      PointsCntB_cll = 0
+      PointsCntC_cll = 0
+      PointsCntD_cll = 0
+      PointsCntE_cll = 0
+      PointsCntF_cll = 0
+      PointsCntG_cll = 0
+      PointsCntTN_cll = 0
+      PointsCntDB_cll = 0
+      AccPointsCntA_cll = 0
+      AccPointsCntB_cll = 0
+      AccPointsCntC_cll = 0
+      AccPointsCntD_cll = 0
+      AccPointsCntE_cll = 0
+      AccPointsCntF_cll = 0
+      AccPointsCntG_cll = 0
+      AccPointsCntTN_cll = 0
+      AccPointsCntDB_cll = 0
+      sAccPointsCntA_cll = 0
+      sAccPointsCntB_cll = 0
+      sAccPointsCntC_cll = 0
+      sAccPointsCntD_cll = 0
+      sAccPointsCntE_cll = 0
+      sAccPointsCntF_cll = 0
+      sAccPointsCntG_cll = 0
+      sAccPointsCntTN_cll = 0
+      sAccPointsCntDB_cll = 0
+      CritPointsCntA_cll = 0
+      CritPointsCntB_cll = 0
+      CritPointsCntC_cll = 0
+      CritPointsCntD_cll = 0
+      CritPointsCntE_cll = 0
+      CritPointsCntF_cll = 0
+      CritPointsCntG_cll = 0
+      CritPointsCntTN_cll = 0
+      CritPointsCntDB_cll = 0
+
+      AccPointsCntA2_cll = 0
+      AccPointsCntB2_cll = 0
+      AccPointsCntC2_cll = 0
+      AccPointsCntD2_cll = 0
+      AccPointsCntE2_cll = 0
+      AccPointsCntF2_cll = 0
+      AccPointsCntG2_cll = 0
+      AccPointsCntTN2_cll = 0
+      AccPointsCntDB2_cll = 0
+      sAccPointsCntA2_cll = 0
+      sAccPointsCntB2_cll = 0
+      sAccPointsCntC2_cll = 0
+      sAccPointsCntD2_cll = 0
+      sAccPointsCntE2_cll = 0
+      sAccPointsCntF2_cll = 0
+      sAccPointsCntG2_cll = 0
+      sAccPointsCntTN2_cll = 0
+      sAccPointsCntDB2_cll = 0
+      CritPointsCntA2_cll = 0
+      CritPointsCntB2_cll = 0
+      CritPointsCntC2_cll = 0
+      CritPointsCntD2_cll = 0
+      CritPointsCntE2_cll = 0
+      CritPointsCntF2_cll = 0
+      CritPointsCntG2_cll = 0
+      CritPointsCntTN2_cll = 0
+      CritPointsCntDB2_cll = 0
+
+      PointsCntA_coli = 0
+      PointsCntB_coli = 0
+      PointsCntC_coli = 0
+      PointsCntD_coli = 0
+      PointsCntE_coli = 0
+      PointsCntF_coli = 0
+      PointsCntG_coli = 0
+      PointsCntTN_coli = 0
+      PointsCntDB_coli = 0
+
+      PointsCntA_dd = 0
+      PointsCntB_dd = 0
+      PointsCntC_dd = 0
+      PointsCntD_dd = 0
+      PointsCntE_dd = 0
+      PointsCntF_dd = 0
+      PointsCntG_dd = 0
+      PointsCntTN_dd = 0
+      PointsCntDB_dd = 0
+
+      PointsCntAten_cll = 0
+      PointsCntBten_cll = 0
+      PointsCntCten_cll = 0
+      PointsCntDten_cll = 0
+      PointsCntEten_cll = 0
+      PointsCntFten_cll = 0
+      PointsCntGten_cll = 0
+      PointsCntTNten_cll = 0
+      PointsCntDBten_cll = 0
+      AccPointsCntAten_cll = 0
+      AccPointsCntBten_cll = 0
+      AccPointsCntCten_cll = 0
+      AccPointsCntDten_cll = 0
+      AccPointsCntEten_cll = 0
+      AccPointsCntFten_cll = 0
+      AccPointsCntGten_cll = 0
+      AccPointsCntTNten_cll = 0
+      AccPointsCntDBten_cll = 0
+      sAccPointsCntAten_cll = 0
+      sAccPointsCntBten_cll = 0
+      sAccPointsCntCten_cll = 0
+      sAccPointsCntDten_cll = 0
+      sAccPointsCntEten_cll = 0
+      sAccPointsCntFten_cll = 0
+      sAccPointsCntGten_cll = 0
+      sAccPointsCntTNten_cll = 0
+      sAccPointsCntDBten_cll = 0
+      CritPointsCntAten_cll = 0
+      CritPointsCntBten_cll = 0
+      CritPointsCntCten_cll = 0
+      CritPointsCntDten_cll = 0
+      CritPointsCntEten_cll = 0
+      CritPointsCntFten_cll = 0
+      CritPointsCntGten_cll = 0
+      CritPointsCntTNten_cll = 0
+      CritPointsCntDBten_cll = 0
 
 
-    PointsCntAten_coli = 0
-    PointsCntBten_coli = 0
-    PointsCntCten_coli = 0
-    PointsCntDten_coli = 0
-    PointsCntEten_coli = 0
-    PointsCntFten_coli = 0
-    PointsCntGten_coli = 0
-    PointsCntTNten_coli = 0
-    PointsCntDBten_coli = 0
+      PointsCntAten_coli = 0
+      PointsCntBten_coli = 0
+      PointsCntCten_coli = 0
+      PointsCntDten_coli = 0
+      PointsCntEten_coli = 0
+      PointsCntFten_coli = 0
+      PointsCntGten_coli = 0
+      PointsCntTNten_coli = 0
+      PointsCntDBten_coli = 0
 
-    PointsCntAten_dd = 0
-    PointsCntBten_dd = 0
-    PointsCntCten_dd = 0
-    PointsCntDten_dd = 0
-    PointsCntEten_dd = 0
-    PointsCntFten_dd = 0
-    PointsCntGten_dd = 0
-    PointsCntTNten_dd = 0
-    PointsCntDBten_dd = 0
+      PointsCntAten_dd = 0
+      PointsCntBten_dd = 0
+      PointsCntCten_dd = 0
+      PointsCntDten_dd = 0
+      PointsCntEten_dd = 0
+      PointsCntFten_dd = 0
+      PointsCntGten_dd = 0
+      PointsCntTNten_dd = 0
+      PointsCntDBten_dd = 0
 
-    ErrCntcoli = 0
-    ErrCntdd = 0
-    ErrCnt = 0
-    AccCnt = 0
-    ErrEventCnt = 0
-    AccEventCnt = 0
+      ErrCntcoli = 0
+      ErrCntdd = 0
+      ErrCnt = 0
+      AccCnt = 0
+      ErrEventCnt = 0
+      AccEventCnt = 0
+      
+    end if
     
   end subroutine InitPointsCnt_cll
 
@@ -3208,7 +3388,7 @@ contains
       else
         ncpoutcoli_cll = findFreeChannel_cll()
         call Setncpout_coli(ncpoutcoli_cll)
-        open(unit=ncpoutcoli_cll,file=trim(fname_cpoutcoli_cll),form='formatted',access='sequential',position='append',status='old')       
+        open(unit=ncpoutcoli_cll,file=trim(fname_cpoutcoli_cll),form='formatted',access='sequential',position='append',status='old')
       end if
     end if
 
@@ -3420,7 +3600,7 @@ contains
     fname_cpout2_cll = ''    
     fname_statsoutcoli_cll = '' 
     
-    call system('mkdir -p '//trim(foldername_cll))   
+    call execute_command_line('mkdir -p '//trim(foldername_cll))   
     
     call SwitchOffFileOutput_cll
     call SwitchOnFileOutput_cll    
@@ -3602,15 +3782,33 @@ contains
   
   
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !  subroutine InitMaxCheck_cll()
+  !  subroutine InitMaxCheck_cll(noreset)
   !
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine InitMaxCheck_cll
+  subroutine InitMaxCheck_cll(noreset)
+    logical, optional :: noreset
+    integer :: Nold
+    integer, allocatable :: saveMax(:)
 
-    if (allocated(MaxCheck_cll)) deallocate(MaxCheck_cll)
-    allocate(MaxCheck_cll(Nmax_cll))
-    MaxCheck_cll = 50
+    if (present(noreset).and.noreset) then
+      Nold = size(MaxCheck_cll)
+      if (Nold.lt.Nmax_cll) then
+        allocate(saveMax(Nold))
+
+        saveMax = MaxCheck_cll  
+        deallocate(MaxCheck_cll)
+        allocate(MaxCheck_cll(Nmax_cll))      
+        MaxCheck_cll(1:Nold) = saveMax
+        MaxCheck_cll(Nold+1:Nmax_cll) = 50
+      end if
+      
+    else  
+      if (allocated(MaxCheck_cll)) deallocate(MaxCheck_cll)
+      allocate(MaxCheck_cll(Nmax_cll))
+      MaxCheck_cll = 50
+    end if
+    
     MaxCheckEc_cll = 50
 
   end subroutine InitMaxCheck_cll
@@ -3686,15 +3884,32 @@ contains
   
   
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !  subroutine InitMaxCritPoints_cll()
+  !  subroutine InitMaxCritPoints_cll(noreset)
   !
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine InitMaxCritPoints_cll
+  subroutine InitMaxCritPoints_cll(noreset)
 
-    if (allocated(noutCritPointsMax_cll)) deallocate(noutCritPointsMax_cll)
-    allocate(noutCritPointsMax_cll(Nmax_cll))
-    noutCritPointsMax_cll = 50
+    logical, optional :: noreset
+    integer :: Nold
+    integer, allocatable :: saveMax(:)
+
+    if (present(noreset).and.noreset) then
+      Nold = size(noutCritPointsMax_cll)
+      if (Nold.lt.Nmax_cll) then
+        allocate(saveMax(Nold))
+        saveMax = noutCritPointsMax_cll 
+        deallocate(noutCritPointsMax_cll)
+        allocate(noutCritPointsMax_cll(Nmax_cll))      
+        noutCritPointsMax_cll(1:Nold) = saveMax
+        noutCritPointsMax_cll(Nold+1:Nmax_cll) = 50
+      end if
+      
+    else
+      if (allocated(noutCritPointsMax_cll)) deallocate(noutCritPointsMax_cll)
+      allocate(noutCritPointsMax_cll(Nmax_cll))
+      noutCritPointsMax_cll = 50
+    end if
 
   end subroutine InitMaxCritPoints_cll
 
@@ -4466,7 +4681,8 @@ contains
     write(unit=un,fmt=*) '        *                                         *        '
     write(unit=un,fmt=*) '        *    by A.Denner, S.Dittmaier, L.Hofer    *        '
     write(unit=un,fmt=*) '        *                                         *        '
-    write(unit=un,fmt=*) '        *               version 1.0               *        '
+!   write(unit=un,fmt=*) '        *              version 1.1.x              *        '
+    write(unit=un,fmt=*) '        *              version '//version_cll//'              *        '
     write(unit=un,fmt=*) '        *                                         *        '    
     write(unit=un,fmt=*) '        *******************************************        '
     write(unit=un,fmt=*) '                                                           ' 

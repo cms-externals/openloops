@@ -156,7 +156,7 @@ contains
 
     character(len=*),parameter :: fmt1 = "(A6,'dcmplx(',d25.18,' ,',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
-    "(A6,' B(',i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,' B(',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
 
 !    data DiffCntB /0/
 
@@ -270,7 +270,7 @@ contains
 
     character(len=*),parameter :: fmt1 = "(A5,'dcmplx(',d25.18,' ,',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
-    "(A6,' C(',i1,','i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,' C(',i1,',',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
 
 !    data DiffCntC /0/
 
@@ -389,7 +389,7 @@ contains
 
     character(len=*),parameter :: fmt1 = "(A5,'dcmplx(',d25.18,' ,',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
-    "(A6,' D(',i1,','i1,','i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,' D(',i1,',',i1,',',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
 
 !    data DiffCntD /0/
 
@@ -532,13 +532,13 @@ contains
     double complex :: LoCons(0:rmax/2,BinomTable(rmax,rmax+3),0:rmax/2,BinomTable(rmax,rmax+3),0:rmax)
     integer :: i1,i2
 
-    character(len=*),parameter :: fmt1 = "(A5,'dcmplx(',d25.18,',',d25.18,')')"
+    character(len=*),parameter :: fmt1 = "(A5,'dcmplx(',d25.18,',',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
-    "(A6,' E(',i1,','i1,','i1,','i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,' E(',i1,',',i1,',',i1,',',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
     character(len=*),parameter :: fmt3 = &
-    "(A6,' E*T(',i1,','i1,','i1,','i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,' E*T(',i1,',',i1,',',i1,',',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
     character(len=*),parameter :: fmt4 = &
-    "(A6,'   E(',i1,','i1,','i1,','i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,'   E(',i1,',',i1,',',i1,',',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
 
 !    data DiffCntE /0/
 
@@ -812,13 +812,13 @@ contains
     double complex :: LoCons(0:rmax/2,BinomTable(rmax,rmax+4),0:rmax/2,BinomTable(rmax,rmax+4),0:rmax)
     integer :: i1,i2
 
-    character(len=*),parameter :: fmt1 = "(A5,'dcmplx(',d25.18,',',d25.18,')')"
+    character(len=*),parameter :: fmt1 = "(A5,'dcmplx(',d25.18,',',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
-    "(A6,' F(',i1,','i1,','i1,','i1,','i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,' F(',i1,',',i1,',',i1,',',i1,',',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
     character(len=*),parameter :: fmt3 = &
-    "(A6,' F*T(',i1,','i1,','i1,','i1,','i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,' F*T(',i1,',',i1,',',i1,',',i1,',',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
     character(len=*),parameter :: fmt4 = &
-    "(A6,'   F(',i1,','i1,','i1,','i1,','i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,'   F(',i1,',',i1,',',i1,',',i1,',',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
 
 !    data DiffCntF /0/
     
@@ -1107,11 +1107,11 @@ contains
 !    integer, save :: DiffCntTN
     double complex, allocatable :: LoCons(:,:,:,:,:)
     integer :: i1,i2
-    character(len=*),parameter :: fmt1 = "(A8'(',i2,')=dcmplx(',d25.18,',',d25.18,')')"
+    character(len=*),parameter :: fmt1 = "(A8,'(',i2,')=dcmplx(',d25.18,',',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
     "(A6,' TN(',i2,') = (',E23.16,' , ',E23.16,' ), r=',i2)"
     character(len=*),parameter :: fmt3 = &
-    "(A6,' TN*T(',i1,','i2,') = (',E23.16,' , ',E23.16,' ), r=',i2)"
+    "(A6,' TN*T(',i1,',',i2,') = (',E23.16,' , ',E23.16,' ), r=',i2)"
     character(len=*),parameter :: fmt4 = &
     "(A6,' TN(',i2,') = (',E23.16,' , ',E23.16,' )')"
 
@@ -1347,7 +1347,7 @@ contains
 !    integer, parameter :: noutCheckDBmax=50
 !    integer, save :: DiffCntDB
 
-    character(len=*),parameter :: fmt1 = "(A5,'dcmplx(',g25.18,',',g25.18,')')"
+    character(len=*),parameter :: fmt1 = "(A5,'dcmplx(',g25.18,',',g25.18,' )')"
 
 !    data DiffCntDB /0/
 
@@ -1418,7 +1418,7 @@ contains
 
     character(len=*),parameter :: fmt1 = "(A6,'dcmplx(',d25.18,' ,',d25.18,' )')"
     character(len=*),parameter :: fmt2 = &
-    "(A6,' DB(',i1,','i1,') = (',E23.16,' , ',E23.16,' )')"
+    "(A6,' DB(',i1,',',i1,') = (',E23.16,' , ',E23.16,' )')"
 
 !    data DiffCntDB /0/
 
@@ -1840,15 +1840,76 @@ contains
       endif
     end do
 
-!    write(ncpout_cll,130) sqrt(reqacc_coli)
+    write(ncpout_cll,130) sqrt(reqacc_coli)
 130 format (/' Numbers of calls of COLLIER functions'/  &
-        ' with an estimated accuracy worse than     '/  &
+        ' with an estimated accuracy worse than ',  &
         ' sqrt(reqacc_coli) =',Es11.4)
+!        ' with an estimated accuracy worse than     '/  &
+!        ' sqrt(reqacc_coli) =',Es11.4)
+    if(PointsCntDB_cll.ne.0.and.sAccPointsCntDB_cll.ne.0) then
+    write(ncpout_cll,111)  'DB_cll',sAccPointsCntDB_cll,sAccPointsCntDB_cll/real(PointsCntDB_cll)*1d2
+    endif
+    if(PointsCntA_cll.ne.0.and.sAccPointsCntA_cll.ne.0) then
+    write(ncpout_cll,111)  'A_cll',sAccPointsCntA_cll,sAccPointsCntA_cll/real(PointsCntA_cll)*1d2
+    endif
+    if(PointsCntB_cll.ne.0.and.sAccPointsCntB_cll.ne.0) then
+    write(ncpout_cll,111)  'B_cll',sAccPointsCntB_cll,sAccPointsCntB_cll/real(PointsCntB_cll)*1d2
+    endif
+    if(PointsCntC_cll.ne.0.and.sAccPointsCntC_cll.ne.0) then
+    write(ncpout_cll,111)  'C_cll',sAccPointsCntC_cll,sAccPointsCntC_cll/real(PointsCntC_cll)*1d2
+    endif
+    if(PointsCntD_cll.ne.0.and.sAccPointsCntD_cll.ne.0) then
+    write(ncpout_cll,111)  'D_cll',sAccPointsCntD_cll,sAccPointsCntD_cll/real(PointsCntD_cll)*1d2
+    endif
+    if(PointsCntE_cll.ne.0.and.sAccPointsCntE_cll.ne.0) then
+    write(ncpout_cll,111)  'E_cll',sAccPointsCntE_cll,sAccPointsCntE_cll/real(PointsCntE_cll)*1d2
+    endif
+    if(PointsCntF_cll.ne.0.and.sAccPointsCntF_cll.ne.0) then
+    write(ncpout_cll,111)  'F_cll',sAccPointsCntF_cll,sAccPointsCntF_cll*1d2/PointsCntF_cll
+    endif
+    if(PointsCntG_cll.ne.0.and.sAccPointsCntG_cll.ne.0) then
+    write(ncpout_cll,111)  'G_cll',sAccPointsCntG_cll,sAccPointsCntG_cll*1d2/PointsCntG_cll
+    endif
+    do i=1,Nmax_cll
+      if(PointsCntTN_cll(i).ne.0.and.sAccPointsCntTN_cll(i).ne.0) then
+        write(ncpout_cll,112)  'TN_cll',i,sAccPointsCntTN_cll(i),sAccPointsCntTN_cll(i)*1d2/PointsCntTN_cll(i)
+      endif
+    end do
+
+    if(PointsCntDBten_cll.ne.0.and.sAccPointsCntDBten_cll.ne.0) then
+    write(ncpout_cll,111)  'DBten_cll',sAccPointsCntDBten_cll,sAccPointsCntDBten_cll/real(PointsCntDBten_cll)*1d2
+    endif
+    if(PointsCntAten_cll.ne.0.and.sAccPointsCntAten_cll.ne.0) then
+    write(ncpout_cll,111)  'Aten_cll',sAccPointsCntAten_cll,sAccPointsCntAten_cll/real(PointsCntAten_cll)*1d2
+    endif
+    if(PointsCntBten_cll.ne.0.and.sAccPointsCntBten_cll.ne.0) then
+    write(ncpout_cll,111)  'Bten_cll',sAccPointsCntBten_cll,sAccPointsCntBten_cll/real(PointsCntBten_cll)*1d2
+    endif
+    if(PointsCntCten_cll.ne.0.and.sAccPointsCntCten_cll.ne.0) then
+    write(ncpout_cll,111)  'Cten_cll',sAccPointsCntCten_cll,sAccPointsCntCten_cll/real(PointsCntCten_cll)*1d2
+    endif
+    if(PointsCntDten_cll.ne.0.and.sAccPointsCntDten_cll.ne.0) then
+    write(ncpout_cll,111)  'Dten_cll',sAccPointsCntDten_cll,sAccPointsCntDten_cll/real(PointsCntDten_cll)*1d2
+    endif
+    if(PointsCntEten_cll.ne.0.and.sAccPointsCntEten_cll.ne.0) then
+    write(ncpout_cll,111)  'Eten_cll',sAccPointsCntEten_cll,sAccPointsCntEten_cll/real(PointsCntEten_cll)*1d2
+    endif
+    if(PointsCntFten_cll.ne.0.and.sAccPointsCntFten_cll.ne.0) then
+    write(ncpout_cll,111)  'Ften_cll',sAccPointsCntFten_cll,sAccPointsCntFten_cll*1d2/PointsCntFten_cll
+    endif
+    if(PointsCntGten_cll.ne.0.and.sAccPointsCntGten_cll.ne.0) then
+    write(ncpout_cll,111)  'Gten_cll',sAccPointsCntGten_cll,sAccPointsCntGten_cll*1d2/PointsCntGten_cll
+    endif
+    do i=1,Nmax_cll
+      if(PointsCntTNten_cll(i).ne.0.and.sAccPointsCntTNten_cll(i).ne.0) then
+        write(ncpout_cll,112)  'TNten_cll',i,sAccPointsCntTNten_cll(i),sAccPointsCntTNten_cll(i)*1d2/PointsCntTNten_cll(i)
+      endif
+    end do
 
 
     write(ncpout_cll,120) critacc_cll
 120 format (/' Numbers of calls of COLLIER functions'/  &
-        ' with an estimated accuracy worse than critacc_coli =',Es11.4)
+        ' with an estimated accuracy worse than  critacc_coli =',Es11.4)
     
     if(PointsCntDB_cll.ne.0.and.CritPointsCntDB_cll.ne.0) then
     write(ncpout_cll,111)  'DB_cll',CritPointsCntDB_cll,CritPointsCntDB_cll/real(PointsCntDB_cll)*1d2
@@ -2388,15 +2449,70 @@ contains
       endif
     end do
 
-!    write(ncpout2_cll,130) sqrt(reqacc_coli)
+    write(ncpout2_cll,130) sqrt(reqacc_coli)
 130 format (/' Numbers of calls of COLLIER functions'/  &
-        ' with an estimated accuracy worse than     '/  &
+        ' with an estimated accuracy worse than ',  &
         ' sqrt(reqacc_coli) =',Es11.4)
+    if(PointsCntA_cll.ne.0.and.sAccPointsCntA_cll.ne.0) then
+    write(ncpout2_cll,111)  'A_cll',sAccPointsCntA2_cll,sAccPointsCntA2_cll/real(PointsCntA_cll)*1d2
+    endif
+    if(PointsCntB_cll.ne.0.and.sAccPointsCntB2_cll.ne.0) then
+    write(ncpout2_cll,111)  'B_cll',sAccPointsCntB2_cll,sAccPointsCntB2_cll/real(PointsCntB_cll)*1d2
+    endif
+    if(PointsCntC_cll.ne.0.and.sAccPointsCntC2_cll.ne.0) then
+    write(ncpout2_cll,111)  'C_cll',sAccPointsCntC2_cll,sAccPointsCntC2_cll/real(PointsCntC_cll)*1d2
+    endif
+    if(PointsCntD_cll.ne.0.and.sAccPointsCntD2_cll.ne.0) then
+    write(ncpout2_cll,111)  'D_cll',sAccPointsCntD2_cll,sAccPointsCntD2_cll/real(PointsCntD_cll)*1d2
+    endif
+    if(PointsCntE_cll.ne.0.and.sAccPointsCntE2_cll.ne.0) then
+    write(ncpout2_cll,111)  'E_cll',sAccPointsCntE2_cll,sAccPointsCntE2_cll/real(PointsCntE_cll)*1d2
+    endif
+    if(PointsCntF_cll.ne.0.and.sAccPointsCntF2_cll.ne.0) then
+    write(ncpout2_cll,111)  'F_cll',sAccPointsCntF2_cll,sAccPointsCntF2_cll*1d2/PointsCntF_cll
+    endif
+    if(PointsCntG_cll.ne.0.and.sAccPointsCntG2_cll.ne.0) then
+    write(ncpout2_cll,111)  'G_cll',sAccPointsCntG2_cll,sAccPointsCntG2_cll*1d2/PointsCntG_cll
+    endif
+    do i=1,Nmax_cll
+      if(PointsCntTN_cll(i).ne.0.and.sAccPointsCntTN2_cll(i).ne.0) then
+        write(ncpout2_cll,112)  'TN_cll',i,sAccPointsCntTN2_cll(i),sAccPointsCntTN2_cll(i)*1d2/PointsCntTN_cll(i)
+      endif
+    end do
 
+    if(PointsCntDBten_cll.ne.0.and.sAccPointsCntDBten_cll.ne.0) then
+    write(ncpout2_cll,111)  'DBten_cll',sAccPointsCntDBten_cll,sAccPointsCntDBten_cll/real(PointsCntDBten_cll)*1d2
+    endif
+    if(PointsCntAten_cll.ne.0.and.sAccPointsCntAten_cll.ne.0) then
+    write(ncpout2_cll,111)  'Aten_cll',sAccPointsCntAten_cll,sAccPointsCntAten_cll/real(PointsCntAten_cll)*1d2
+    endif
+    if(PointsCntBten_cll.ne.0.and.sAccPointsCntBten_cll.ne.0) then
+    write(ncpout2_cll,111)  'Bten_cll',sAccPointsCntBten_cll,sAccPointsCntBten_cll/real(PointsCntBten_cll)*1d2
+    endif
+    if(PointsCntCten_cll.ne.0.and.sAccPointsCntCten_cll.ne.0) then
+    write(ncpout2_cll,111)  'Cten_cll',sAccPointsCntCten_cll,sAccPointsCntCten_cll/real(PointsCntCten_cll)*1d2
+    endif
+    if(PointsCntDten_cll.ne.0.and.sAccPointsCntDten_cll.ne.0) then
+    write(ncpout2_cll,111)  'Dten_cll',sAccPointsCntDten_cll,sAccPointsCntDten_cll/real(PointsCntDten_cll)*1d2
+    endif
+    if(PointsCntEten_cll.ne.0.and.sAccPointsCntEten_cll.ne.0) then
+    write(ncpout2_cll,111)  'Eten_cll',sAccPointsCntEten_cll,sAccPointsCntEten_cll/real(PointsCntEten_cll)*1d2
+    endif
+    if(PointsCntFten_cll.ne.0.and.sAccPointsCntFten_cll.ne.0) then
+    write(ncpout2_cll,111)  'Ften_cll',sAccPointsCntFten_cll,sAccPointsCntFten_cll*1d2/PointsCntFten_cll
+    endif
+    if(PointsCntGten_cll.ne.0.and.sAccPointsCntGten_cll.ne.0) then
+    write(ncpout2_cll,111)  'Gten_cll',sAccPointsCntGten_cll,sAccPointsCntGten_cll*1d2/PointsCntGten_cll
+    endif
+    do i=1,Nmax_cll
+      if(PointsCntTNten_cll(i).ne.0.and.sAccPointsCntTNten_cll(i).ne.0) then
+        write(ncpout2_cll,112)  'TNten_cll',i,sAccPointsCntTNten_cll(i),sAccPointsCntTNten_cll(i)*1d2/PointsCntTNten_cll(i)
+      endif
+    end do
 
     write(ncpout2_cll,120) critacc_cll
 120 format (/' Numbers of calls of COLLIER functions'/  &
-        ' with an estimated accuracy worse than critacc_coli =',Es11.4)
+        ' with an estimated accuracy worse than  critacc_coli =',Es11.4)
     
     if(PointsCntA_cll.ne.0.and.CritPointsCntA_cll.ne.0) then
     write(ncpout2_cll,111)  'A_cll',CritPointsCntA_cll,CritPointsCntA_cll/real(PointsCntA_cll)*1d2

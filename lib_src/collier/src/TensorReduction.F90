@@ -272,12 +272,18 @@ contains
     double complex :: MomVecE(0:3,4), masses2E(0:4), MomInvE(10)
     double complex :: q10,q21,q32,q43,q54,q50,q20,q31,q42,q53,q40
     double complex :: q51,q30,q41,q52,mm02,mm12,mm22,mm32,mm42,mm52,ff(5)
-    double complex :: mx(0:5,0:5), mxinv(0:5,0:5),mx0k(5,5),mx0kinv(5,5),mxinvP(5,0:3)
-    double complex :: mxinvs,mxinvPs(0:3)
+!    double complex :: mxinv(0:5,0:5),mxinvs
+    double complex :: mx(0:5,0:5),mx0k(5,5),mx0kinv(5,5),mxinvP(5,0:3)
+    double complex :: mxinvPs(0:3)
     double complex :: det,newdet
     double complex :: Smod, Faux(5), elimminf2_coli,chdet,P1ten
     integer :: r,n0,n1,n2,n3,n4,n5,np0,np1,np2,np3,k,i,j,kbest,rmaxE,mu,combi,nid(0:4),bin
 
+    double complex :: mxmx0kinv(5,5)
+    double precision :: maxf
+    integer        :: jmax
+    logical :: errorwriteflag
+    character(len=*),parameter :: fmt10 = "(A18,'(',d25.18,' , ',d25.18,' )')"
 
     ! determine inverse modified Caley matrix
     mm02 = elimminf2_coli(masses2(0))
@@ -346,23 +352,27 @@ contains
     mx(4,5) = mx(5,4)
     mx(5,5) = 2d0*q50
 
-    call chinv(6,mx,mxinv)
-
+! changed 21.06.2018
+!    call chinv(6,mx,mxinv)
 
     ! determine X_(0,5)
+!    do j=1,5
+!      do i=1,5
+!        mx0k(i,j) = mx(i,j-1)
+!      end do
+!    end do
     do j=1,5
-      do i=1,5
-        mx0k(i,j) = mx(i,j-1)
-      end do
+      mx0k(:,j) = mx(1:5,j-1)
     end do
 
     det = chdet(5,mx0k)
     kbest = 5
 
     do j=5,2,-1
-      do i=1,5
-        mx0k(i,j) = mx(i,j)
-      end do
+!      do i=1,5
+!        mx0k(i,j) = mx(i,j)
+!      end do
+      mx0k(:,j) = mx(1:5,j)
 
       newdet =  chdet(5,mx0k)
       if (abs(newdet).gt.abs(det)) then          
@@ -372,17 +382,55 @@ contains
     
     end do
     
-    do i=1,5
-      mx0k(i,1) = mx(i,1)
-      mx0k(i,kbest) = mx(i,0)
-    end do
+!    do i=1,5
+!      mx0k(i,1) = mx(i,1)
+!      mx0k(i,kbest) = mx(i,0)
+!    end do
+    mx0k(:,1) = mx(1:5,1)
+    mx0k(:,kbest) = mx(1:5,0)
 
-    call chinv(5,mx0k,mx0kinv)
-    do i=1,5
-      mx0kinv(kbest,i) = 0d0
-    end do
+! changed 21.06.2018
+    call chinv(5,mx0k,mx0kinv,det)
+
+    if (det.eq.0d0) then
+      call SetErrFlag_coli(-7)
+      call ErrOut_coli('CalcTensorFrRed',  &
+          'inverse matrix M does not exist',  &
+          errorwriteflag)
+      if (errorwriteflag) then
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: q10 = ',q10
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: q21 = ',q21
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: q32 = ',q32
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: q43 = ',q43
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: q54 = ',q54
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: q50 = ',q50
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: q20 = ',q10
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: q31 = ',q31
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: q42 = ',q42
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: q53 = ',q53
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: q40 = ',q40
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: q51 = ',q51
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: q30 = ',q30
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: q41 = ',q41
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: q52 = ',q52
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: mm02 = ',mm02
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: mm12 = ',mm12
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: mm22 = ',mm22
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: mm32 = ',mm32
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: mm42 = ',mm42
+        write(nerrout_coli,fmt10) ' CalcTensorFrRed: mm52 = ',mm52
+      end if
+      TF = 0d0
+      return
+    end if
+
+
+!    do i=1,5
+!      mx0kinv(kbest,i) = 0d0
+!    end do
+    mx0kinv(kbest,:) = 0d0
     
-    mxinvs = sum(mxinv(0:5,0))
+!    mxinvs = sum(mxinv(0:5,0))
 
     ! build rank5 tensors
     rmaxE = max(rmax-1,0)
@@ -505,16 +553,51 @@ contains
 
     
     TF = 0d0
-    TF(0,0,0,0) = -mxinv(0,0)*TE(0,0,0,0,0)
-    do i=1,5
-      TF(0,0,0,0) = TF(0,0,0,0) + mxinv(i,0)*(TE(0,0,0,0,i)-TE(0,0,0,0,0))
+
+    ! scalar coefficient
+!    based on (D.3), replaced 21.06.2018
+
+!    TF(0,0,0,0) = -mxinv(0,0)*TE(0,0,0,0,0)
+!    do i=1,5
+!      TF(0,0,0,0) = TF(0,0,0,0) + mxinv(i,0)*(TE(0,0,0,0,i)-TE(0,0,0,0,0))
+!    end do
+!    TFerr(0) = max( abs(mxinvs)*TEerr(0,0), &
+!                    abs(mxinv(1,0))*TEerr(1,0) , &
+!                    abs(mxinv(2,0))*TEerr(2,0) , &
+!                    abs(mxinv(3,0))*TEerr(3,0) , &
+!                    abs(mxinv(4,0))*TEerr(4,0) , &
+!                    abs(mxinv(5,0))*TEerr(5,0) )
+
+! New version for  TF(0,,0,0), 21.06.2018
+
+    maxf = abs(mx(1,0))
+    jmax = 1
+    do j=2,5
+      if (abs(mx(j,0)).gt.maxf) then
+         jmax = j
+         maxf = abs(mx(j,0))
+      end if
     end do
-    TFerr(0) = max( abs(mxinvs)*TEerr(0,0), &
-                    abs(mxinv(1,0))*TEerr(1,0) , &
-                    abs(mxinv(2,0))*TEerr(2,0) , &
-                    abs(mxinv(3,0))*TEerr(3,0) , &
-                    abs(mxinv(4,0))*TEerr(4,0) , &
-                    abs(mxinv(5,0))*TEerr(5,0) )
+
+    mxmx0kinv = matmul(mx(1:5,1:5),mx0kinv)
+
+    TF(0,0,0,0) =  TE(0,0,0,0,jmax) - TE(0,0,0,0,0)
+    do j=1,5
+      TF(0,0,0,0) =  TF(0,0,0,0) & 
+          - mxmx0kinv(jmax,j) * (TE(0,0,0,0,j) - TE(0,0,0,0,0))
+    end do
+    TF(0,0,0,0) =  TF(0,0,0,0)/mx(jmax,0)
+
+    TFerr(0) = max(maxval(abs(mxmx0kinv(jmax,:)))*TEerr(0,0), &
+                   abs(mxmx0kinv(jmax,1))*TEerr(1,0) , &
+                   abs(mxmx0kinv(jmax,2))*TEerr(2,0) , &
+                   abs(mxmx0kinv(jmax,3))*TEerr(3,0) , &
+                   abs(mxmx0kinv(jmax,4))*TEerr(4,0) , & 
+                   abs(mxmx0kinv(jmax,5))*TEerr(5,0) , &
+                   TEerr(0,0) , TEerr(jmax,0) )/abs(mx(jmax,0))
+
+!    write(*,*) 'CalcTensorTNrRed TN0 pv', TN(0,0,0,0)
+!    write(*,*) 'CalcTensorTNrRed TNerr pv', TNerr(0)
 
     do mu=0,3
       do i=1,5
@@ -620,7 +703,7 @@ contains
     double complex, intent(in) :: MomInv(BinomTable(2,N))
     double complex, intent(out) :: TN(0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: TNuv(0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex, intent(out), optional :: CNuv(BinomTable(rmax-2*N+4,max(rmax-N+2,0)),N-2:rmax/2,2*N-4:rmax)
+    double complex, intent(out), optional :: CNuv(BinomTable(max(rmax-2*N+4,0),max(rmax-N+2,0)),N-2:rmax/2,2*N-4:rmax)
     double complex :: CNuvaux0(BinomTable(max(rmax-2*N+4,0),max(rmax-N+2,0)),N-2:max(rmax/2,N-2),2*N-4:max(rmax,2*N-4))   
     double precision, intent(out) :: TNerr(0:rmax)
     double complex, allocatable :: TNaux(:,:,:,:),TNuvaux(:,:,:,:)
@@ -929,7 +1012,7 @@ contains
     double complex, intent(in) :: MomVec(0:3,N-1), masses2(0:N-1)
     double complex, intent(in) :: MomInv(BinomTable(2,N))
     double complex, intent(out) :: TN(0:rmax,0:rmax,0:rmax,0:rmax)
-    double complex, intent(out), optional :: CNuv(BinomTable(rmax-2*N+4,max(rmax-N+2,0)),N-2:rmax/2,2*N-4:rmax)
+    double complex, intent(out), optional :: CNuv(BinomTable(max(rmax-2*N+4,0),max(rmax-N+2,0)),N-2:rmax/2,2*N-4:rmax)
     double precision, intent(out) :: TNerr(0:rmax)
     double complex, allocatable :: TNm1(:,:,:,:,:),TNm1_0aux(:,:,:,:)
     double complex, allocatable :: TNm1uv_0aux(:,:,:,:)
@@ -938,12 +1021,19 @@ contains
     double precision :: p1max
     double complex :: q10,q21,q32,q43,q54,q50,q20,q31,q42,q53,q40
     double complex :: q51,q30,q41,q52,mm02,mm12,mm22,mm32,mm42,mm52
-    double complex :: mx(0:5,0:5), mxinv(0:5,0:5),mx0k(5,5),mx0kinv(5,5)
+!    double complex :: mxinv(0:5,0:5),mxinvs
+    double complex :: mx(0:5,0:5),mx0k(5,5),mx0kinv(5,5)
     double complex :: det,newdet,ff(N-1)
     double complex :: Smod, elimminf2_coli,chdet,P1ten,mxinvP(5,0:3)
-    double complex :: mxinvs,mxinvPs(0:3)
+    double complex :: mxinvPs(0:3)
     integer :: r,n0,n1,n2,n3,n4,n5,np0,np1,np2,np3,k,i,j,kbest,rmax_m1,combi,mu,cnt
     integer :: bin,nid(0:5),r0,rBCD,mia,bino_0,bino_i,cind,mia1,mia2,mia3
+
+    double complex :: mxmx0kinv(5,5)
+    double precision :: maxf
+    integer        :: jmax
+    logical :: errorwriteflag
+    character(len=*),parameter :: fmt10 = "(A18,'(',d25.18,' , ',d25.18,' )')"
 
 
     ! determine inverse modified Caley matrix
@@ -1022,22 +1112,27 @@ contains
     mx(4,5) = mx(5,4)
     mx(5,5) = 2d0*q50
 
-    call chinv(6,mx,mxinv)
+! changed 21.06.2018
+!    call chinv(6,mx,mxinv)
 
     ! determine X_(0,5)
+!    do j=1,5
+!      do i=1,5
+!        mx0k(i,j) = mx(i,j-1)
+!      end do
+!    end do
     do j=1,5
-      do i=1,5
-        mx0k(i,j) = mx(i,j-1)
-      end do
+      mx0k(:,j) = mx(1:5,j-1)
     end do
 
     det = chdet(5,mx0k)
     kbest = 5
 
     do j=5,2,-1
-      do i=1,5
-        mx0k(i,j) = mx(i,j)
-      end do
+!      do i=1,5
+!        mx0k(i,j) = mx(i,j)
+!      end do
+      mx0k(:,j) = mx(1:5,j)
 
       newdet =  chdet(5,mx0k)
       if (abs(newdet).gt.abs(det)) then          
@@ -1047,17 +1142,54 @@ contains
     
     end do
     
-    do i=1,5
-      mx0k(i,1) = mx(i,1)
-      mx0k(i,kbest) = mx(i,0)
-    end do
+!    do i=1,5
+!      mx0k(i,1) = mx(i,1)
+!      mx0k(i,kbest) = mx(i,0)
+!    end do
+    mx0k(:,1) = mx(1:5,1)
+    mx0k(:,kbest) = mx(1:5,0)
 
-    call chinv(5,mx0k,mx0kinv)
-    do i=1,5
-      mx0kinv(kbest,i) = 0d0
-    end do
+! changed 21.06.2018
+    call chinv(5,mx0k,mx0kinv,det)
+
+    if (det.eq.0d0) then
+      call SetErrFlag_coli(-7)
+      call ErrOut_coli('CalcTensorTNrRed',  &
+          'inverse matrix M does not exist',  &
+          errorwriteflag)
+      if (errorwriteflag) then
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: q10 = ',q10
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: q21 = ',q21
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: q32 = ',q32
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: q43 = ',q43
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: q54 = ',q54
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: q50 = ',q50
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: q20 = ',q10
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: q31 = ',q31
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: q42 = ',q42
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: q53 = ',q53
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: q40 = ',q40
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: q51 = ',q51
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: q30 = ',q30
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: q41 = ',q41
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: q52 = ',q52
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: mm02 = ',mm02
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: mm12 = ',mm12
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: mm22 = ',mm22
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: mm32 = ',mm32
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: mm42 = ',mm42
+        write(nerrout_coli,fmt10) ' CalcTensorTNrRed: mm52 = ',mm52
+      end if
+      TN = 0d0
+      return
+    end if
+
+!    do i=1,5
+!      mx0kinv(kbest,i) = 0d0
+!    end do
+    mx0kinv(kbest,:) = 0d0
     
-    mxinvs = sum(mxinv(0:5,0))
+!    mxinvs = sum(mxinv(0:5,0))
 
     ! determine binaries for F-coefficients
     k=0
@@ -1141,16 +1273,54 @@ contains
     end do    
 
     TN = 0d0
-    TN(0,0,0,0) = -mxinv(0,0)*TNm1(0,0,0,0,0)
-    do i=1,5
-      TN(0,0,0,0) = TN(0,0,0,0) + mxinv(i,0)*(TNm1(0,0,0,0,i)-TNm1(0,0,0,0,0))
+
+    ! scalar coefficient
+!    based on (D.3), replaced 21.06.2018
+
+!    TN(0,0,0,0) = -mxinv(0,0)*TNm1(0,0,0,0,0)
+!    do i=1,5
+!      TN(0,0,0,0) = TN(0,0,0,0) + mxinv(i,0)*(TNm1(0,0,0,0,i)-TNm1(0,0,0,0,0))
+!    end do
+!    TNerr(0) = max( abs(mxinvs)*TNm1err(0,0), &
+!                    abs(mxinv(1,0))*TNm1err(1,0) , &
+!                    abs(mxinv(2,0))*TNm1err(2,0) , &
+!                    abs(mxinv(3,0))*TNm1err(3,0) , &
+!                    abs(mxinv(4,0))*TNm1err(4,0) , &
+!                    abs(mxinv(5,0))*TNm1err(5,0) )
+!
+!    write(*,*) 'CalcTensorTNrRed TN0 old', TN(0,0,0,0)
+!    write(*,*) 'CalcTensorTNrRed TNerr old', TNerr(0)
+
+! New version for  TN(0,0,0,0), 21.06.2018
+
+    maxf = abs(mx(1,0))
+    jmax = 1
+    do j=2,5
+      if (abs(mx(j,0)).gt.maxf) then
+         jmax = j
+         maxf = abs(mx(j,0))
+      end if
     end do
-    TNerr(0) = max( abs(mxinvs)*TNm1err(0,0), &
-                    abs(mxinv(1,0))*TNm1err(1,0) , &
-                    abs(mxinv(2,0))*TNm1err(2,0) , &
-                    abs(mxinv(3,0))*TNm1err(3,0) , &
-                    abs(mxinv(4,0))*TNm1err(4,0) , &
-                    abs(mxinv(5,0))*TNm1err(5,0) )
+
+    mxmx0kinv = matmul(mx(1:5,1:5),mx0kinv)
+
+    TN(0,0,0,0) =  TNm1(0,0,0,0,jmax) - TNm1(0,0,0,0,0)
+    do j=1,5
+      TN(0,0,0,0) =  TN(0,0,0,0) & 
+          - mxmx0kinv(jmax,j) * (TNm1(0,0,0,0,j) - TNm1(0,0,0,0,0))
+    end do
+    TN(0,0,0,0) =  TN(0,0,0,0)/mx(jmax,0)
+
+    TNerr(0) = max(maxval(abs(mxmx0kinv(jmax,:)))*TNm1err(0,0), &
+                   abs(mxmx0kinv(jmax,1))*TNm1err(1,0) , &
+                   abs(mxmx0kinv(jmax,2))*TNm1err(2,0) , &
+                   abs(mxmx0kinv(jmax,3))*TNm1err(3,0) , &
+                   abs(mxmx0kinv(jmax,4))*TNm1err(4,0) , & 
+                   abs(mxmx0kinv(jmax,5))*TNm1err(5,0) , &
+                   TNm1err(0,0) , TNm1err(jmax,0) )/abs(mx(jmax,0))
+
+!    write(*,*) 'CalcTensorTNrRed TN0 pv', TN(0,0,0,0)
+!    write(*,*) 'CalcTensorTNrRed TNerr pv', TNerr(0)
 
     do mu=0,3
       do i=1,5

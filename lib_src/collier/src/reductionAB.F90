@@ -30,6 +30,10 @@ module reductionAB
   use combinatorics
   use cache
   use coli_aux2
+#ifdef DETTEST
+  use coli_aux3
+  use coli_aux4
+#endif
   use collier_global
 
 
@@ -229,7 +233,8 @@ contains
     double complex, intent(in) :: p10,m02,m12
     double complex, intent(inout) :: B(0:rmax,0:rmax), Buv(0:rmax,0:rmax) 
     double precision, intent(out)  :: Berr(0:rmax)
-    double complex, allocatable :: A(:), Auv(:)
+!   double complex, allocatable :: A(:), Auv(:)
+    double complex :: A(0:rmax-1), Auv(0:rmax-1)
     double complex :: q2, mm02, mm12, f1
     double complex :: Bn_coli,elimminf2_coli
     integer :: rmaxA,n0,n1,r,sgn,k,rid,r0
@@ -268,8 +273,8 @@ contains
       
         ! calculation of A-functions
         rmaxA = max(rmax-1,0)
-        allocate(A(0:rmaxA))
-        allocate(Auv(0:rmaxA))
+!       allocate(A(0:rmaxA))
+!       allocate(Auv(0:rmaxA))
         call CalcA(A,Auv,mm12,2*rmaxA)
 
         ! p10 non-negligible
@@ -332,7 +337,7 @@ contains
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !  subroutine CalcDBred(DB,DBuv,p10,m02,m12,rmax,id,DBerr)
+  !  subroutine CalcDB(DB,DBuv,p10,m02,m12,rmax,id,DBerr)
   !
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
@@ -344,26 +349,24 @@ contains
     double precision, optional, intent(out)  :: DBerr(0:rmax)
     double precision  :: Berr(0:rmax)
     double complex :: B(0:rmax,0:rmax), Buv(0:rmax,0:rmax) 
-    double complex, allocatable :: A(:), Auv(:)
+!   double complex, allocatable :: A(:), Auv(:)
+    double complex :: A(0:rmax-1), Auv(0:rmax-1)
     double complex :: q2, mm02, mm12, f1
     double complex :: DBn_coli,elimminf2_coli
-    integer :: rmaxA,n0,n1,r,sgn,k,rid
+    integer :: rmaxA,n0,n1,r,k,rid
     logical :: finarg
     double complex, parameter :: cd0 = dcmplx(0d0,0d0)  
 
-!    write(*,*) 'CalcDBred in',p10,m02,m12,rmax,id
+!    write(*,*) 'CalcDB in',p10,m02,m12,rmax,id
 
     ! r=0
     DBuv(0,0) = 0d0
     DB(0,0) = DBn_coli(0,p10,m02,m12)
 
-!    write(*,*) 'CalcDBred DB(0,0)',DB(0,0)
-
     call CalcBred(B,Buv,p10,m02,m12,rmax,id,Berr)
 
     ! calculate DB(0,n1)
     do n1=1,rmax
-      sgn = -sgn
       DBuv(0,n1) = 0d0
       DB(0,n1) = DBn_coli(n1,p10,m02,m12)
     end do
@@ -384,8 +387,8 @@ contains
       
         ! calculation of A-functions
         rmaxA = max(rmax-1,0)
-        allocate(A(0:rmaxA))
-        allocate(Auv(0:rmaxA))
+!       allocate(A(0:rmaxA))
+!       allocate(Auv(0:rmaxA))
         call CalcA(A,Auv,mm12,2*rmaxA)
 
         f1 = q2-mm12+mm02

@@ -1,20 +1,20 @@
 !
-! Copyright (C) 2015 Andreas van Hameren. 
+! Copyright (C) 2018 Andreas van Hameren. 
 !
-! This file is part of OneLOop-3.6.1.
+! This file is part of OneLOop-rolln.
 !
-! OneLOop-3.6.1 is free software: you can redistribute it and/or modify
+! OneLOop-rolln is free software: you can redistribute it and/or modify
 ! it under the terms of the GNU General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
 ! (at your option) any later version.
 !
-! OneLOop-3.6.1 is distributed in the hope that it will be useful,
+! OneLOop-rolln is distributed in the hope that it will be useful,
 ! but WITHOUT ANY WARRANTY; without even the implied warranty of
 ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ! GNU General Public License for more details.
 !
 ! You should have received a copy of the GNU General Public License
-! along with OneLOop-3.6.1.  If not, see <http://www.gnu.org/licenses/>.
+! along with OneLOop-rolln.  If not, see <http://www.gnu.org/licenses/>.
 !
 
 
@@ -28,12 +28,12 @@ contains
   if (done) return ;done=.true.
   write(*,'(a72)') '########################################################################'
   write(*,'(a72)') '#                                                                      #'
-  write(*,'(a72)') '#                     You are using OneLOop-3.6.1                      #'
+  write(*,'(a72)') '#                        You are using OneLOop                         #'
   write(*,'(a72)') '#                                                                      #'
   write(*,'(a72)') '# for the evaluation of 1-loop scalar 1-, 2-, 3- and 4-point functions #'
   write(*,'(a72)') '#                                                                      #'
   write(*,'(a72)') '# author: Andreas van Hameren <hamerenREMOVETHIS@ifj.edu.pl>           #'
-  write(*,'(a72)') '#   date: 11-12-2015                                                   #'
+  write(*,'(a72)') '#   date: 2018-06-13                                                   #'
   write(*,'(a72)') '#                                                                      #'
   write(*,'(a72)') '# Please cite                                                          #'
   write(*,'(a72)') '#    A. van Hameren,                                                   #'
@@ -574,7 +574,7 @@ contains
   write(aa,'(i10)') ndecim(prcpar) ;aa=adjustl(aa)
   aa = '(i'//trim(aa)//')'
   write(cc,aa) ii ;cc=adjustl(cc)
-  if (cc(1:1).ne.'-') then ;rslt=' '//cc
+  if (cc(1:1).ne.'-') then ;rslt=' '//cc(1:ndecim(prcpar)-1)
   else                     ;rslt=cc 
   endif
   end function
@@ -1982,8 +1982,11 @@ contains
 !      write(*,*) 'dilog2_c ||1-y1|/|1-y2|-1|>0.1' !DEBUG
       return
     elseif (oo.eq.0.and.ao1.lt.eps) then
-      if (nn.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
-        ,'r1,oo,nn =',trim(myprint(r1)),',',oo,nn,', putting nn=0'
+      if (nn.ne.0) then
+        errorcode = errorcode+1
+        if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
+          ,'r1,oo,nn =',trim(myprint(r1)),',',oo,nn,', putting nn=0'
+      endif
       if (ao2.lt.eps) then
         rslt = -1
 !        write(*,*) 'dilog2_c |1-y1|' !DEBUG
@@ -1992,8 +1995,11 @@ contains
         y1=1-eps ;nn=0 ;logr1=0 ;r1=1-eps
       endif
     elseif (oo.eq.0.and.ao2.lt.eps) then
-      if (nn.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
-        ,'r2,oo,nn =',trim(myprint(r2)),',',oo,nn,', putting nn=0'
+      if (nn.ne.0) then
+        errorcode = errorcode+1
+        if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
+          ,'r2,oo,nn =',trim(myprint(r2)),',',oo,nn,', putting nn=0'
+      endif
       y2=1-eps ;nn=0 ;logr2=0 ;r2=1-eps
     endif
   else
@@ -2007,9 +2013,12 @@ contains
       if (a1.gt.RONE) ii = ii + (nn+pp(oo,sgnIm(y2)))
       if (a2.gt.RONE) ii = ii - (nn+pp(oo,sgnIm(y2)))
       ii = nn*ii
-      if (ii.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
-        ,'r1,r2,nn =',trim(myprint(r1)),',',trim(myprint(r2)),',',nn &
-        ,', putting nn=0'
+      if (ii.ne.0) then
+        errorcode = errorcode+1
+        if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
+          ,'r1,r2,nn =',trim(myprint(r1)),',',trim(myprint(r2)),',',nn &
+          ,', putting nn=0'
+      endif
       rslt = -olog1(y2,0)
 !      write(*,*) 'dilog2_c |logr1/lorg2|<eps' !DEBUG
       return
@@ -2118,8 +2127,11 @@ contains
 !      write(*,*) 'dilog2_r ||1-y1|/|1-y2|-1|>0.1' !DEBUG
       return
     elseif (oo.eq.0.and.ro1.lt.eps) then
-      if (nn.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
-        ,'r1,oo,nn =',trim(myprint(r1)),',',oo,nn,', putting nn=0'
+      if (nn.ne.0) then
+        errorcode = errorcode+1
+        if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
+          ,'r1,oo,nn =',trim(myprint(r1)),',',oo,nn,', putting nn=0'
+      endif
       if (ro2.lt.eps) then
         rslt = -1
 !        write(*,*) 'dilog2_r |1-y1|' !DEBUG
@@ -2128,8 +2140,11 @@ contains
         y1=1-eps ;nn=0 ;logr1=0 ;r1=1-eps
       endif
     elseif (oo.eq.0.and.ro2.lt.eps) then
-      if (nn.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
-        ,'r2,oo,nn =',trim(myprint(r2)),',',oo,nn,', putting nn=0'
+      if (nn.ne.0) then
+        errorcode = errorcode+1
+        if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
+          ,'r2,oo,nn =',trim(myprint(r2)),',',oo,nn,', putting nn=0'
+      endif
       y2=1-eps ;nn=0 ;logr2=0 ;r2=1-eps
     endif
   else
@@ -2143,10 +2158,13 @@ contains
       if (r1.gt.RONE) ii = ii + (nn+2*oo)
       if (r2.gt.RONE) ii = ii - (nn+2*oo)
       ii = nn*ii
-      if (ii.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
-        ,'r1,r2,nn =',trim(myprint(r1)),',',trim(myprint(r2)),',',nn &
-        ,', putting nn=0'
-      rslt = -olog1(y2,0)
+      if (ii.ne.0) then
+        errorcode = errorcode+1
+        if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
+          ,'r1,r2,nn =',trim(myprint(r1)),',',trim(myprint(r2)),',',nn &
+          ,', putting nn=0'
+      endif
+      rslt = -olog1(y2,2*oo)
 !      write(*,*) 'dilog2_r |logr1/lorg2|<eps' !DEBUG
       return
     endif
@@ -3937,8 +3955,8 @@ contains
 !
    rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
 !
-   rslt(0) = -logc2( qx1/qx2 )*logc( qx1*qx2/(qm4*qm4) )/(x2*2) &
-             -li2c2( qx1*qm4 ,qx2*qm4 )*sm4
+   rslt(0) = logc( qx1*qx2/(qm4*qm4) )/2 + logc( q23*(mhh*mhh) )
+   rslt(0) = -rslt(0)*logc2( qx1/qx2 )/x2 - li2c2( qx1*qm4 ,qx2*qm4 )*sm4
 !
    if (r34Not0) then
      qss = q34*mhh
@@ -3949,8 +3967,6 @@ contains
      qss = q24*mhh
      rslt(0) = rslt(0) + li2c2( qx1*qss ,qx2*qss )*r24*sm2
    endif
-!
-   rslt(0) = rslt(0) - logc2( qx1/qx2 )*logc( q23*(mhh*mhh) )/x2
 !
    rslt(0) = rslt(0)/(aa*sm2*sm3*sm4)
    end subroutine
@@ -6519,7 +6535,7 @@ module avh_olo_dp
 !
   implicit none
   private
-  public :: olo_unit ,olo_scale ,olo_onshell ,olo_setting
+  public :: olo_unit ,olo_scale_prec ,olo_scale ,olo_onshell ,olo_setting
   public :: olo_precision
   public :: olo_a0 ,olo_b0 ,olo_db0 ,olo_b11 ,olo_c0 ,olo_d0
   public :: olo_an ,olo_bn
@@ -6564,6 +6580,9 @@ module avh_olo_dp
   end interface 
   interface olo_d0
     module procedure d0rr,d0rrr,d0rc,d0rcr,d0cc,d0ccr
+  end interface 
+  interface olo_scale_prec
+    module procedure scale_prec
   end interface 
 !
   interface olo
@@ -6633,6 +6652,16 @@ contains
   if (present(message)) then ;call set_unit( message ,val )
   else                       ;call set_unit( 'all'   ,val )
   endif
+  end subroutine
+ 
+ 
+  subroutine scale_prec( val )
+!*******************************************************************
+!*******************************************************************
+  real(kindr2) &  
+    :: val
+  if (initz) call init
+  muscale = val
   end subroutine
  
  
@@ -13247,7 +13276,7 @@ contains
   write(aa,'(i10)') ndecim(prcpar) ;aa=adjustl(aa)
   aa = '(i'//trim(aa)//')'
   write(cc,aa) ii ;cc=adjustl(cc)
-  if (cc(1:1).ne.'-') then ;rslt=' '//cc
+  if (cc(1:1).ne.'-') then ;rslt=' '//cc(1:ndecim(prcpar)-1)
   else                     ;rslt=cc 
   endif
   end function
@@ -14655,8 +14684,11 @@ contains
 !      write(*,*) 'dilog2_c ||1-y1|/|1-y2|-1|>0.1' !DEBUG
       return
     elseif (oo.eq.0.and.ao1.lt.eps) then
-      if (nn.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
-        ,'r1,oo,nn =',trim(myprint(r1)),',',oo,nn,', putting nn=0'
+      if (nn.ne.0) then
+        errorcode = errorcode+1
+        if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
+          ,'r1,oo,nn =',trim(myprint(r1)),',',oo,nn,', putting nn=0'
+      endif
       if (ao2.lt.eps) then
         rslt = -1
 !        write(*,*) 'dilog2_c |1-y1|' !DEBUG
@@ -14665,8 +14697,11 @@ contains
         y1=1-eps ;nn=0 ;logr1=0 ;r1=1-eps
       endif
     elseif (oo.eq.0.and.ao2.lt.eps) then
-      if (nn.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
-        ,'r2,oo,nn =',trim(myprint(r2)),',',oo,nn,', putting nn=0'
+      if (nn.ne.0) then
+        errorcode = errorcode+1
+        if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
+          ,'r2,oo,nn =',trim(myprint(r2)),',',oo,nn,', putting nn=0'
+      endif
       y2=1-eps ;nn=0 ;logr2=0 ;r2=1-eps
     endif
   else
@@ -14680,9 +14715,12 @@ contains
       if (a1.gt.RONE) ii = ii + (nn+pp(oo,sgnIm(y2)))
       if (a2.gt.RONE) ii = ii - (nn+pp(oo,sgnIm(y2)))
       ii = nn*ii
-      if (ii.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
-        ,'r1,r2,nn =',trim(myprint(r1)),',',trim(myprint(r2)),',',nn &
-        ,', putting nn=0'
+      if (ii.ne.0) then
+        errorcode = errorcode+1
+        if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_c: ' &
+          ,'r1,r2,nn =',trim(myprint(r1)),',',trim(myprint(r2)),',',nn &
+          ,', putting nn=0'
+      endif
       rslt = -olog1(y2,0)
 !      write(*,*) 'dilog2_c |logr1/lorg2|<eps' !DEBUG
       return
@@ -14791,8 +14829,11 @@ contains
 !      write(*,*) 'dilog2_r ||1-y1|/|1-y2|-1|>0.1' !DEBUG
       return
     elseif (oo.eq.0.and.ro1.lt.eps) then
-      if (nn.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
-        ,'r1,oo,nn =',trim(myprint(r1)),',',oo,nn,', putting nn=0'
+      if (nn.ne.0) then
+        errorcode = errorcode+1
+        if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
+          ,'r1,oo,nn =',trim(myprint(r1)),',',oo,nn,', putting nn=0'
+      endif
       if (ro2.lt.eps) then
         rslt = -1
 !        write(*,*) 'dilog2_r |1-y1|' !DEBUG
@@ -14801,8 +14842,11 @@ contains
         y1=1-eps ;nn=0 ;logr1=0 ;r1=1-eps
       endif
     elseif (oo.eq.0.and.ro2.lt.eps) then
-      if (nn.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
-        ,'r2,oo,nn =',trim(myprint(r2)),',',oo,nn,', putting nn=0'
+      if (nn.ne.0) then
+        errorcode = errorcode+1
+        if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
+          ,'r2,oo,nn =',trim(myprint(r2)),',',oo,nn,', putting nn=0'
+      endif
       y2=1-eps ;nn=0 ;logr2=0 ;r2=1-eps
     endif
   else
@@ -14816,10 +14860,13 @@ contains
       if (r1.gt.RONE) ii = ii + (nn+2*oo)
       if (r2.gt.RONE) ii = ii - (nn+2*oo)
       ii = nn*ii
-      if (ii.ne.0.and.eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
-        ,'r1,r2,nn =',trim(myprint(r1)),',',trim(myprint(r2)),',',nn &
-        ,', putting nn=0'
-      rslt = -olog1(y2,0)
+      if (ii.ne.0) then
+        errorcode = errorcode+1
+        if (eunit.ge.0) write(eunit,*) 'ERROR in OneLOop dilog2_r: ' &
+          ,'r1,r2,nn =',trim(myprint(r1)),',',trim(myprint(r2)),',',nn &
+          ,', putting nn=0'
+      endif
+      rslt = -olog1(y2,2*oo)
 !      write(*,*) 'dilog2_r |logr1/lorg2|<eps' !DEBUG
       return
     endif
@@ -16610,8 +16657,8 @@ contains
 !
    rslt(0)=0 ;rslt(1)=0 ;rslt(2)=0
 !
-   rslt(0) = -logc2( qx1/qx2 )*logc( qx1*qx2/(qm4*qm4) )/(x2*2) &
-             -li2c2( qx1*qm4 ,qx2*qm4 )*sm4
+   rslt(0) = logc( qx1*qx2/(qm4*qm4) )/2 + logc( q23*(mhh*mhh) )
+   rslt(0) = -rslt(0)*logc2( qx1/qx2 )/x2 - li2c2( qx1*qm4 ,qx2*qm4 )*sm4
 !
    if (r34Not0) then
      qss = q34*mhh
@@ -16622,8 +16669,6 @@ contains
      qss = q24*mhh
      rslt(0) = rslt(0) + li2c2( qx1*qss ,qx2*qss )*r24*sm2
    endif
-!
-   rslt(0) = rslt(0) - logc2( qx1/qx2 )*logc( q23*(mhh*mhh) )/x2
 !
    rslt(0) = rslt(0)/(aa*sm2*sm3*sm4)
    end subroutine
@@ -19192,7 +19237,7 @@ module avh_olo_qp
 !
   implicit none
   private
-  public :: olo_unit ,olo_scale ,olo_onshell ,olo_setting
+  public :: olo_unit ,olo_scale_prec ,olo_scale ,olo_onshell ,olo_setting
   public :: olo_precision
   public :: olo_a0 ,olo_b0 ,olo_db0 ,olo_b11 ,olo_c0 ,olo_d0
   public :: olo_an ,olo_bn
@@ -19237,6 +19282,9 @@ module avh_olo_qp
   end interface 
   interface olo_d0
     module procedure d0rr,d0rrr,d0rc,d0rcr,d0cc,d0ccr
+  end interface 
+  interface olo_scale_prec
+    module procedure scale_prec
   end interface 
 !
   interface olo
@@ -19306,6 +19354,16 @@ contains
   if (present(message)) then ;call set_unit( message ,val )
   else                       ;call set_unit( 'all'   ,val )
   endif
+  end subroutine
+ 
+ 
+  subroutine scale_prec( val )
+!*******************************************************************
+!*******************************************************************
+  real(kindr2) &  
+    :: val
+  if (initz) call init
+  muscale = val
   end subroutine
  
  
@@ -25432,12 +25490,14 @@ module avh_olo
     ,olo_dp_scale=>olo_get_scale &
     ,olo_dp_onshell=>olo_get_onshell &
     ,olo_dp_precision=>olo_get_precision &
+    ,olo_scale_prec &
     ,olo,olo_a0,olo_an,olo_b0,olo_db0,olo_b11,olo_bn,olo_c0,olo_d0
   use avh_olo_qp ,only: &
      olo_qp_kind=>olo_kind &
     ,olo_qp_scale=>olo_get_scale &
     ,olo_qp_onshell=>olo_get_onshell &
     ,olo_qp_precision=>olo_get_precision &
+    ,olo_scale_prec &
     ,olo,olo_a0,olo_an,olo_b0,olo_db0,olo_b11,olo_bn,olo_c0,olo_d0
 
   implicit none

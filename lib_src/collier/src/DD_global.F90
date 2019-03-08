@@ -2,45 +2,53 @@
 !!  File DD_global.F90 is part of COLLIER
 !!  - A Complex One-Loop Library In Extended Regularizations
 !!
-!!  Copyright (C) 2015, 2016   Ansgar Denner, Stefan Dittmaier, Lars Hofer
+!!  Copyright (C) 2015, 2016   
+!!  Ansgar Denner, Stefan Dittmaier, Lars Hofer
 !!
-!!  COLLIER is licenced under the GNU GPL version 3, see COPYING for details.
+!!  COLLIER is licenced under the GNU GPL version 3, 
+!!  see COPYING for details.
 !!
-!!----------------------------------------------------------------------
+!!-------------------------------------------------------------------
 
 module DD_global
-  integer                       :: rmax2,rmax3,rmax4,rmax5,rmax6,nmax,rmax
-  integer                       :: r2max2,r2max3,r2max4,r2max5,r2max6
-  integer (kind=8)              :: Ncoefmax2,Ncoefmax3,Ncoefmax4,Ncoefmax5,Ncoefmax6
-  integer (kind=8)              :: Ncoefmax3_int,Ncoefmax4_int
+  integer          :: rmax2,rmax3,rmax4,rmax5,rmax6,nmax,rmax
+  integer          :: r2max2,r2max3,r2max4,r2max5,r2max6
+  integer (kind=8) :: Ncoefmax2,Ncoefmax3,Ncoefmax4,Ncoefmax5,Ncoefmax6
+  integer (kind=8) :: Ncoefmax3_int,Ncoefmax4_int
   integer,allocatable,dimension(:)   :: tid,ntid
   integer (kind=8),allocatable,dimension(:,:) :: BinC
 
-  double precision              :: cacc,dacc
-  integer                       :: mode34,mode5,mode6,ritmax
-  integer                       :: outlevel,outchannel,cout,coutmax
-  logical                       :: cout_on
+  double precision  :: cacc,dacc
+  integer           :: mode34,mode5,mode6,ritmax
+  integer           :: outlevel,outchannel,cout,coutmax
+  logical           :: cout_on
 
-  double precision, allocatable, dimension(:)         :: aimacc,erracc
-  double precision, allocatable, dimension(:,:)       :: resaccabs,resaccrel,resaccabs2,resaccrel2
-  integer                       :: nmaster,r2master,accflag,errflag,stopflag
+  double precision, allocatable, dimension(:)   :: aimacc,erracc
+  double precision, allocatable, dimension(:,:) :: resaccabs,resaccrel
+  double precision, allocatable, dimension(:,:) :: resaccabs2
+  double precision, allocatable, dimension(:,:) :: resaccrel2
+  integer           :: nmaster,r2master,accflag,errflag,stopflag
 
-  double precision              :: deltauv,muv2,delta2ir,delta1ir,mir2,mx2(100)
+  double precision  :: deltauv,muv2,delta2ir,delta1ir,mir2,mx2(100)
 
-  double complex, allocatable, dimension(:)           :: scalint,scalintnew
-  double precision, allocatable, dimension(:)         :: scalint_err
-  double complex, allocatable, dimension(:,:)         :: auxc
-  double precision, allocatable, dimension(:,:)       :: auxr
-  double precision, allocatable, dimension(:)         :: acc_pave,acc_new
-  double precision, allocatable, dimension(:,:)       :: accr2_aux,accr2_newprelim,accr2_new_aux
-  double precision, allocatable, dimension(:)         :: maxtxij,maxttx0klm
-  double precision, allocatable, dimension(:)         :: maxttx0ijm,maxtz_nj,maxttz_knlm,ttzff_kl
+  double complex, allocatable, dimension(:)     :: scalint,scalintnew
+  double precision, allocatable, dimension(:)   :: scalint_err
+  double complex, allocatable, dimension(:,:)   :: auxc
+  double precision, allocatable, dimension(:,:) :: auxr
+  double precision, allocatable, dimension(:)   :: acc_pave,acc_new
+  double precision, allocatable, dimension(:,:) :: accr2_aux
+  double precision, allocatable, dimension(:,:) :: accr2_newprelim
+  double precision, allocatable, dimension(:,:) :: accr2_new_aux
+  double precision, allocatable, dimension(:) :: maxtxij,maxttx0klm
+  double precision, allocatable, dimension(:) :: maxttx0ijm,maxtz_nj
+  double precision, allocatable, dimension(:) :: maxttz_knlm,ttzff_kl
   integer, allocatable,dimension(:,:) :: auxi
-  integer, allocatable,dimension(:)   :: r2_aux,r2_new_aux,r2_newprelim,qmethod,qmethod_new
-  integer                             :: nc_DDin,nr_DDin,ni_DDin,i_DDin(100)
-  double complex                      :: c_DDin(100)
-  double precision                    :: r_DDin(100)
-  character(len=20)                   :: s_DDin
+  integer, allocatable,dimension(:) :: r2_aux,r2_new_aux,r2_newprelim
+  integer, allocatable,dimension(:) :: qmethod,qmethod_new
+  integer            :: nc_DDin,nr_DDin,ni_DDin,i_DDin(100)
+  double complex     :: c_DDin(100)
+  double precision   :: r_DDin(100)
+  character(len=20)  :: s_DDin
 
   double precision                    :: dprec_dd
 
@@ -48,30 +56,39 @@ end module DD_global
 
 
 module DD_2pt
-  double complex, allocatable, dimension(:,:,:)         :: B_cache,Buv_cache
+  double complex, allocatable, dimension(:,:,:) :: B_cache,Buv_cache
 end module DD_2pt
 
 module DD_3pt
-  double complex, allocatable, dimension(:,:)         :: C_cache,Cuv_cache,C_new_cache,Cuv_new_cache
+  double complex, allocatable, dimension(:,:)   :: C_cache,Cuv_cache
+  double complex, allocatable, dimension(:,:)   :: C_new_cache
+  double complex, allocatable, dimension(:,:)   :: Cuv_new_cache
   double complex, allocatable, dimension(:,:,:,:,:)   :: ttx2_aux
-  double complex, allocatable, dimension(:,:,:)       :: x2_aux,tx2_aux
-  double precision, allocatable, dimension(:,:)       :: Cij_err,C00_err,Cij_err2,Cij_err_newprelim
-  double precision, allocatable, dimension(:,:)       :: C00_err_newprelim,Cij_err_new,C00_err_new
-  double precision, allocatable, dimension(:,:,:)     :: z2_aux,tz2_aux,z2i_aux
+  double complex, allocatable, dimension(:,:,:) :: x2_aux,tx2_aux
+  double precision, allocatable, dimension(:,:) :: Cij_err,C00_err
+  double precision, allocatable, dimension(:,:) :: Cij_err2
+  double precision, allocatable, dimension(:,:) :: Cij_err_newprelim
+  double precision, allocatable, dimension(:,:) :: C00_err_newprelim
+  double precision, allocatable, dimension(:,:) :: Cij_err_new
+  double precision, allocatable, dimension(:,:) :: C00_err_new
+  double precision, allocatable, dimension(:,:,:)     :: z2_aux,tz2_aux
+  double precision, allocatable, dimension(:,:,:)     :: z2i_aux
   double precision, allocatable, dimension(:,:,:,:,:) :: ttz2_aux
 end module DD_3pt
 
 module DD_4pt
-  double complex, allocatable, dimension(:,:)         :: D_cache,Duv_cache
-  double precision, allocatable, dimension(:,:)       :: Dij_err,D00_err,Dij_err_new,D00_err_new,Dij_err2
+  double complex, allocatable, dimension(:,:)   :: D_cache,Duv_cache
+  double precision, allocatable, dimension(:,:) :: Dij_err,D00_err
+  double precision, allocatable, dimension(:,:) :: Dij_err_new
+  double precision, allocatable, dimension(:,:) :: D00_err_new,Dij_err2
 end module DD_4pt
 
 module DD_5pt
-  double precision, allocatable, dimension(:,:)       :: Eij_err,Eij_err2
+  double precision, allocatable, dimension(:,:) :: Eij_err,Eij_err2
 end module DD_5pt
 
 module DD_6pt
-  double precision, allocatable, dimension(:,:)       :: Fij_err,Fij_err2
+  double precision, allocatable, dimension(:,:) :: Fij_err,Fij_err2
 end module DD_6pt
 
 
@@ -95,6 +112,7 @@ subroutine Init_DD_global(nmax_in,ritmax_in)
   integer (kind=8)    :: Binomial_DD
 
   ritmax = ritmax_in
+
 ! dimensions for array declarations
   rmax6  = 6
   rmax5  = 5
@@ -107,7 +125,9 @@ subroutine Init_DD_global(nmax_in,ritmax_in)
 !  -> dimensions for arrays in internal cache 
   r2max6  = rmax6
   r2max5  = r2max6-1
-  r2max4  = r2max5-1
+!  r2max4  = r2max5-1
+!changed SD 28.6.17
+  r2max4  = rmax4
   r2max3  = rmax3
   r2max2  = rmax2
 
@@ -127,7 +147,8 @@ subroutine Init_DD_global(nmax_in,ritmax_in)
 
   Ncoefmax2 = 2*Binomial_DD(r2max2+2,2) + 2*r2max2 + 13
   Ncoefmax3 = 2*Binomial_DD(r2max3+3,3) + 8*r2max3 + 11
-  Ncoefmax4 = 2*Binomial_DD(r2max4+4,4) + 7*r2max4 + 10    ! conservative upper limit
+  Ncoefmax4 = 2*Binomial_DD(r2max4+4,4) + 7*r2max4 + 10 ! conservative 
+                                                        ! upper limit
   Ncoefmax5 = 2*Binomial_DD(r2max5+5,5) + 6*r2max5 + 9
   Ncoefmax6 = 2*Binomial_DD(r2max6+6,6) + 6*r2max6 + 9
 
@@ -172,7 +193,8 @@ subroutine Init_DD_global(nmax_in,ritmax_in)
   if (allocated(C_cache)) then
     deallocate(C_cache,Cuv_cache,C_new_cache,Cuv_new_cache)
     deallocate(Cij_err,C00_err,Cij_err2)
-    deallocate(Cij_err_newprelim,C00_err_newprelim,Cij_err_new,C00_err_new)
+    deallocate(Cij_err_newprelim,C00_err_newprelim)
+    deallocate(Cij_err_new,C00_err_new)
     deallocate(accr2_aux,accr2_newprelim,accr2_new_aux)
   endif
   if (nmax.ge.3) then
@@ -245,14 +267,18 @@ subroutine Init_DD_global(nmax_in,ritmax_in)
     deallocate(auxi,r2_aux,r2_new_aux,r2_newprelim,qmethod,qmethod_new)
   end if
 
-  allocate(scalint(0:2**nmax),scalint_err(0:2**nmax),scalintnew(0:2**nmax))
-  allocate(maxtxij(0:2**nmax),maxttx0klm(0:2**nmax),maxttx0ijm(0:2**nmax))
-  allocate(maxtz_nj(0:2**nmax),maxttz_knlm(0:2**nmax),ttzff_kl(0:2**nmax))
+  allocate(scalint(0:2**nmax),scalint_err(0:2**nmax))
+  allocate(scalintnew(0:2**nmax))
+  allocate(maxtxij(0:2**nmax),maxttx0klm(0:2**nmax))
+  allocate(maxttx0ijm(0:2**nmax))
+  allocate(maxtz_nj(0:2**nmax),maxttz_knlm(0:2**nmax))
+  allocate(ttzff_kl(0:2**nmax))
   allocate(acc_pave(0:2**nmax),acc_new(0:2**nmax))
   allocate(auxr(0:2**nmax,2))
   allocate(auxc(0:2**nmax,7))
   allocate(auxi(0:2**nmax,6))
-  allocate(r2_aux(0:2**nmax),r2_new_aux(0:2**nmax),r2_newprelim(0:2**nmax))
+  allocate(r2_aux(0:2**nmax),r2_new_aux(0:2**nmax))
+  allocate(r2_newprelim(0:2**nmax))
   allocate(qmethod(0:2**nmax),qmethod_new(0:2**nmax))
 
 end subroutine Init_DD_global

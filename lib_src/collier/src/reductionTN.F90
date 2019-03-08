@@ -28,6 +28,7 @@
 module reductionTN
 
   use reductionEFG
+! use coli_aux3
 
   implicit none
 
@@ -445,15 +446,16 @@ contains
     double precision, intent(out) :: TNerr(0:rmax),TNerr2(0:rmax)
     double complex :: q10,q21,q32,q43,q54,q20,q31,q42,q53,q50,q30,q41,q52,q40,q51
     double complex :: mm02,mm12,mm22,mm32,mm42,mm52
-    double complex :: mx(0:5,0:5), mxinv(0:5,0:5),mx0k(5,5),mx0kinv(5,5),ff(N-1)
-    double complex :: det,newdet,TNaux,mxinvs,mx0kinvs(5)
-    double complex :: zmx0kinv(5,5),Z(5,5),zmx0kinvs(5)
+!    double complex :: mxinv(0:5,0:5),mxinvs
+    double complex :: mx(0:5,0:5),mx0k(5,5),mx0kinv(5,5),ff(N-1)
+    double complex :: det,newdet,TNaux,mx0kinvs(5)
+    double complex :: zmx0kinv(5,5),zmx0kinvs(5)
     double precision :: maxZ,maxzmx0kinv(5),maxzmx0kinvs
     double complex, intent(inout) :: TN(BinomTable(rmax,N+rmax-2),0:rmax/2,0:rmax)
     double complex, intent(inout) :: TNuv(BinomTable(rmax,N+rmax-2),0:rmax/2,0:rmax)
     double complex, allocatable :: TNm1_0(:,:,:), TNm1UV_0(:,:,:), TNm1_i(:,:,:,:)
     double complex, allocatable :: TNm1_0aux(:,:,:), TNm1UV_0aux(:,:,:), TNm1UV_i(:,:,:,:)
-    double complex :: S(5), elimminf2_coli,chdet,gram(1:5,1:5),gramdet
+    double complex :: S(5), elimminf2_coli,chdet,gramdet
     double precision :: TNm1err(0:5,0:rmax),TNm1err2(0:5,0:rmax)
     integer :: r,n0,n1,n2,n3,n4,n5,n6,k,i,j,m,nid(0:5),r0,bin,kbest,Nm1,inds(N-1)
     integer :: bino,bino_0,bino_i,bino_m1,bino_m2,cnt,iaux,rmax_m1,shift,cind,rBCD
@@ -465,9 +467,16 @@ contains
     character(len=*),parameter :: fmt999 = "(' gm(',i1,',',i1,') =  ',d23.16,' , ',d23.16)"
 #endif
 
-!    write(*,*) 'CalcTNred in N',N,rmax
-!    write(*,*) 'CalcTNred in s',MomInv
-!    write(*,*) 'CalcTNred in m',masses2
+!    double complex :: Xadjk0,Zadjk(5),mat(4,4),mxmx0kinv(5,5),mxmx0kinvs(5)
+    double complex :: mxmx0kinv(5,5)
+    double precision :: maxf
+    integer        :: jmax
+
+#ifdef TNtest    
+    write(*,*) 'CalcTNred in N',N,rmax
+    write(*,*) 'CalcTNred in s',MomInv
+    write(*,*) 'CalcTNred in m',masses2
+#endif
 
     ! allocation of TN functions
     Nm1 = N-1
@@ -630,13 +639,17 @@ contains
     mx(4,5) = mx(5,4)
     mx(5,5) = 2d0*q50
 
-    call chinv(6,mx,mxinv)
+! changed 21.06.2018
+!    call chinv(6,mx,mxinv,det)
 
     ! determine X_(0,5)
+!    do j=1,5
+!      do i=1,5
+!        mx0k(i,j) = mx(i,j-1)
+!      end do
+!    end do
     do j=1,5
-      do i=1,5
-        mx0k(i,j) = mx(i,j-1)
-      end do
+      mx0k(:,j) = mx(1:5,j-1)
     end do
 
     det = chdet(5,mx0k)
@@ -647,9 +660,10 @@ contains
 #endif
 
     do j=5,2,-1
-      do i=1,5
-        mx0k(i,j) = mx(i,j)
-      end do
+!      do i=1,5
+!        mx0k(i,j) = mx(i,j)
+!      end do
+      mx0k(:,j) = mx(1:5,j)
 
       newdet =  chdet(5,mx0k)
       if (abs(newdet).gt.abs(det)) then          
@@ -666,53 +680,61 @@ contains
 !    kbest=5
     write(*,*) 'kbest',kbest
 #endif    
+  
+!    do i=1,5
+!      mx0k(i,1) = mx(i,1)
+!      mx0k(i,kbest) = mx(i,0)
+!    end do
+    mx0k(:,1) = mx(1:5,1)
+    mx0k(:,kbest) = mx(1:5,0)
 
-    
+! changed 21.06.2018
+    call chinv(5,mx0k,mx0kinv,det)
 
-    
-    do i=1,5
-      mx0k(i,1) = mx(i,1)
-      mx0k(i,kbest) = mx(i,0)
-    end do
+    if (det.eq.0d0) then
+      call SetErrFlag_coli(-7)
+      call ErrOut_coli('CalcTNred',  &
+          'inverse matrix M does not exist',  &
+          errorwriteflag)
+      if (errorwriteflag) then
+        write(nerrout_coli,fmt10) ' CalcTNred: q10 = ',q10
+        write(nerrout_coli,fmt10) ' CalcTNred: q21 = ',q21
+        write(nerrout_coli,fmt10) ' CalcTNred: q32 = ',q32
+        write(nerrout_coli,fmt10) ' CalcTNred: q43 = ',q43
+        write(nerrout_coli,fmt10) ' CalcTNred: q54 = ',q54
+        write(nerrout_coli,fmt10) ' CalcTNred: q50 = ',q50
+        write(nerrout_coli,fmt10) ' CalcTNred: q20 = ',q10
+        write(nerrout_coli,fmt10) ' CalcTNred: q31 = ',q31
+        write(nerrout_coli,fmt10) ' CalcTNred: q42 = ',q42
+        write(nerrout_coli,fmt10) ' CalcTNred: q53 = ',q53
+        write(nerrout_coli,fmt10) ' CalcTNred: q40 = ',q40
+        write(nerrout_coli,fmt10) ' CalcTNred: q51 = ',q51
+        write(nerrout_coli,fmt10) ' CalcTNred: q30 = ',q30
+        write(nerrout_coli,fmt10) ' CalcTNred: q41 = ',q41
+        write(nerrout_coli,fmt10) ' CalcTNred: q52 = ',q52
+        write(nerrout_coli,fmt10) ' CalcTNred: mm02 = ',mm02
+        write(nerrout_coli,fmt10) ' CalcTNred: mm12 = ',mm12
+        write(nerrout_coli,fmt10) ' CalcTNred: mm22 = ',mm22
+        write(nerrout_coli,fmt10) ' CalcTNred: mm32 = ',mm32
+        write(nerrout_coli,fmt10) ' CalcTNred: mm42 = ',mm42
+        write(nerrout_coli,fmt10) ' CalcTNred: mm52 = ',mm52
+      end if
+      TN = 0d0
+      return
+    end if
 
-    call chinv(5,mx0k,mx0kinv)
-    do i=1,5
-      mx0kinv(kbest,i) = 0d0
-    end do
+!    do i=1,5
+!      mx0kinv(kbest,i) = 0d0
+!    end do
+    mx0kinv(kbest,:) = 0d0
 
-    mxinvs = sum(mxinv(0:5,0))
+!    mxinvs = sum(mxinv(0:5,0))
     do i=1,5
       mx0kinvs(i) = sum(mx0kinv(i,1:5))
     end do
 
     ! for alternative error estimate
-    Z(1,1) = 2d0*q10
-    Z(2,1) = q10+q20-q21
-    Z(3,1) = q10+q30-q31
-    Z(4,1) = q10+q40-q41
-    Z(5,1) = q10+q50-q51
-    Z(1,2) = Z(2,1)
-    Z(1,3) = Z(3,1)
-    Z(1,4) = Z(4,1)
-    Z(1,5) = Z(5,1)
-    Z(2,2) = 2d0*q20
-    Z(3,2) = q20+q30-q32
-    Z(4,2) = q20+q40-q42
-    Z(5,2) = q20+q50-q52
-    Z(2,3) = Z(3,2)
-    Z(2,4) = Z(4,2)
-    Z(2,5) = Z(5,2)
-    Z(3,3) = 2d0*q30
-    Z(4,3) = q30+q40-q43
-    Z(5,3) = q30+q50-q53
-    Z(3,4) = Z(4,3)
-    Z(3,5) = Z(5,3)
-    Z(4,4) = 2d0*q40
-    Z(5,4) = q40+q50-q54
-    Z(4,5) = Z(5,4)
-    Z(5,5) = 2d0*q50
-
-    zmx0kinv = matmul(z,mx0kinv)
+    zmx0kinv = matmul(mx(1:5,1:5),mx0kinv)
 
     do i=1,5
       maxzmx0kinv(i) = maxval(abs(zmx0kinv(1:5,i)))
@@ -721,7 +743,7 @@ contains
 
     maxzmx0kinvs = maxval(abs(zmx0kinvs(1:5)))
 
-    maxZ = maxval(abs(Z))
+    maxZ = maxval(abs(mx(1:5,1:5)))
 
     ! calculation of UV-divergent parts      
     ! TN UV-finite for n0<N-2
@@ -743,28 +765,120 @@ contains
       end do
     end do
 
-    ! scalar coefficient
     TN = 0d0
-    TN(1,0,0) = -mxinv(0,0)*TNm1_0(1,0,0)
-    do k=1,5
-      TN(1,0,0) = TN(1,0,0) &
-           + mxinv(k,0)*(TNm1_i(1,0,0,k)-TNm1_0(1,0,0))
+
+    ! scalar coefficient
+!    based on (D.3), replaced 21.06.2018
+!
+!   TN(1,0,0) = -mxinv(0,0)*TNm1_0(1,0,0)
+!   do k=1,5
+!     TN(1,0,0) = TN(1,0,0) &
+!          + mxinv(k,0)*(TNm1_i(1,0,0,k)-TNm1_0(1,0,0))
+!   end do
+
+!   TNerr(0) = max(abs(mxinvs)*TNm1err(0,0), &
+!                  abs(mxinv(1,0))*TNm1err(1,0) , &
+!                  abs(mxinv(2,0))*TNm1err(2,0) , &
+!                  abs(mxinv(3,0))*TNm1err(3,0) , &
+!                  abs(mxinv(4,0))*TNm1err(4,0) , & 
+!                  abs(mxinv(5,0))*TNm1err(5,0) )
+
+!   TNerr2(0) = max(abs(mxinvs)*TNm1err2(0,0), &
+!                  abs(mxinv(1,0))*TNm1err2(1,0) , &
+!                  abs(mxinv(2,0))*TNm1err2(2,0) , &
+!                  abs(mxinv(3,0))*TNm1err2(3,0) , &
+!                  abs(mxinv(4,0))*TNm1err2(4,0) , & 
+!                  abs(mxinv(5,0))*TNm1err2(5,0) )
+
+!   write(*,*) 'CalcTNred TN(1,0,0)',TN(1,0,0)
+
+! New version for  TN(1,0,0), 21.06.2018
+
+    maxf = abs(mx(1,0))
+    jmax = 1
+    do j=2,5
+      if (abs(mx(j,0)).gt.maxf) then
+         jmax = j
+         maxf = abs(mx(j,0))
+      end if
     end do
 
-!   TNerr(0) = max( maxval(abs(mxinv(0:4,0)))*TNm1err(0,0), &
-    TNerr(0) = max(abs(mxinvs)*TNm1err(0,0), &
-                   abs(mxinv(1,0))*TNm1err(1,0) , &
-                   abs(mxinv(2,0))*TNm1err(2,0) , &
-                   abs(mxinv(3,0))*TNm1err(3,0) , &
-                   abs(mxinv(4,0))*TNm1err(4,0) , & 
-                   abs(mxinv(5,0))*TNm1err(5,0) )
+    mxmx0kinv = matmul(mx(1:5,1:5),mx0kinv)
 
-    TNerr2(0) = max(abs(mxinvs)*TNm1err2(0,0), &
-                   abs(mxinv(1,0))*TNm1err2(1,0) , &
-                   abs(mxinv(2,0))*TNm1err2(2,0) , &
-                   abs(mxinv(3,0))*TNm1err2(3,0) , &
-                   abs(mxinv(4,0))*TNm1err2(4,0) , & 
-                   abs(mxinv(5,0))*TNm1err2(5,0) )
+    TN(1,0,0) =  TNm1_i(1,0,0,jmax) - TNm1_0(1,0,0)
+    do j=1,5
+      TN(1,0,0) =  TN(1,0,0) & 
+          - mxmx0kinv(jmax,j) * (TNm1_i(1,0,0,j) - TNm1_0(1,0,0))
+    end do
+    TN(1,0,0) =  TN(1,0,0)/mx(jmax,0)
+
+!   write(*,*) 'CalcTNred TN(1,0,0)',TN(1,0,0)
+
+    TNerr(0) = max(maxval(abs(mxmx0kinv(jmax,:)))*TNm1err(0,0), &
+                   abs(mxmx0kinv(jmax,1))*TNm1err(1,0) , &
+                   abs(mxmx0kinv(jmax,2))*TNm1err(2,0) , &
+                   abs(mxmx0kinv(jmax,3))*TNm1err(3,0) , &
+                   abs(mxmx0kinv(jmax,4))*TNm1err(4,0) , & 
+                   abs(mxmx0kinv(jmax,5))*TNm1err(5,0) , &
+                   TNm1err(0,0) , TNm1err(jmax,0) )/abs(mx(jmax,0))
+
+    TNerr2(0) = max(maxval(abs(mxmx0kinv(jmax,:)))*TNm1err2(0,0), &
+                   abs(mxmx0kinv(jmax,1))*TNm1err2(1,0) , &
+                   abs(mxmx0kinv(jmax,2))*TNm1err2(2,0) , &
+                   abs(mxmx0kinv(jmax,3))*TNm1err2(3,0) , &
+                   abs(mxmx0kinv(jmax,4))*TNm1err2(4,0) , & 
+                   abs(mxmx0kinv(jmax,5))*TNm1err2(5,0) , &
+                   TNm1err2(0,0),TNm1err2(jmax,0))/abs(mx(jmax,0))
+
+#ifdef TNtest
+          write(*,*) 'Tnred TN(1,0,0)', TN(1,0,0)
+          write(*,*) 'Tnred TNm1_0(1,0,0)', TNm1_0(1,0,0)
+          write(*,*) 'Tnred TNm1_i(1,0,0,1)', TNm1_i(1,0,0,1)
+          write(*,*) 'Tnred TNm1_i(1,0,0,2)', TNm1_i(1,0,0,2)
+          write(*,*) 'Tnred TNm1_i(1,0,0,3)', TNm1_i(1,0,0,3)
+          write(*,*) 'Tnred TNm1_i(1,0,0,4)', TNm1_i(1,0,0,4)
+          write(*,*) 'Tnred TNm1_i(1,0,0,5)', TNm1_i(1,0,0,5)
+#endif
+
+!    Alternative new version, 21.06.2018
+!
+!    Xadjk0 = -chdet(5,mx0k)
+!    TN(1,0,0) = 0d0
+!    do m=1,5
+!      do i=1,5
+!        do j=1,5
+!          if(i.lt.kbest.and.j.lt.m) then
+!            mat(i,j) = mx(i,j)
+!          else if(i.lt.kbest.and.j.gt.m) then
+!            mat(i,j-1) = mx(i,j)
+!          else if(i.gt.kbest.and.j.lt.m) then
+!            mat(i-1,j) = mx(i,j)
+!          else if(i.gt.kbest.and.j.gt.m) then
+!            mat(i-1,j-1) = mx(i,j)
+!          end if
+!        end do
+!      end do
+!       
+!      Zadjk(m)  = chdet(4,mat)
+!      if(mod(kbest+m,2).eq.1)  Zadjk(m) = - Zadjk(m) 
+!      TN(1,0,0) = TN(1,0,0) &
+!           - Zadjk(m)/Xadjk0*(TNm1_i(1,0,0,m)-TNm1_0(1,0,0))
+!    end do
+!
+!    TNerr(0) = max(maxval(abs(Zadjk(:)/Xadjk0))*TNm1err(0,0), &
+!                   abs(Zadjk(1)/Xadjk0)*TNm1err(1,0) , &
+!                   abs(Zadjk(2)/Xadjk0)*TNm1err(2,0) , &
+!                   abs(Zadjk(3)/Xadjk0)*TNm1err(3,0) , &
+!                   abs(Zadjk(4)/Xadjk0)*TNm1err(4,0) , & 
+!                   abs(Zadjk(5)/Xadjk0)*TNm1err(5,0) )
+!
+!    TNerr2(0) = max(maxval(abs(Zadjk(:)/Xadjk0))*TNm1err2(0,0), &
+!                   abs(Zadjk(1)/Xadjk0)*TNm1err2(1,0) , &
+!                   abs(Zadjk(2)/Xadjk0)*TNm1err2(2,0) , &
+!                   abs(Zadjk(3)/Xadjk0)*TNm1err2(3,0) , &
+!                   abs(Zadjk(4)/Xadjk0)*TNm1err2(4,0) , & 
+!                   abs(Zadjk(5)/Xadjk0)*TNm1err2(5,0) )
+
 
     if (rmax.eq.0) return
 
@@ -845,27 +959,25 @@ contains
 
 
         if (Mode_coli.lt.1) then
-          gram= mx(1:5,1:5)
-
-          gramdet = chdet(5,gram)
+          gramdet = chdet(5,mx(1:5,1:5))
 
 #ifdef TNtest
           write(*,*)
           do i = 1,5
             do j = 1,5
-              write(*,fmt999)  i,j,gram(i,j)
+              write(*,fmt999)  i,j,mx(i,j)
             enddo
           enddo
           write(*,*) 'TNred relGramdet=',gramdet/det
 #endif
 
-          if (max(abs(TN(1,0,0)),maxval(abs(TN(1:6,0,1))))*abs(gramdet/det).gt. &
+          if (max(abs(TN(1,0,0)),maxval(abs(TN(1:5,0,1))))*abs(gramdet/det).gt. &
               TNerr(r+1)) then
 
             TNerr(r+1)= max(TNerr(r+1),   &
-                max(abs(TN(1,0,0)),maxval(abs(TN(1:6,0,1))))*abs(gramdet/det) )
+                max(abs(TN(1,0,0)),maxval(abs(TN(1:5,0,1))))*abs(gramdet/det) )
             TNerr2(r+1)= max(TNerr2(r+1),   &
-                max(abs(TN(1,0,0)),maxval(abs(TN(1:6,0,1))))*abs(gramdet/det) )
+                max(abs(TN(1,0,0)),maxval(abs(TN(1:5,0,1))))*abs(gramdet/det) )
 
             if (abs(gramdet/det).gt.reqacc_coli) then
               call SetErrFlag_coli(-6)
@@ -905,6 +1017,7 @@ contains
 
 
 #ifdef TNtest
+            write(*,*) 'Tnred = ',TN
             write(*,*) 'Tnred mn err',TNm1err(1:5,r)
             write(*,*) 'Tnred coef err', (maxval(abs(mx0kinv(1:5,k))),k=1,5)
             write(*,*) 'Tnred err',TNerr(r+1)
@@ -928,6 +1041,8 @@ contains
 
     integer :: N,k,i
     double complex :: masses(0:N-1), SubMasses(0:N-2)
+
+!     write(*,*) 'SubMasses in ', N,k
 
     if ((k.gt.N-1).or.(k.lt.0)) then
       write(nerrout_coli,*) 'SubMasses:'
@@ -1003,7 +1118,8 @@ contains
     integer :: i,cnt,moms,limit
     double complex :: MomInv(BinomTable(2,N)), SubMomInv(BinomTable(2,N-1))
 
-    ! write(*,*) 'SubMomIv', N,k
+!     write(*,*) 'SubMomInv in ', N,k
+
     if ((k.gt.N-1).or.(k.lt.0)) then
       write(nerrout_coli,*) 'SubMomInv:'
       write(nerrout_coli,*) 'inkonsistent argument k', k

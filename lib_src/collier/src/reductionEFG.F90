@@ -269,8 +269,8 @@ contains
     double precision, intent(out) :: Eerr(0:rmax),Eerr2(0:rmax)
     double complex :: q10,q21,q32,q43,q40,q20,q31,q42,q30,q41
     double complex :: mm02,mm12,mm22,mm32,mm42
-    double complex :: mx(0:4,0:4), mxinv(0:4,0:4), f(4),mxinvs(0:4)
-    double complex :: zmxinv(4,0:4),Z(4,4),zmxinvs(4)
+    double complex :: mx(0:4,0:4),mxinv(0:4,0:4),f(4),mxinvs(0:4),detX
+    double complex :: zmxinv(4,0:4),zmxinvs(4)
     double precision :: maxZ,maxzmxinv(0:4),maxzmxinvs
     double complex, intent(out) :: E(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: Euv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax)
@@ -285,6 +285,8 @@ contains
     double precision, allocatable :: Derr(:,:),Derr2(:,:)
 !    double precision :: Derr(0:4,0:rmaxD)
     integer :: r,n0,n1,n2,n3,n4,i,n,k,nid(0:4),rid,r0,bin,rBCD,rmaxD
+    logical :: errorwriteflag
+    character(len=*),parameter :: fmt10 = "(A17,'(',d25.18,' , ',d25.18,' )')"
 
 !    write(*,*) 'CalcEred in',p10,p21,p32,p43,p40,p20,p31,p42,p30,p41, &
 !                   m02,m12,m22,m32,m42,rmax,id
@@ -386,31 +388,42 @@ contains
     mx(4,2) = mx(2,4)
     mx(4,3) = mx(3,4)
 
-    call chinv(5,mx,mxinv)
+! changed 21.06.2018
+    call chinv(5,mx,mxinv,detX)
+
+    if (detX.eq.0d0) then
+      call SetErrFlag_coli(-7)
+      call ErrOut_coli('CalcEred',  &
+          'inverse matrix M does not exist',  &
+          errorwriteflag)
+      if (errorwriteflag) then
+        write(nerrout_coli,fmt10) ' CalcEred: q10 = ',q10
+        write(nerrout_coli,fmt10) ' CalcEred: q21 = ',q21
+        write(nerrout_coli,fmt10) ' CalcEred: q32 = ',q32
+        write(nerrout_coli,fmt10) ' CalcEred: q43 = ',q43
+        write(nerrout_coli,fmt10) ' CalcEred: q20 = ',q10
+        write(nerrout_coli,fmt10) ' CalcEred: q31 = ',q31
+        write(nerrout_coli,fmt10) ' CalcEred: q42 = ',q42
+        write(nerrout_coli,fmt10) ' CalcEred: q40 = ',q40
+        write(nerrout_coli,fmt10) ' CalcEred: q30 = ',q30
+        write(nerrout_coli,fmt10) ' CalcEred: q41 = ',q41
+        write(nerrout_coli,fmt10) ' CalcEred: mm02 = ',mm02
+        write(nerrout_coli,fmt10) ' CalcEred: mm12 = ',mm12
+        write(nerrout_coli,fmt10) ' CalcEred: mm22 = ',mm22
+        write(nerrout_coli,fmt10) ' CalcEred: mm32 = ',mm32
+        write(nerrout_coli,fmt10) ' CalcEred: mm42 = ',mm42
+      end if
+      E = 0d0
+      return
+    end if
 
     do i=0,4
       mxinvs(i) = sum(mxinv(i,0:4))
     end do
 
     ! for alternative error estimate
-    Z(1,1) = 2d0*q10
-    Z(2,1) = q10+q20-q21
-    Z(3,1) = q10+q30-q31
-    Z(4,1) = q10+q40-q41
-    Z(1,2) = Z(2,1)
-    Z(1,3) = Z(3,1)
-    Z(1,4) = Z(4,1)
-    Z(2,2) = 2d0*q20
-    Z(3,2) = q20+q30-q32
-    Z(4,2) = q20+q40-q42
-    Z(2,3) = Z(3,2)
-    Z(2,4) = Z(4,2)
-    Z(3,3) = 2d0*q30
-    Z(4,3) = q30+q40-q43
-    Z(3,4) = Z(4,3)
-    Z(4,4) = 2d0*q40
-
-    zmxinv = matmul(z,mxinv(1:4,0:4)) 
+!    Z(1:4,1:4) = mx(1:4,1:4)
+    zmxinv = matmul(mx(1:4,1:4),mxinv(1:4,0:4))
 
     do i=0,4
       maxzmxinv(i) = maxval(abs(zmxinv(1:4,i)))
@@ -422,7 +435,7 @@ contains
 
     maxzmxinvs = maxval(abs(zmxinvs(1:4)))
 
-    maxZ = maxval(abs(Z))
+    maxZ = maxval(abs(mx(1:4,1:4)))
 
 
     ! calculation of UV-divergent parts      
@@ -454,14 +467,21 @@ contains
       end do
     end do
 
+!    write(*,*) 'CalcEred E0', -mxinv(0,0) -mxinv(1,0)  -mxinv(2,0) -mxinv(3,0)-mxinv(4,0)
+!    write(*,*) 'CalcEred E0', -mxinvs(0)
+!    write(*,*) 'CalcEred E0', -mxinvs(0)+mxinv(0,0),mxinv(0,0)
 
     ! scalar coefficient
     if (r0.eq.0) then
       E = 0d0
-      E(0,0,0,0,0) = -mxinv(0,0)*D_0(0,0,0,0,0)
+!      E(0,0,0,0,0) = -mxinv(0,0)*D_0(0,0,0,0,0)
+!      do k=1,4
+!        E(0,0,0,0,0) = E(0,0,0,0,0) &
+!           + mxinv(k,0)*(D_i(0,0,0,0,k)-D_0(0,0,0,0,0))
+!      end do
+      E(0,0,0,0,0) = -mxinvs(0)*D_0(0,0,0,0,0)
       do k=1,4
-        E(0,0,0,0,0) = E(0,0,0,0,0) &
-           + mxinv(k,0)*(D_i(0,0,0,0,k)-D_0(0,0,0,0,0))
+        E(0,0,0,0,0) = E(0,0,0,0,0) + mxinv(k,0)*D_i(0,0,0,0,k)
       end do
     end if
 
@@ -477,6 +497,11 @@ contains
                    abs(mxinv(3,0))*Derr2(3,0) , &
                    abs(mxinv(4,0))*Derr2(4,0) )
 
+!    do k=1,4
+!    write(*,*) 'CalcEred En', -mxinv(0,k) -mxinv(1,k)  -mxinv(2,k) -mxinv(3,k)-mxinv(4,k)
+!    write(*,*) 'CalcEred En', -mxinvs(k)
+!    end do
+
     ! formula (6.12) and (6.13)
     do r=r0,rmax
       do n0=0,r/2
@@ -487,7 +512,8 @@ contains
             
               if (n0.gt.0.or.r.le.rmax-1) then
                 do n=0,4
-                  S(n) = -D_0(n0,n1,n2,n3,n4)
+!                  S(n) = -D_0(n0,n1,n2,n3,n4)
+                  S(n) = 0d0
                 end do
               endif
 
@@ -579,6 +605,7 @@ contains
                 do k=1,4
                   Eaux(k) = mxinv(0,k)*S(0)+mxinv(1,k)*S(1)+mxinv(2,k)*S(2) &
                           + mxinv(3,k)*S(3)+mxinv(4,k)*S(4) &
+                          - mxinvs(k) * D_0(n0,n1,n2,n3,n4) &
                           + ((mxinv(1,k)*mxinv(2,0)-mxinv(2,k)*mxinv(1,0))*(S2(1,2)-S2(2,1)) &
                           +  (mxinv(1,k)*mxinv(3,0)-mxinv(3,k)*mxinv(1,0))*(S2(1,3)-S2(3,1)) &
                           +  (mxinv(1,k)*mxinv(4,0)-mxinv(4,k)*mxinv(1,0))*(S2(1,4)-S2(4,1)) &
@@ -596,7 +623,9 @@ contains
 
               if (n0.ge.1) then
                 Eaux2 = mxinv(1,0)*S(1)+mxinv(2,0)*S(2) &
-                      + mxinv(3,0)*S(3)+mxinv(4,0)*S(4)
+                      + mxinv(3,0)*S(3)+mxinv(4,0)*S(4) &
+                      - (mxinvs(0)-mxinv(0,0)) * D_0(n0,n1,n2,n3,n4) 
+                      
                 E(n0,n1,n2,n3,n4) = E(n0,n1,n2,n3,n4) + 2*n0*Eaux2/r
               end if
 
@@ -618,7 +647,13 @@ contains
                    abs(maxzmxinv(3))*Derr2(3,r) , &
                    abs(maxzmxinv(4))*Derr2(4,r) ) /maxZ
 
+!        write(*,*) 'CalcEred   s  ', maxval(abs(mxinvs(1:4)))
+!        write(*,*) 'CalcEred   1  ', maxval(abs(mxinv(1,1:4)))
+!        write(*,*) 'CalcEred   2  ', maxval(abs(mxinv(2,1:4)))
+!        write(*,*) 'CalcEred   3  ', maxval(abs(mxinv(3,1:4)))
+!        write(*,*) 'CalcEred   4  ', maxval(abs(mxinv(4,1:4)))
 !        write(*,*) 'CalcEred err ',r,Eerr(r+1)
+!        if (r.gt.0) write(*,*) 'CalcEred err ',1,Eerr(2)
 !        write(*,*) 'CalcEred err ',Derr(0:4,r)
 !        write(*,*) 'CalcEred err2',r,Eerr2(r+1)
 !        write(*,*) 'CalcEred err2',Derr2(0:4,r)
@@ -900,17 +935,22 @@ contains
     double complex, intent(out) :: Fuv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax)
     double complex :: q10,q21,q32,q43,q54,q50,q20,q31,q42,q53,q40
     double complex :: q51,q30,q41,q52,mm02,mm12,mm22,mm32,mm42,mm52
-    double complex :: mx(0:5,0:5), mxinv(0:5,0:5),mx0k(5,5),mx0kinv(5,5),ff(5)
-    double complex :: det,newdet,mxinvs,mx0kinvs(5)
-    double complex :: zmx0kinv(5,5),Z(5,5),zmx0kinvs(5)
+    double complex :: mx(0:5,0:5),mx0k(5,5),mx0kinv(5,5),ff(5)
+    double complex :: det,newdet,mx0kinvs(5)
+!    double complex ::  mxinv(0:5,0:5),mxinvs
+    double complex :: zmx0kinv(5,5),zmx0kinvs(5)
     double precision :: maxZ,maxzmx0kinv(5),maxzmx0kinvs
     double complex, allocatable :: E_0(:,:,:,:,:,:), E_i(:,:,:,:,:,:)
     double complex, allocatable :: Euv_0(:,:,:,:,:,:), Euv_i(:,:,:,:,:,:)
-    double complex :: S(5), Faux(5), elimminf2_coli,chdet,gram(1:5,1:5),gramdet
+    double complex :: S(5), Faux(5), elimminf2_coli,chdet,gramdet
     double precision :: Eerr(0:5,0:rmax),Eerr2(0:5,0:rmax)
     integer :: r,n0,n1,n2,n3,n4,n5,n,k,i,j,nid(0:5),r0,bin,kbest,rmaxE,rBCD
     logical :: errorwriteflag
     character(len=*),parameter :: fmt10 = "(A17,'(',d25.18,' , ',d25.18,' )')"
+
+    double complex :: mxmx0kinv(5,5)
+    double precision :: maxf
+    integer        :: jmax
 
 !    write(*,*) 'CalcFred in'
 
@@ -1047,7 +1087,7 @@ contains
     mx(4,5) = mx(5,4)
     mx(5,5) = 2d0*q50
 
-    call chinv(6,mx,mxinv)
+!    call chinv(6,mx,mxinv)
 
     ! determine X_(0,5)
     do j=1,5
@@ -1085,44 +1125,52 @@ contains
       mx0k(i,kbest) = mx(i,0)
     end do
 
-    call chinv(5,mx0k,mx0kinv)
+! changed 21.06.2018
+    call chinv(5,mx0k,mx0kinv,det)
+
+    if (det.eq.0d0) then
+      call SetErrFlag_coli(-7)
+      call ErrOut_coli('CalcFred',  &
+          'inverse matrix M does not exist',  &
+          errorwriteflag)
+      if (errorwriteflag) then
+        write(nerrout_coli,fmt10) ' CalcFred: q10 = ',q10
+        write(nerrout_coli,fmt10) ' CalcFred: q21 = ',q21
+        write(nerrout_coli,fmt10) ' CalcFred: q32 = ',q32
+        write(nerrout_coli,fmt10) ' CalcFred: q43 = ',q43
+        write(nerrout_coli,fmt10) ' CalcFred: q54 = ',q54
+        write(nerrout_coli,fmt10) ' CalcFred: q50 = ',q50
+        write(nerrout_coli,fmt10) ' CalcFred: q20 = ',q10
+        write(nerrout_coli,fmt10) ' CalcFred: q31 = ',q31
+        write(nerrout_coli,fmt10) ' CalcFred: q42 = ',q42
+        write(nerrout_coli,fmt10) ' CalcFred: q53 = ',q53
+        write(nerrout_coli,fmt10) ' CalcFred: q40 = ',q40
+        write(nerrout_coli,fmt10) ' CalcFred: q51 = ',q51
+        write(nerrout_coli,fmt10) ' CalcFred: q30 = ',q30
+        write(nerrout_coli,fmt10) ' CalcFred: q41 = ',q41
+        write(nerrout_coli,fmt10) ' CalcFred: q52 = ',q52
+        write(nerrout_coli,fmt10) ' CalcFred: mm02 = ',mm02
+        write(nerrout_coli,fmt10) ' CalcFred: mm12 = ',mm12
+        write(nerrout_coli,fmt10) ' CalcFred: mm22 = ',mm22
+        write(nerrout_coli,fmt10) ' CalcFred: mm32 = ',mm32
+        write(nerrout_coli,fmt10) ' CalcFred: mm42 = ',mm42
+        write(nerrout_coli,fmt10) ' CalcFred: mm52 = ',mm52
+      end if
+      F = 0d0
+      return
+    end if
+
     do i=1,5
       mx0kinv(kbest,i) = 0d0
     end do
 
-    mxinvs = sum(mxinv(0:5,0))
+!    mxinvs = sum(mxinv(0:5,0))
     do i=1,5
       mx0kinvs(i) = sum(mx0kinv(i,1:5))
     end do
 
     ! for alternative error estimate
-    Z(1,1) = 2d0*q10
-    Z(2,1) = q10+q20-q21
-    Z(3,1) = q10+q30-q31
-    Z(4,1) = q10+q40-q41
-    Z(5,1) = q10+q50-q51
-    Z(1,2) = Z(2,1)
-    Z(1,3) = Z(3,1)
-    Z(1,4) = Z(4,1)
-    Z(1,5) = Z(5,1)
-    Z(2,2) = 2d0*q20
-    Z(3,2) = q20+q30-q32
-    Z(4,2) = q20+q40-q42
-    Z(5,2) = q20+q50-q52
-    Z(2,3) = Z(3,2)
-    Z(2,4) = Z(4,2)
-    Z(2,5) = Z(5,2)
-    Z(3,3) = 2d0*q30
-    Z(4,3) = q30+q40-q43
-    Z(5,3) = q30+q50-q53
-    Z(3,4) = Z(4,3)
-    Z(3,5) = Z(5,3)
-    Z(4,4) = 2d0*q40
-    Z(5,4) = q40+q50-q54
-    Z(4,5) = Z(5,4)
-    Z(5,5) = 2d0*q50
-
-    zmx0kinv = matmul(z,mx0kinv) 
+    zmx0kinv = matmul(mx(1:5,1:5),mx0kinv) 
 
     do i=1,5
       maxzmx0kinv(i) = maxval(abs(zmx0kinv(1:5,i)))
@@ -1131,7 +1179,7 @@ contains
 
     maxzmx0kinvs = maxval(abs(zmx0kinvs(1:5)))
 
-    maxZ = maxval(abs(Z))
+    maxZ = maxval(abs(mx(1:5,1:5)))
 
 
 
@@ -1163,43 +1211,76 @@ contains
       end do
     end do
 
+    F = 0d0
+
     ! scalar coefficient
-    if (r0.eq.0) then
-      F = 0d0
-      F(0,0,0,0,0,0) = -mxinv(0,0)*E_0(0,0,0,0,0,0)
-      do k=1,5
-        F(0,0,0,0,0,0) = F(0,0,0,0,0,0) &
-             + mxinv(k,0)*(E_i(0,0,0,0,0,k)-E_0(0,0,0,0,0,0))
-      end do
-    end if
 
-!    write(*,*) 'CalcFred: Eerr(0)',Eerr(0,0:rmaxE)
-!    write(*,*) 'CalcFred: Eerr(1)',Eerr(1,0:rmaxE)
-!    write(*,*) 'CalcFred: Eerr(2)',Eerr(2,0:rmaxE)
-!    write(*,*) 'CalcFred: Eerr(3)',Eerr(3,0:rmaxE)
-!    write(*,*) 'CalcFred: Eerr(4)',Eerr(4,0:rmaxE)
-!    write(*,*) 'CalcFred: Eerr(5)',Eerr(5,0:rmaxE)
-!    write(*,*) 'CalcFred: mxinv(0)',mxinv(0,0)
-!    write(*,*) 'CalcFred: mxinv(1)',mxinv(1,0)
-!    write(*,*) 'CalcFred: mxinv(2)',mxinv(2,0)
-!    write(*,*) 'CalcFred: mxinv(3)',mxinv(3,0)
-!    write(*,*) 'CalcFred: mxinv(4)',mxinv(4,0)
-!    write(*,*) 'CalcFred: mxinv(5)',mxinv(5,0)
 
-    Ferr(0) = max( abs(mxinvs)*Eerr(0,0), &
-                   abs(mxinv(1,0))*Eerr(1,0) , &
-                   abs(mxinv(2,0))*Eerr(2,0) , &
-                   abs(mxinv(3,0))*Eerr(3,0) , &
-                   abs(mxinv(4,0))*Eerr(4,0) , &
-                   abs(mxinv(5,0))*Eerr(5,0) )
-    Ferr2(0) = max( abs(mxinvs)*Eerr2(0,0), &
-                   abs(mxinv(1,0))*Eerr2(1,0) , &
-                   abs(mxinv(2,0))*Eerr2(2,0) , &
-                   abs(mxinv(3,0))*Eerr2(3,0) , &
-                   abs(mxinv(4,0))*Eerr2(4,0) , &
-                   abs(mxinv(5,0))*Eerr2(5,0) )
+! version replaced 21.06.2018
+!    if (r0.eq.0) then
+!      F = 0d0
+!      F(0,0,0,0,0,0) = -mxinv(0,0)*E_0(0,0,0,0,0,0)
+!      do k=1,5
+!        F(0,0,0,0,0,0) = F(0,0,0,0,0,0) &
+!             + mxinv(k,0)*(E_i(0,0,0,0,0,k)-E_0(0,0,0,0,0,0))
+!      end do
+!    end if
+!
+!    Ferr(0) = max( abs(mxinvs)*Eerr(0,0), &
+!                   abs(mxinv(1,0))*Eerr(1,0) , &
+!                   abs(mxinv(2,0))*Eerr(2,0) , &
+!                   abs(mxinv(3,0))*Eerr(3,0) , &
+!                   abs(mxinv(4,0))*Eerr(4,0) , &
+!                   abs(mxinv(5,0))*Eerr(5,0) )
+!    Ferr2(0) = max( abs(mxinvs)*Eerr2(0,0), &
+!                   abs(mxinv(1,0))*Eerr2(1,0) , &
+!                   abs(mxinv(2,0))*Eerr2(2,0) , &
+!                   abs(mxinv(3,0))*Eerr2(3,0) , &
+!                   abs(mxinv(4,0))*Eerr2(4,0) , &
+!                   abs(mxinv(5,0))*Eerr2(5,0) )
+!
+!    write(*,*) 'CalcFred: F(0)',F(0,0,0,0,0,0)
+!    write(*,*) 'CalcFred: Ferr(0)',Ferr(0),Ferr2(0)
 
-!    write(*,*) 'CalcFred: Ferr(0)',Ferr(0)
+! New version for  F(0,0,0,0,0,0), 21.06.2018
+
+    maxf = abs(mx(1,0))
+    jmax = 1
+    do j=2,5
+      if (abs(mx(j,0)).gt.maxf) then
+        jmax = j
+        maxf = abs(mx(j,0))
+      end if
+    end do
+
+    mxmx0kinv = matmul(mx(1:5,1:5),mx0kinv)
+
+    F(0,0,0,0,0,0) =  E_i(0,0,0,0,0,jmax) - E_0(0,0,0,0,0,0)
+    do j=1,5
+      F(0,0,0,0,0,0) =  F(0,0,0,0,0,0) & 
+          - mxmx0kinv(jmax,j) * (E_i(0,0,0,0,0,j) - E_0(0,0,0,0,0,0))
+    end do
+    F(0,0,0,0,0,0) =  F(0,0,0,0,0,0)/mx(jmax,0)
+
+    Ferr(0) = max(maxval(abs(mxmx0kinv(jmax,:)))*Eerr(0,0), &
+                   abs(mxmx0kinv(jmax,1))*Eerr(1,0) , &
+                   abs(mxmx0kinv(jmax,2))*Eerr(2,0) , &
+                   abs(mxmx0kinv(jmax,3))*Eerr(3,0) , &
+                   abs(mxmx0kinv(jmax,4))*Eerr(4,0) , & 
+                   abs(mxmx0kinv(jmax,5))*Eerr(5,0) , &
+                   Eerr(0,0) , Eerr(jmax,0) )/abs(mx(jmax,0))
+
+    Ferr2(0) = max(maxval(abs(mxmx0kinv(jmax,:)))*Eerr2(0,0), &
+                   abs(mxmx0kinv(jmax,1))*Eerr2(1,0) , &
+                   abs(mxmx0kinv(jmax,2))*Eerr2(2,0) , &
+                   abs(mxmx0kinv(jmax,3))*Eerr2(3,0) , &
+                   abs(mxmx0kinv(jmax,4))*Eerr2(4,0) , & 
+                   abs(mxmx0kinv(jmax,5))*Eerr2(5,0) , &
+                   Eerr2(0,0),Eerr2(jmax,0))/abs(mx(jmax,0))
+
+!    write(*,*) 'CalcFred: F(0) n ',F(0,0,0,0,0,0)
+!    write(*,*) 'CalcFred: Ferr(0) n ',Ferr(0)
+
 
     ! formula (7.13)
     do r=r0,rmax-1
@@ -1287,9 +1368,8 @@ contains
 !                   maxval(abs(mx0kinv(1:5,5))) 
 
         if (Mode_coli.lt.1) then
-          gram= mx(1:5,1:5)
-          
-          gramdet= chdet(5,gram)
+!          gram= mx(1:5,1:5)         
+          gramdet= chdet(5,mx(1:5,1:5))
           
 !         write(*,*) 'CalcFred gram=',det
 
@@ -1650,19 +1730,24 @@ contains
     double precision, intent(out) :: Gerr(0:rmax),Gerr2(0:rmax)
     double complex :: q10,q21,q32,q43,q54,q20,q31,q42,q53,q50,q30,q41,q52,q40,q51,q60
     double complex :: mm02,mm12,mm22,mm32,mm42,mm52,mm62
-    double complex :: mx(0:5,0:5), mxinv(0:5,0:5),mx0k(5,5),mx0kinv(5,5), f(6)
-    double complex :: det,newdet,mxinvs,mx0kinvs(5)
-    double complex :: zmx0kinv(5,5),Z(5,5),zmx0kinvs(5)
+    double complex :: mx(0:5,0:5),mx0k(5,5),mx0kinv(5,5), f(6)
+    double complex :: det,newdet,mx0kinvs(5)
+!    double complex :: mxinv(0:5,0:5),mxinvs
+    double complex :: zmx0kinv(5,5),zmx0kinvs(5)
     double precision :: maxZ,maxzmx0kinv(5),maxzmx0kinvs
     double complex, intent(out) :: G(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, intent(out) :: Guv(0:rmax/2,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax,0:rmax)
     double complex, allocatable :: F_0(:,:,:,:,:,:,:), F_i(:,:,:,:,:,:,:)
     double complex, allocatable :: Fuv_0(:,:,:,:,:,:,:), Fuv_i(:,:,:,:,:,:,:)  
-    double complex :: S(5), Gaux(5), elimminf2_coli,chdet,gram(1:5,1:5),gramdet
+    double complex :: S(5), Gaux(5), elimminf2_coli,chdet,gramdet
     double precision :: Ferr(0:5,0:rmax), Ferr2(0:5,0:rmax)
     integer :: r,n0,n1,n2,n3,n4,n5,n6,n,k,i,j,nid(0:5),r0,bin,kbest,rmaxF,rBCD,up
     logical :: errorwriteflag
     character(len=*),parameter :: fmt10 = "(A17,'(',d25.18,' , ',d25.18,' )')"
+
+    double complex :: mxmx0kinv(5,5)
+    double precision :: maxf
+    integer        :: jmax
 
     r0=0
 
@@ -1687,22 +1772,22 @@ contains
 
     call CalcF(F_0(:,0,:,:,:,:,:),Fuv_0(:,0,:,:,:,:,:),p21,p32,p43,p54,p65,p61,  &
         p31,p42,p53,p64,p51,p62,p41,p52,p63,m12,m22,m32,m42,m52,m62,    &  
-        rmaxF,nid(0),Ferr=Ferr(0,0:rmax),Ferr2=Ferr2(0,0:rmax))
+        rmaxF,nid(0),Ferr=Ferr(0,0:rmaxF),Ferr2=Ferr2(0,0:rmaxF))
     call CalcF(F_i(:,:,:,:,:,:,1),Fuv_i(:,:,:,:,:,:,1),p20,p32,p43,p54,p65,p60,  &
         p30,p42,p53,p64,p50,p62,p40,p52,p63,m02,m22,m32,m42,m52,m62,    &
-        rmaxF,nid(1),Ferr=Ferr(1,0:rmax),Ferr2=Ferr2(1,0:rmax))
+        rmaxF,nid(1),Ferr=Ferr(1,0:rmaxF),Ferr2=Ferr2(1,0:rmaxF))
     call CalcF(F_i(:,:,:,:,:,:,2),Fuv_i(:,:,:,:,:,:,2),p10,p31,p43,p54,p65,p60,  &
         p30,p41,p53,p64,p50,p61,p40,p51,p63,m02,m12,m32,m42,m52,m62,    &
-        rmaxF,nid(2),Ferr=Ferr(2,0:rmax),Ferr2=Ferr(2,0:rmax))
+        rmaxF,nid(2),Ferr=Ferr(2,0:rmaxF),Ferr2=Ferr2(2,0:rmaxF))
     call CalcF(F_i(:,:,:,:,:,:,3),Fuv_i(:,:,:,:,:,:,3),p10,p21,p42,p54,p65,p60,  &
         p20,p41,p52,p64,p50,p61,p40,p51,p62,m02,m12,m22,m42,m52,m62,    &
-        rmaxF,nid(3),Ferr=Ferr(3,0:rmax),Ferr2=Ferr2(3,0:rmax))
+        rmaxF,nid(3),Ferr=Ferr(3,0:rmaxF),Ferr2=Ferr2(3,0:rmaxF))
     call CalcF(F_i(:,:,:,:,:,:,4),Fuv_i(:,:,:,:,:,:,4),p10,p21,p32,p53,p65,p60,  &
         p20,p31,p52,p63,p50,p61,p30,p51,p62,m02,m12,m22,m32,m52,m62,    &
-        rmaxF,nid(4),Ferr=Ferr(4,0:rmax),Ferr2=Ferr2(4,0:rmax))
+        rmaxF,nid(4),Ferr=Ferr(4,0:rmaxF),Ferr2=Ferr2(4,0:rmaxF))
     call CalcF(F_i(:,:,:,:,:,:,5),Fuv_i(:,:,:,:,:,:,5),p10,p21,p32,p43,p64,p60,  &
         p20,p31,p42,p63,p40,p61,p30,p41,p62,m02,m12,m22,m32,m42,m62,    &
-        rmaxF,nid(5),Ferr=Ferr(5,0:rmax),Ferr2=Ferr2(5,0:rmax))
+        rmaxF,nid(5),Ferr=Ferr(5,0:rmaxF),Ferr2=Ferr2(5,0:rmaxF))
 
     ! shift of integration momentum in F\{0}
     do n1=1,rmaxF
@@ -1801,7 +1886,7 @@ contains
     mx(4,5) = mx(5,4)
     mx(5,5) = 2d0*q50
 
-    call chinv(6,mx,mxinv)
+!    call chinv(6,mx,mxinv)
 
     ! determine X_(0,5)
     do j=1,5
@@ -1831,44 +1916,53 @@ contains
       mx0k(i,kbest) = mx(i,0)
     end do
 
-    call chinv(5,mx0k,mx0kinv)
+! changed 21.06.2018
+    call chinv(5,mx0k,mx0kinv,det)
+
+    if (det.eq.0d0) then
+      call SetErrFlag_coli(-7)
+      call ErrOut_coli('CalcGred',  &
+          'inverse matrix M does not exist',  &
+          errorwriteflag)
+      if (errorwriteflag) then
+        write(nerrout_coli,fmt10) ' CalcGred: q10 = ',q10
+        write(nerrout_coli,fmt10) ' CalcGred: q21 = ',q21
+        write(nerrout_coli,fmt10) ' CalcGred: q32 = ',q32
+        write(nerrout_coli,fmt10) ' CalcGred: q43 = ',q43
+        write(nerrout_coli,fmt10) ' CalcGred: q54 = ',q54
+        write(nerrout_coli,fmt10) ' CalcGred: q50 = ',q50
+        write(nerrout_coli,fmt10) ' CalcGred: q20 = ',q10
+        write(nerrout_coli,fmt10) ' CalcGred: q31 = ',q31
+        write(nerrout_coli,fmt10) ' CalcGred: q42 = ',q42
+        write(nerrout_coli,fmt10) ' CalcGred: q53 = ',q53
+        write(nerrout_coli,fmt10) ' CalcGred: q40 = ',q40
+        write(nerrout_coli,fmt10) ' CalcGred: q51 = ',q51
+        write(nerrout_coli,fmt10) ' CalcGred: q30 = ',q30
+        write(nerrout_coli,fmt10) ' CalcGred: q41 = ',q41
+        write(nerrout_coli,fmt10) ' CalcGred: q52 = ',q52
+        write(nerrout_coli,fmt10) ' CalcGred: mm02 = ',mm02
+        write(nerrout_coli,fmt10) ' CalcGred: mm12 = ',mm12
+        write(nerrout_coli,fmt10) ' CalcGred: mm22 = ',mm22
+        write(nerrout_coli,fmt10) ' CalcGred: mm32 = ',mm32
+        write(nerrout_coli,fmt10) ' CalcGred: mm42 = ',mm42
+        write(nerrout_coli,fmt10) ' CalcGred: mm52 = ',mm52
+      end if
+      G = 0d0
+      return
+    end if
+
     do i=1,5
       mx0kinv(kbest,i) = 0d0
     end do
 
-    mxinvs = sum(mxinv(0:5,0))
+!    mxinvs = sum(mxinv(0:5,0))
     do i=1,5
       mx0kinvs(i) = sum(mx0kinv(i,1:5))
     end do
 
     ! for alternative error estimate
-    Z(1,1) = 2d0*q10
-    Z(2,1) = q10+q20-q21
-    Z(3,1) = q10+q30-q31
-    Z(4,1) = q10+q40-q41
-    Z(5,1) = q10+q50-q51
-    Z(1,2) = Z(2,1)
-    Z(1,3) = Z(3,1)
-    Z(1,4) = Z(4,1)
-    Z(1,5) = Z(5,1)
-    Z(2,2) = 2d0*q20
-    Z(3,2) = q20+q30-q32
-    Z(4,2) = q20+q40-q42
-    Z(5,2) = q20+q50-q52
-    Z(2,3) = Z(3,2)
-    Z(2,4) = Z(4,2)
-    Z(2,5) = Z(5,2)
-    Z(3,3) = 2d0*q30
-    Z(4,3) = q30+q40-q43
-    Z(5,3) = q30+q50-q53
-    Z(3,4) = Z(4,3)
-    Z(3,5) = Z(5,3)
-    Z(4,4) = 2d0*q40
-    Z(5,4) = q40+q50-q54
-    Z(4,5) = Z(5,4)
-    Z(5,5) = 2d0*q50
-
-    zmx0kinv = matmul(z,mx0kinv) 
+!    Z(1:5,1:5) = mx(1:5,1:5)
+    zmx0kinv = matmul(mx(1:5,1:5),mx0kinv) 
 
     do i=1,5
       maxzmx0kinv(i) = maxval(abs(zmx0kinv(1:5,i)))
@@ -1877,7 +1971,7 @@ contains
 
     maxzmx0kinvs = maxval(abs(zmx0kinvs(1:5)))
 
-    maxZ = maxval(abs(Z))
+    maxZ = maxval(abs(mx(1:5,1:5)))
 
 
     ! calculation of UV-divergent parts      
@@ -1911,30 +2005,71 @@ contains
       end do
     end do
 
+    G=0d0
 
     ! scalar coefficient
-    if (r0.eq.0) then
-      G = 0d0
-      G(0,0,0,0,0,0,0) = -mxinv(0,0)*F_0(0,0,0,0,0,0,0)
-      do k=1,5
-        G(0,0,0,0,0,0,0) = G(0,0,0,0,0,0,0) &
-             + mxinv(k,0)*(F_i(0,0,0,0,0,0,k)-F_0(0,0,0,0,0,0,0))
-      end do
-    end if
 
-!   Gerr(0) = max( maxval(abs(mxinv(0:5,0)))*Ferr(0,0), &
-    Gerr(0) = max( abs(mxinvs)*Ferr(0,0), &
-                   abs(mxinv(1,0))*Ferr(1,0) , &
-                   abs(mxinv(2,0))*Ferr(2,0) , &
-                   abs(mxinv(3,0))*Ferr(3,0) , &
-                   abs(mxinv(4,0))*Ferr(4,0) , &
-                   abs(mxinv(5,0))*Ferr(5,0) )
-    Gerr2(0) = max(abs(mxinvs)*Ferr2(0,0), &
-                   abs(mxinv(1,0))*Ferr2(1,0) , &
-                   abs(mxinv(2,0))*Ferr2(2,0) , &
-                   abs(mxinv(3,0))*Ferr2(3,0) , &
-                   abs(mxinv(4,0))*Ferr2(4,0) , &
-                   abs(mxinv(5,0))*Ferr2(5,0) )
+! version replaced 21.06.2018
+!    if (r0.eq.0) then
+!      G = 0d0
+!      G(0,0,0,0,0,0,0) = -mxinv(0,0)*F_0(0,0,0,0,0,0,0)
+!      do k=1,5
+!        G(0,0,0,0,0,0,0) = G(0,0,0,0,0,0,0) &
+!             + mxinv(k,0)*(F_i(0,0,0,0,0,0,k)-F_0(0,0,0,0,0,0,0))
+!      end do
+!    end if
+!
+!    Gerr(0) = max( abs(mxinvs)*Ferr(0,0), &
+!                   abs(mxinv(1,0))*Ferr(1,0) , &
+!                   abs(mxinv(2,0))*Ferr(2,0) , &
+!                   abs(mxinv(3,0))*Ferr(3,0) , &
+!                   abs(mxinv(4,0))*Ferr(4,0) , &
+!                   abs(mxinv(5,0))*Ferr(5,0) )
+!    Gerr2(0) = max(abs(mxinvs)*Ferr2(0,0), &
+!                   abs(mxinv(1,0))*Ferr2(1,0) , &
+!                   abs(mxinv(2,0))*Ferr2(2,0) , &
+!                   abs(mxinv(3,0))*Ferr2(3,0) , &
+!                   abs(mxinv(4,0))*Ferr2(4,0) , &
+!                   abs(mxinv(5,0))*Ferr2(5,0) )
+!
+!    write(*,*) 'CalcGred: G(0)',G(0,0,0,0,0,0,0)
+!    write(*,*) 'CalcGred: Gerr(0)',Gerr(0),Gerr2(0)
+
+! New version for  G(0,0,0,0,0,0,0), 21.06.2018
+
+    maxf = abs(mx(1,0))
+    jmax = 1
+    do j=2,5
+      if (abs(mx(j,0)).gt.maxf) then
+         jmax = j
+         maxf = abs(mx(j,0))
+      end if
+    end do
+
+    mxmx0kinv = matmul(mx(1:5,1:5),mx0kinv)
+
+    G(0,0,0,0,0,0,0) =  F_i(0,0,0,0,0,0,jmax) - F_0(0,0,0,0,0,0,0)
+    do j=1,5
+      G(0,0,0,0,0,0,0) =  G(0,0,0,0,0,0,0) & 
+          - mxmx0kinv(jmax,j) * (F_i(0,0,0,0,0,0,j) - F_0(0,0,0,0,0,0,0))
+    end do
+    G(0,0,0,0,0,0,0) =  G(0,0,0,0,0,0,0)/mx(jmax,0)
+
+    Gerr(0) = max(maxval(abs(mxmx0kinv(jmax,:)))*Ferr(0,0), &
+                   abs(mxmx0kinv(jmax,1))*Ferr(1,0) , &
+                   abs(mxmx0kinv(jmax,2))*Ferr(2,0) , &
+                   abs(mxmx0kinv(jmax,3))*Ferr(3,0) , &
+                   abs(mxmx0kinv(jmax,4))*Ferr(4,0) , & 
+                   abs(mxmx0kinv(jmax,5))*Ferr(5,0) , &
+                   Ferr(0,0) , Ferr(jmax,0) )/abs(mx(jmax,0))
+
+    Gerr2(0) = max(maxval(abs(mxmx0kinv(jmax,:)))*Ferr2(0,0), &
+                   abs(mxmx0kinv(jmax,1))*Ferr2(1,0) , &
+                   abs(mxmx0kinv(jmax,2))*Ferr2(2,0) , &
+                   abs(mxmx0kinv(jmax,3))*Ferr2(3,0) , &
+                   abs(mxmx0kinv(jmax,4))*Ferr2(4,0) , & 
+                   abs(mxmx0kinv(jmax,5))*Ferr2(5,0) , &
+                   Ferr2(0,0),Ferr2(jmax,0))/abs(mx(jmax,0))
 
     ! formula (7.13) extended to N=7
     do r=r0,rmax-1
@@ -1992,6 +2127,7 @@ contains
                    maxval(abs(mx0kinv(1:5,3)))*Ferr(3,r) , &
                    maxval(abs(mx0kinv(1:5,4)))*Ferr(4,r) , &
                    maxval(abs(mx0kinv(1:5,5)))*Ferr(5,r) )
+
         Gerr2(r+1) = max( abs(maxzmx0kinvs)*Ferr2(0,r), &
                    abs(maxzmx0kinv(1))*Ferr2(1,r) , &
                    abs(maxzmx0kinv(2))*Ferr2(2,r) , &
@@ -2001,9 +2137,8 @@ contains
       end if
 
       if (Mode_coli.lt.1) then
-        gram= mx(1:5,1:5)
-        
-        gramdet= chdet(5,gram)
+!        gram= mx(1:5,1:5)       
+        gramdet= chdet(5,mx(1:5,1:5))
         
         if (max(abs(G(0,0,0,0,0,0,0)),abs(G(0,1,0,0,0,0,0)),abs(G(0,0,1,0,0,0,0)),  &
             abs(G(0,0,0,1,0,0,0)),abs(G(0,0,0,0,1,0,0)),abs(G(0,0,0,0,0,1,0)),      &

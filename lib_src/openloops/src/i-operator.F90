@@ -1,20 +1,21 @@
-
-! Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-!
-! This file is part of OpenLoops.
-!
-! OpenLoops is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! OpenLoops is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-! GNU General Public License for more details.
-!
-! You should have received a copy of the GNU General Public License
-! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+!******************************************************************************!
+! Copyright (C) 2014-2019 OpenLoops Collaboration. For authors see authors.txt !
+!                                                                              !
+! This file is part of OpenLoops.                                              !
+!                                                                              !
+! OpenLoops is free software: you can redistribute it and/or modify            !
+! it under the terms of the GNU General Public License as published by         !
+! the Free Software Foundation, either version 3 of the License, or            !
+! (at your option) any later version.                                          !
+!                                                                              !
+! OpenLoops is distributed in the hope that it will be useful,                 !
+! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+! GNU General Public License for more details.                                 !
+!                                                                              !
+! You should have received a copy of the GNU General Public License            !
+! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+!******************************************************************************!
 
 
 module ol_i_operator_/**/REALKIND
@@ -23,7 +24,7 @@ module ol_i_operator_/**/REALKIND
   contains
 
 ! **********************************************************************
-subroutine intdip(mode, M2LO, M2CC, M2CC_EW, extflav, extcharges, Npart, extmass2, sarr, vdip, c_dip)
+subroutine intdip(mode, M2LO, M2CC, M2CC_EW, extflav, extcharges, Npart, extmass2, sarr, vdip, c_dip, olm_in, photonid_in)
 ! **********************************************************************
 ! I-Operator contribution to integrated Dipoles <=> Eqs. (6.66), (6.52), (6.16)
 ! in hep-ph/0201036 (Catani, Dittmaier, Seymour, Trocsanyi)
@@ -63,8 +64,12 @@ subroutine intdip(mode, M2LO, M2CC, M2CC_EW, extflav, extcharges, Npart, extmass
 ! is the default normalisation (norm_swi=0)
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND
-  use ol_parameters_decl_/**/REALKIND
+  use ol_parameters_decl_/**/REALKIND, only: alpha_QCD, alpha_QED, pi
+  use ol_parameters_decl_/**/DREALKIND, only: &
+       & offshell_photons_lsz, delta_alphamz_dimreg
   use ol_loop_parameters_decl_/**/REALKIND
+  use ol_momenta_decl_/**/REALKIND, only: Q, L
+  use ol_kinematics_/**/REALKIND
   implicit none
 
   integer,           intent(in)  :: mode
@@ -73,12 +78,26 @@ subroutine intdip(mode, M2LO, M2CC, M2CC_EW, extflav, extcharges, Npart, extmass
   real(REALKIND),    intent(in)  :: extcharges(Npart)
   real(REALKIND),    intent(in)  :: M2LO, M2CC(Npart,Npart), M2CC_EW, extmass2(Npart)
   complex(REALKIND), intent(in)  :: sarr(:,:)
+  integer, optional, intent(in)  :: olm_in, photonid_in(:)
   real(REALKIND),    intent(out) :: vdip, c_dip(0:2)
-  real(REALKIND) :: Q2_aux, Fjk(0:2), Gj(0:2), norm_qcd, norm_qed
-  integer        :: i, j, k
+  real(REALKIND) :: Q2_aux, Fjk(0:2), Gj(0:2), norm_qcd, norm_qed, QQ
+  integer        :: olm, photonid(Npart), i, j, k
 
   Q2_aux = mureg2  ! arbitrary auxiliary scale
   c_dip = 0
+
+  if (present(olm_in)) then
+    olm = olm_in
+  else
+    olm = 0
+  end if
+
+  if (present(photonid_in)) then
+    photonid = photonid_in
+  else
+    photonid = 0
+  end if
+
 
 
   !NLO QCD contribution
@@ -86,10 +105,10 @@ subroutine intdip(mode, M2LO, M2CC, M2CC_EW, extflav, extcharges, Npart, extmass
     norm_qcd = alpha_QCD/(4*pi) ! normalization in intermediate formulae
 
     do j = 1, Npart
-      if (extflav(j) >= 3) cycle ! emitter j = QCD singlet
+      if (extflav(j) >= 3 .or. extflav(j) < 1) cycle ! emitter j = QCD singlet
       call intdip_Gj(j,extflav(j),extmass2(j),Q2_aux,Gj)
       do k = 1, Npart
-        if (extflav(k) >= 3 .or. k == j) cycle ! spectator k = QCD singlet
+        if (extflav(k) >= 3 .or. extflav(k) < 1 .or. k == j) cycle ! spectator k = QCD singlet
         call intdip_Fjk(j,k,real(sarr(j,k)),extflav(j),extmass2(j),extmass2(k),Q2_aux,Fjk)
         c_dip = c_dip - 2*norm_qcd*M2CC(j,k) * (Fjk + Gj)
       end do
@@ -97,12 +116,13 @@ subroutine intdip(mode, M2LO, M2CC, M2CC_EW, extflav, extcharges, Npart, extmass
 
   end if
 
+
   !NLO QED contribution
   if (mode == 2 .or. mode == 3) then
     norm_qed = alpha_QED/(4*pi) ! normalization in intermediate formulae
 
     do j = 1, Npart
-      if (extflav(j) == 1 .or. extcharges(j) == 0.) cycle ! emitter j = EM neutral
+      if (extflav(j) == 1 .or. extcharges(j) == 0. ) cycle ! emitter j = EM neutral
       call intdip_Gj(j,extflav(j),extmass2(j),Q2_aux,Gj)
       do k = 1, Npart
         if (extflav(k) == 1 .or. extcharges(k) == 0. .or. k == j) cycle ! spectator k = EW singlet
@@ -110,6 +130,41 @@ subroutine intdip(mode, M2LO, M2CC, M2CC_EW, extflav, extcharges, Npart, extmass
         c_dip = c_dip - 2*norm_qed*M2CC_EW*extcharges(j)*extcharges(k)*(Fjk + Gj)
       end do
     end do
+
+    ! photon -> ff splittings
+    if (offshell_photons_lsz .or. delta_alphamz_dimreg) then
+      do j = 1, Npart
+        if (extflav(j) /= -1) cycle ! emitter j /= photon
+        Gj=0
+        call intdip_Gj(j,extflav(j),extmass2(j),Q2_aux,Gj)
+        do k = 1, Npart
+          QQ = 0d0
+          if (k == j) cycle
+          if (.not. delta_alphamz_dimreg) then
+            if (photonid(j) >= 0) cycle ! on-shell photon emitter -> cycle
+          end if
+          if (olm == 0) then
+            if (real(Q(1,2**(j-1))+Q(2,2**(j-1))) .gt. 0 .and. real(Q(1,2**(k-1))+Q(2,2**(k-1))) .gt. 0 ) then ! IS off-shell photon -> IS spectator with Q=-1
+              QQ = -1d0
+            else if (real(Q(1,2**(j-1))+Q(2,2**(j-1))) .lt. 0 .and. real(Q(1,2**(k-1))+Q(2,2**(k-1))) .gt. 0 ) then ! FS off-shell photon -> both IS spectators with Q=-1/2
+              QQ = -0.5d0
+            else
+              cycle
+            end if
+          else
+            if (real(L(1,2**(j-1))+L(2,2**(j-1))) .gt. 0 .and. real(L(1,2**(k-1))+L(2,2**(k-1))) .gt. 0 ) then ! IS off-shell photon -> IS spectator with Q=-1
+              QQ = -1d0
+            else if (real(L(1,2**(j-1))+L(2,2**(j-1))) .lt. 0 .and. real(L(1,2**(k-1))+L(2,2**(k-1))) .gt. 0 ) then ! FS off-shell photon -> both IS spectators with Q=-1/2
+              QQ = -0.5d0
+            else
+              cycle
+            end if
+          end if
+          call intdip_Fjk(j,k,real(sarr(j,k)),extflav(j),extmass2(j),extmass2(k),Q2_aux,Fjk)
+          c_dip = c_dip - 2*norm_qed*M2CC_EW*QQ*(Fjk + Gj)
+        end do
+      end do
+    end if
 
   end if
 
@@ -131,7 +186,7 @@ subroutine intdip_Gj(j,flavj,M2j,Q2_aux,Gj)
 ! **********************************************************************
 ! spectator-independent contributions
 ! **********************************************************************
-! flavj = flavour of emitter (j): 1=gluon, 2=quark/antiquark
+! flavj = flavour of emitter (j): 1=gluon, 2=quark/antiquark, 3=lepton/W, -1=gamma
 ! M2j = squared mass of emitter (j)
 ! Q2_aux =  arbitrary auxiliary scale
 !
@@ -142,7 +197,7 @@ subroutine intdip_Gj(j,flavj,M2j,Q2_aux,Gj)
   use ol_debug, only: ol_fatal, ol_error
   use ol_generic, only: to_string
   use ol_parameters_decl_/**/REALKIND
-  use ol_loop_parameters_decl_/**/REALKIND, only: pi2_6, tf, ca, mu2_IR
+  use ol_loop_parameters_decl_/**/REALKIND, only: pi2_6, tf, ca, mu2_IR => mureg2, Qf2sum
   use ol_loop_parameters_decl_/**/DREALKIND, only: N_lf, SwF, SwB
   implicit none
 
@@ -167,9 +222,25 @@ subroutine intdip_Gj(j,flavj,M2j,Q2_aux,Gj)
     end if
     Gj(1) = Gaj
     Gj(0) = 0
-  else if (flavj >= 2 .and. flavj <= 4) then ! EMITTER j = QUARK/LEPTON/W-BOSON
+  else if (flavj == -1) then ! emitter j = photon
+    ! Gaj = [1/1] (- 2/3*sum(Ncf*Qf2))
+    ! Kaj = [1/1] (- 10/9*sum(Ncf*Qf2))
+    ! Gamma_j = Gaj/ep
+    Gaj = 0
+    Kaj = 0
+    if (SwF /= 0) then
+      Gaj = Gaj - 2._/**/REALKIND/3.*Qf2sum
+      Kaj = Kaj - 10._/**/REALKIND/9.*Qf2sum
+    end if
+    Gj(1) = Gaj
+    Gj(0) = 0
+  else if (flavj >= 2 .and. flavj <= 3) then ! EMITTER j = QUARK/LEPTON/W-BOSON
+    ! QCD
     ! Gaj = [1/cf*] 3/2*cf
     ! Kaj = [1/cf*] (7/2 - pi^2/6)*cf
+    ! QED (cf->Qf2)
+    ! Gaj = [1/Qf2*] 3/2*Qf2
+    ! Kaj = [1/Qf2*] (7/2 - pi^2/6)*Qf2
     Gaj = 1.5_/**/REALKIND
     Kaj = 3.5_/**/REALKIND - pi2_6
     if (M2j == 0) then
@@ -192,7 +263,12 @@ subroutine intdip_Gj(j,flavj,M2j,Q2_aux,Gj)
 
   ! Gj = Tj^2*([V_jk] - pi^2/3) + Gamma_j + Gaj + Kaj
   ! V_jk --> Fjk; Tj2 = cf for quark, ca for gluon
-  Gj(0) = Gj(0) + Gaj + Kaj - 2*pi2_6
+  if (flavj == -1) then ! emitter j = photon
+    Gj(0) = Gj(0) + Gaj + Kaj
+  else
+    Gj(0) = Gj(0) + Gaj + Kaj - 2*pi2_6
+  end if
+
   Gj(2) = 0
 
 end subroutine intdip_Gj
@@ -203,7 +279,7 @@ subroutine intdip_Fjk(j,k,Tjk,flavj,M2j,M2k,Q2_aux,Fjk)
 ! **********************************************************************
 ! spectator-dependent contributions
 ! Tjk=(p_j+p_k)^2;
-! flavj = flavour of emitter (j): 1=gluon, 2=quark/antiquark
+! flavj = flavour of emitter (j): 1=gluon, 2=quark/antiquark, 3=lepton/W, -1=gamma
 ! M2j = squared mass of emitter (j)
 ! M2k = squared mass of spectator (k)
 ! Q2_aux =  arbitrary auxiliary scale
@@ -218,7 +294,7 @@ subroutine intdip_Fjk(j,k,Tjk,flavj,M2j,M2k,Q2_aux,Fjk)
   use ol_debug, only: ol_fatal, ol_error
   use ol_generic, only: to_string
   use ol_parameters_decl_/**/REALKIND
-  use ol_loop_parameters_decl_/**/REALKIND, only: mu2_IR, pi2_6, tf, ca, kappa
+  use ol_loop_parameters_decl_/**/REALKIND, only: mu2_IR => mureg2, pi2_6, tf, ca, kappa, Qf2sum
   use ol_loop_parameters_decl_/**/DREALKIND, only: N_lf, SwF, SwB
   implicit none
 
@@ -327,9 +403,34 @@ subroutine intdip_Fjk(j,k,Tjk,flavj,M2j,M2k,Q2_aux,Fjk)
       call ol_fatal()
     end if
 
+  ! non-singular part of nu_j function for photons
+  else if (flavj == -1) then ! EMITTER j=PHOTON
+    ! singular-part vanishing for photons
+    Fjk = 0
+    ! Gaj = [1/1] - 2/3*sum(Ncf*Qf2)
+    Gaj = 0
+    if (SwF /= 0) Gaj = Gaj - 2./3.*Qf2sum
+    if (M2k == 0) then ! eq. (6.26)
+      Nuj_nonsing = 0._/**/REALKIND ! ~ tf/ca
+    else if (M2k > 0) then ! eq. (6.24) in N_f=5 scheme
+      Nuj_nonsing = Gaj*(log(Sjk/Q2jk) - 2._/**/REALKIND*log((Qjk-Mk)/Qjk)-2._/**/REALKIND*Mk/(Qjk+Mk)) + pi2_6 - spence(Sjk/Q2jk)
+      if (j > 2) then ! kappa-dep cont only for FS photons, see nu_a in (6.52)
+        ! Nuj_nonsing = Nuj_nonsing + (kappa-2/3)*M2k/Sjk*(2*tf*nl/ca-1)*log(2*Mk/(Qjk+Mk))
+!        if (SwF /= 0) Nuj_nonsing = Nuj_nonsing + (kappa-2._/**/REALKIND/3._/**/REALKIND)*M2k/Sjk*log(2*Mk/(Qjk+Mk))*(2*tf*N_lf)/3
+      end if
+    else
+      call ol_error(2,'subroutine intdip_Fjk: arguments out of range')
+      call ol_error(2,'allowed range M2k >= 0')
+ !     write(*,*) '[OpenLoops] M2k =', M2k
+      call ol_fatal()
+    end if
+
   ! non-singular part of nu_j function for quarks (ok)
-  else if (flavj >= 2 .and. flavj <= 4) then! EMITTER j=QUARK/LEPTON/W-BOSON
+  else if (flavj >= 2 .and. flavj <= 3) then! EMITTER j=QUARK/LEPTON/W-BOSON
+    ! QCD
     ! Gaj = [1/cf*] 3/2*cf
+    ! QED (cf->Qf2)
+    ! Gaj = [1/Qf2*] 3/2*Qf2
     Gaj= 1.5_/**/REALKIND
     if (M2j == 0 .and. M2k == 0) then
       Nuj_nonsing = 0
@@ -351,7 +452,7 @@ subroutine intdip_Fjk(j,k,Tjk,flavj,M2j,M2k,Q2_aux,Fjk)
     end if
   else
     call ol_error(2,'subroutine intdip_Fjk: arguments out of range')
-    call ol_error(2,'allowed range flavj=1,2')
+    call ol_error(2,'allowed range flavj=1,2,3,4')
 !    write(*,*) '[OpenLoops] flavj =', flavj
     call ol_fatal()
   end if

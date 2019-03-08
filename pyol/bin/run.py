@@ -1,23 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2015 Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-#
-# This file is part of OpenLoops.
-#
-# OpenLoops is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# OpenLoops is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+#!******************************************************************************!
+#! Copyright (C) 2014-2019 OpenLoops Collaboration. For authors see authors.txt !
+#!                                                                              !
+#! This file is part of OpenLoops.                                              !
+#!                                                                              !
+#! OpenLoops is free software: you can redistribute it and/or modify            !
+#! it under the terms of the GNU General Public License as published by         !
+#! the Free Software Foundation, either version 3 of the License, or            !
+#! (at your option) any later version.                                          !
+#!                                                                              !
+#! OpenLoops is distributed in the hope that it will be useful,                 !
+#! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+#! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+#! GNU General Public License for more details.                                 !
+#!                                                                              !
+#! You should have received a copy of the GNU General Public License            !
+#! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+#!******************************************************************************!
 
+from __future__ import print_function
 
 import sys
 import argparse
@@ -41,7 +44,7 @@ parser.add_argument('process', metavar='PROCESS',
                     help='The process to calculate')
 parser.add_argument(
     '-a', '--amptype', type=amptype_conv, default=openloops.LOOP,
-    choices=openloops.AMPTYPES.keys()+openloops.AMPTYPES.values(),
+    choices=list(openloops.AMPTYPES.keys())+list(openloops.AMPTYPES.values()),
     help='amptype')
 parser.add_argument(
     '-e', '--energy', type=float, default=openloops.default_energy,
@@ -86,9 +89,9 @@ def set_option(key, val):
             valnum, valden = val.split('/')
             val = float(valnum)/float(valden)
         except ValueError:
-            print '[PYOL] ERROR: invalid option \'{}\''.format(opt)
+            print('[PYOL] ERROR: invalid option \'{}\''.format(opt))
     if args.verbose >= 3:
-        print 'call set_parameter({},{})'.format(key,val)
+        print('call set_parameter({},{})'.format(key,val))
     openloops.set_parameter(key, val)
 
 
@@ -117,20 +120,20 @@ def print_me(mes, first=False):
         if swap_options:
             prepend = '   '
         if mes[0].amptype == openloops.TREE:
-            print prepend + '{:>23}'.format('tree')
+            print(prepend + '{:>23}'.format('tree'))
         elif mes[0].amptype == openloops.LOOP:
-            print (prepend + 5*'{:>23}').format(
-                  'tree', 'finite', 'ir1', 'ir2', 'acc')
+            print((prepend + 5*'{:>23}').format(
+                  'tree', 'finite', 'ir1', 'ir2', 'acc'))
         elif mes[0].amptype == openloops.LOOP2:
-            print (prepend + 2*'{:>23}').format('loop2', 'acc')
+            print((prepend + 2*'{:>23}').format('loop2', 'acc'))
     if args.verbose >= 2:
-        print mes[0].psp
+        print(mes[0].psp)
     if args.verbose >= 1:
         if swap_options:
             for ns, me in enumerate(mes):
-                print '[{}]{}'.format(ns+1, me.valuestr())
+                print('[{}]{}'.format(ns+1, me.valuestr()))
         else:
-            print mes[0].valuestr()
+            print(mes[0].valuestr())
 
 # =============== #
 # option handling #
@@ -151,7 +154,7 @@ for opt in stroptions:
     try:
         key, val = opt.split('=',1)
     except ValueError:
-        print '[PYOL] ERROR: invalid option \'{}\''.format(opt)
+        print('[PYOL] ERROR: invalid option \'{}\''.format(opt))
         sys.exit(1)
     vals = val.split(':')
     options.append((key,vals[0]))
@@ -159,7 +162,7 @@ for opt in stroptions:
         if not swap_options:
             swap_options = [list() for val in vals]
         if len(vals) != len(swap_options):
-            print 'ERROR: swap options must all have equal length.'
+            print('ERROR: swap options must all have equal length.')
             sys.exit(1)
         for val, sopt in zip(vals, swap_options):
             sopt.append((key,val))
@@ -195,18 +198,18 @@ if not is_library:
     try:
         processes = [openloops.Process(args.process, args.amptype)]
     except openloops.RegisterProcessError:
-        print ('[PYOL] ERROR registering process \'{}\' ' +
-               'with amptype {}.').format(args.process, args.amptype)
+        print(('[PYOL] ERROR registering process \'{}\' ' +
+               'with amptype {}.').format(args.process, args.amptype))
         if not '>' in args.process:
-            print '(reading info file failed, too)'
+            print('(reading info file failed, too)')
         sys.exit(1)
 else:
     # register channels from a process library
     try:
         processes = procinfo.register()
     except openloops.RegisterProcessError as err:
-        print ('[PYOL] ERROR while registering process from library ' +
-               '{}:\n       {}').format(args.process, err.args[0])
+        print('[PYOL] ERROR while registering process from library ' +
+              '{}:\n       {}').format(args.process, err.args[0])
         sys.exit(1)
 
 # === #
@@ -216,8 +219,8 @@ else:
 if args.parallel < 0:
     # evaluation in main process only
     for proc in processes:
-        print
-        print '"' + proc.process + '"'
+        print()
+        print('"' + proc.process + '"')
         if not args.timing:
             for n in range(args.n):
                 psp = proc.psp(args.energy)
@@ -232,6 +235,7 @@ if args.parallel < 0:
             mes = eval_me(proc, psp)
             print_me(mes)
             starttime = time.clock()
+            npoints = 0
             if args.n is not None:
                 npoints = args.n
                 for n in range(args.n):
@@ -239,7 +243,6 @@ if args.parallel < 0:
                     mes = eval_me(proc, psp)
                     print_me(mes)
             else:
-                npoints = 0
                 while (time.clock() < starttime + args.mintime or
                     npoints < args.minn):
                     npoints = npoints + 1
@@ -247,16 +250,16 @@ if args.parallel < 0:
                     mes = eval_me(proc, psp)
                     print_me(mes)
             endtime = time.clock()
-            print ('time per phase space point: {:3f} ms (avg. of {} ' +
-                'points)').format(1000*(endtime - starttime)/npoints, npoints)
+            print(('time per phase space point: {:3f} ms (avg. of {} ' +
+                'points)').format(1000*(endtime - starttime)/npoints, npoints))
 
 else:
     # parallel evaluation in subprocesses
     procamp_list = [(proc.process, proc.amptype) for proc in processes]
     pool = parallel.Pool(procamp_list, args.parallel, options, swap_options)
     for proc in processes:
-        print
-        print '"' + proc.process + '"'
+        print()
+        print('"' + proc.process + '"')
         # submit phase space points
         for n in range(args.n):
             pool.put((proc.process, proc.amptype), proc.psp(args.energy))

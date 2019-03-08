@@ -1,20 +1,21 @@
-
-# Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-#
-# This file is part of OpenLoops.
-#
-# OpenLoops is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# OpenLoops is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+#!******************************************************************************!
+#! Copyright (C) 2014-2019 OpenLoops Collaboration. For authors see authors.txt !
+#!                                                                              !
+#! This file is part of OpenLoops.                                              !
+#!                                                                              !
+#! OpenLoops is free software: you can redistribute it and/or modify            !
+#! it under the terms of the GNU General Public License as published by         !
+#! the Free Software Foundation, either version 3 of the License, or            !
+#! (at your option) any later version.                                          !
+#!                                                                              !
+#! OpenLoops is distributed in the hope that it will be useful,                 !
+#! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+#! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+#! GNU General Public License for more details.                                 !
+#!                                                                              !
+#! You should have received a copy of the GNU General Public License            !
+#! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+#!******************************************************************************!
 
 
 import os
@@ -30,19 +31,22 @@ class CPPContainer:
     cpp_script = os.path.join('pyol', 'build', 'cpp.scons')
 
     def __init__(self, mp_src = [], dp_src = [], version_src = [], mp = ['dp'],
-                 version = 'none', revision = 'none', cpp_defs = [],
-                 scons_cmd = 'scons', version_macro = 'VERSION',
-                 revision_macro = 'REVISION', kind_parameter = 'REALKIND',
-                 target = 'cpp', target_prefix = ''):
+                 version = 'none', process_api = -1, revision = 'none',
+                 cpp_defs = [], scons_cmd = 'scons', version_macro = 'VERSION',
+                 process_api_macro = 'PROCESSAPI', revision_macro = 'REVISION',
+                 kind_parameter = 'REALKIND', target = 'cpp',
+                 target_prefix = ''):
         self.mp_src = list(mp_src)
         self.dp_src = list(dp_src)
         self.version_src = list(version_src)
         self.mp = list(mp)
         self.version = version
+        self.process_api = process_api
         self.revision = revision
         self.cpp_defs = [(cppdef,) if isinstance(cppdef, str) else cppdef for cppdef in cpp_defs]
         self.scons_cmd = scons_cmd
         self.version_macro = version_macro
+        self.process_api_macro = process_api_macro
         self.revision_macro = revision_macro
         self.kind_parameter = kind_parameter
         self.target = target
@@ -65,9 +69,15 @@ class CPPContainer:
 
         src_list = []
         for precision in self.mp:
+            if precision.startswith('qp_'):
+                continue
+            if precision == 'dp':
+                suffix = ''
+            else:
+                suffix = '_' + precision
             src_list.extend([CPPContainer.src_path_mod(srcfile,
                                self.target_prefix,
-                               '_' + precision + os.path.splitext(srcfile)[1].lower())
+                               suffix + os.path.splitext(srcfile)[1].lower())
                                for srcfile in mp_src])
         src_list.extend([CPPContainer.src_path_mod(srcfile,
                            self.target_prefix,
@@ -84,8 +94,10 @@ class CPPContainer:
 
         success = subprocess.call([self.scons_cmd] + scons_flags + ['-f', self.cpp_script,
             'version=' + self.version,
+            'process_api=' + str(self.process_api),
             'revision=' + self.revision,
             'version_macro=' + self.version_macro,
+            'process_api_macro=' + self.process_api_macro,
             'revision_macro=' + self.revision_macro,
             'kind_parameter=' + self.kind_parameter,
             'mp_src=' + ','.join(self.mp_src),
@@ -102,8 +114,10 @@ class CPPContainer:
 
 class OLLibrary:
     """OpenLoops library class"""
-    def __init__(self, name, target_dir = '', mod_dir = '@mod', mod_dependencies = [], linklibs = [],
-                 src_dir = '', mp_src = [], dp_src = [], version_src = [], py_src = [], to_cpp = False):
+    def __init__(self, name, target_dir = '', mod_dir = '@mod', cpp_paths = [],
+                 mod_dependencies = [], linklibs = [],
+                 src_dir = '', mp_src = [], dp_src = [],
+                 version_src = [], py_src = [], to_cpp = False):
         self.libname = name
         self.target_dir = target_dir
         if mod_dir == '@mod':
@@ -113,9 +127,10 @@ class OLLibrary:
                 self.mod_dir = os.path.join('mod')
         else:
             self.mod_dir = mod_dir
+        self.cpp_paths = cpp_paths
         self.mod_dependencies = list(mod_dependencies)
-        self.linklibs = list(set(
-            linklibs + [dep.lower() for dep in mod_dependencies]))
+        self.linklibs = sorted(list(set(
+            linklibs + [dep.lower() for dep in mod_dependencies])))
         self.src = []
         self.add(src_dir = src_dir, mp_src = list(mp_src), dp_src = list(dp_src),
                  version_src = list(version_src), py_src = list(py_src), to_cpp = to_cpp)
@@ -161,6 +176,7 @@ class OLLibrary:
                 modified_env = env.Clone(FORTRANMODDIR = self.mod_dir,
                                          FORTRANPATH = f_path,
                                          F90PATH = f90_path,
+                                         CPPPATH = self.cpp_paths,
                                          **envm)
                 unprocessed_src = []
                 for sf in src:
@@ -181,6 +197,7 @@ class OLLibrary:
                                          FORTRANMODDIR = self.mod_dir,
                                          FORTRANPATH = f_path,
                                          F90PATH = f90_path,
+                                         CPPPATH = self.cpp_paths,
                                          LIBS = self.linklibs)
         else:
             self.lib = env.StaticLibrary(os.path.join(self.target_dir, self.libname.lower()),
@@ -188,6 +205,7 @@ class OLLibrary:
                                          FORTRANMODDIR = self.mod_dir,
                                          FORTRANPATH = f_path,
                                          F90PATH = f90_path,
+                                         CPPPATH = self.cpp_paths,
                                          LIBS = self.linklibs)
 
         return self.lib

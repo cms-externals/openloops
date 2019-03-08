@@ -7,7 +7,7 @@
 !!  COLLIER is licenced under the GNU GPL version 3, see COPYING for details.
 !!
 
-
+#include "global_coli.h"
 
 #define QCONT
 
@@ -192,7 +192,7 @@ c     regular case
             call ErrOut_coli('C0_coli',' branch not found',
      &          errorwriteflag)
             if (errorwriteflag) then
-              write(nerrout_coli,*) ' C0_coli: inconsistency 0ir 0ms 1m0'
+             write(nerrout_coli,*) ' C0_coli: inconsistency 0ir 0ms 1m0'
             endif
 #endif
           endif
@@ -209,7 +209,7 @@ c     regular case
             call ErrOut_coli('C0_coli',' branch not found',
      &          errorwriteflag)
             if (errorwriteflag) then
-              write(nerrout_coli,*) ' C0_coli: inconsistency 0ir 0ms 2m0'
+             write(nerrout_coli,*) ' C0_coli: inconsistency 0ir 0ms 2m0'
             endif
 #endif
           endif
@@ -382,8 +382,8 @@ c double collinear case
      &      .or.ms12.eq.cd0.and.ps12.eq.ms22.and.ps13.eq.ms32
      &      .or.ms22.eq.cd0.and.ps12.eq.ms12.and.ps23.eq.ms32
      &      .or.ms32.eq.cd0.and.ps13.eq.ms12.and.ps23.eq.ms22
-     &      .or.dimag(p12).ne.0d0.or.dimag(p13).ne.0d0
-     &      .or.dimag(p23).ne.0d0
+     &      .or.aimag(p12).ne.0d0.or.aimag(p13).ne.0d0
+     &      .or.aimag(p23).ne.0d0
      &   ) then
           call setErrFlag_coli(-10)
           call ErrOut_coli('C0reg_coli',' wrong arguments',
@@ -519,13 +519,13 @@ c in the would-be IR limit
           endif
 
 
-          if(abs(dimag(x0(i,1))).lt.impacc*abs(real(x0(i,1))).or.
-     &        abs(dimag(x1(i,1))).lt.impacc*abs(real(x1(i,1)))) then
+          if(abs(aimag(x0(i,1))).lt.impacc*abs(real(x0(i,1))).or.
+     &        abs(aimag(x1(i,1))).lt.impacc*abs(real(x1(i,1)))) then
             x0(i,1)=real(x0(i,1))
             x1(i,1)=real(x1(i,1))
           endif
-          if(abs(dimag(x0(i,2))).lt.impacc*abs(real(x0(i,2))).or.
-     &        abs(dimag(x1(i,2))).lt.impacc*abs(real(x1(i,2)))) then
+          if(abs(aimag(x0(i,2))).lt.impacc*abs(real(x0(i,2))).or.
+     &        abs(aimag(x1(i,2))).lt.impacc*abs(real(x1(i,2)))) then
             x0(i,2)=real(x0(i,2))
             x1(i,2)=real(x1(i,2))
           endif
@@ -570,7 +570,7 @@ c-> 15.01.07:  iy2y3,iy2y4,iy1y3,iy1y4 introduced
 
 
 
-          if(dimag(yh3/(a*a*q2(i))).lt.0d0.and.real(q2(i)).lt.0d0)
+          if(aimag(yh3/(a*a*q2(i))).lt.0d0.and.real(q2(i)).lt.0d0)
      &         C0reg_coli=C0reg_coli+2d0*pi*dcmplx(0d0,1d0)
      &         *cln_coli(y(i,2)/y(i,1),1d0)
 
@@ -687,13 +687,13 @@ c-> 15.01.07:  iy2y3,iy2y4,iy1y3,iy1y4 introduced
               x1(i,2) =  mi2(i)/(q2(i)* x1(i,1))
             endif
 
-            if(abs(dimag(x0(i,1))).lt.impacc*abs(real(x0(i,1))).or.
-     &          abs(dimag(x1(i,1))).lt.impacc*abs(real(x1(i,1)))) then
+            if(abs(aimag(x0(i,1))).lt.impacc*abs(real(x0(i,1))).or.
+     &          abs(aimag(x1(i,1))).lt.impacc*abs(real(x1(i,1)))) then
               x0(i,1)=real(x0(i,1))
               x1(i,1)=real(x1(i,1))
             endif
-            if(abs(dimag(x0(i,2))).lt.impacc*abs(real(x0(i,2))).or.
-     &          abs(dimag(x1(i,2))).lt.impacc*abs(real(x1(i,2)))) then
+            if(abs(aimag(x0(i,2))).lt.impacc*abs(real(x0(i,2))).or.
+     &          abs(aimag(x1(i,2))).lt.impacc*abs(real(x1(i,2)))) then
               x0(i,2)=real(x0(i,2))
               x1(i,2)=real(x1(i,2))
             endif
@@ -745,7 +745,7 @@ c-> 15.01.07:  iy2y3,iy2y4,iy1y3,iy1y4 introduced
             endif
 
 
-            if(dimag(yh3/(a*a*q2(i))).lt.-abs(yh3/(a*a*q2(i)))*impacc
+            if(aimag(yh3/(a*a*q2(i))).lt.-abs(yh3/(a*a*q2(i)))*impacc
      &          .and.real(q2(i)).lt.0d0)
      &          C0reg_coli=C0reg_coli+2d0*pi*dcmplx(0d0,1d0)
      &          *cln_coli(y(i,2)/y(i,1),1d0)
@@ -806,13 +806,13 @@ c-> 15.01.07:  iy2y3,iy2y4,iy1y3,iy1y4 introduced
               x1(i,2) =  mi2(i)/(q2(i)* x1(i,1))
             endif
 
-            if(abs(dimag(x0(i,1))).lt.impacc*abs(real(x0(i,1))).or.
-     &          abs(dimag(x1(i,1))).lt.impacc*abs(real(x1(i,1)))) then
+            if(abs(aimag(x0(i,1))).lt.impacc*abs(real(x0(i,1))).or.
+     &          abs(aimag(x1(i,1))).lt.impacc*abs(real(x1(i,1)))) then
               x0(i,1)=real(x0(i,1))
               x1(i,1)=real(x1(i,1))
             endif
-            if(abs(dimag(x0(i,2))).lt.impacc*abs(real(x0(i,2))).or.
-     &          abs(dimag(x1(i,2))).lt.impacc*abs(real(x1(i,2)))) then
+            if(abs(aimag(x0(i,2))).lt.impacc*abs(real(x0(i,2))).or.
+     &          abs(aimag(x1(i,2))).lt.impacc*abs(real(x1(i,2)))) then
               x0(i,2)=real(x0(i,2))
               x1(i,2)=real(x1(i,2))
             endif
@@ -895,7 +895,7 @@ c-> 15.01.07:  iy2y3,iy2y4,iy1y3,iy1y4 introduced
 
 
 #ifdef WARN
-        if(dimag(a).ne.0d0) then
+        if(aimag(a).ne.0d0) then
           call setErrFlag_coli(-4)
           call ErrOut_coli('C0reg_coli',' imaginary a not supported',
      &          errorwriteflag)
@@ -1026,13 +1026,13 @@ c-> 15.01.07:  iy2y3,iy2y4,iy1y3,iy1y4 introduced
           x1(3,2) =  mi2(3)/(q2(3)* x1(3,1))
         endif
 
-        if(abs(dimag(x0(3,1))).lt.impacc*abs(real(x0(3,1))).or.
-     &      abs(dimag(x1(3,1))).lt.impacc*abs(real(x1(3,1)))) then
+        if(abs(aimag(x0(3,1))).lt.impacc*abs(real(x0(3,1))).or.
+     &      abs(aimag(x1(3,1))).lt.impacc*abs(real(x1(3,1)))) then
           x0(3,1)=real(x0(3,1))
           x1(3,1)=real(x1(3,1))
         endif
-        if(abs(dimag(x0(3,2))).lt.impacc*abs(real(x0(3,2))).or.
-     &      abs(dimag(x1(3,2))).lt.impacc*abs(real(x1(3,2)))) then
+        if(abs(aimag(x0(3,2))).lt.impacc*abs(real(x0(3,2))).or.
+     &      abs(aimag(x1(3,2))).lt.impacc*abs(real(x1(3,2)))) then
           x0(3,2)=real(x0(3,2))
           x1(3,2)=real(x1(3,2))
         endif
@@ -1083,7 +1083,7 @@ c-> 15.01.07:  iy2y3,iy2y4,iy1y3,iy1y4 introduced
 
         endif
 
-        if(dimag(yh3/(a*a*q2(3))).lt.0d0.and.real(q2(3)).lt.0d0)
+        if(aimag(yh3/(a*a*q2(3))).lt.0d0.and.real(q2(3)).lt.0d0)
      &      C0reg_coli=C0reg_coli+2d0*pi*dcmplx(0d0,1d0)
      &      *cln_coli(y(3,2)/y(3,1),1d0)
 
@@ -1441,7 +1441,7 @@ c-> 15.01.07:  iy2y3,iy2y4,iy1y3,iy1y4 introduced
 
 
           C0m0_coli = cln_coli(-x1,-ix1)**2 +  cln_coli(-x2,ix1)**2
-     &         - cdlog(mm22/mm32)**2
+     &         - log(mm22/mm32)**2
           C0m0_coli = C0m0_coli/(2d0*p23)
         endif
       endif
@@ -1667,10 +1667,10 @@ c-> 15.01.07:  iy2y3,iy2y4,iy1y3,iy1y4 introduced
 #ifdef CHECK
       else
         call setErrFlag_coli(-10)
-        call ErrOut_coli('C0m20_coli',' wrong arguments',
+        call ErrOut_coli('C02m0_coli',' wrong arguments',
      &          errorwriteflag)
         if (errorwriteflag) then
-          write(nerrout_coli,100) ' C02m0 called with improper arguments'
+          write(nerrout_coli,100)' C02m0 called with improper arguments'
           write(nerrout_coli,100) '     or case not implemented    '
           write(nerrout_coli,111) ' C02m0_coli: p12 = ',p12
           write(nerrout_coli,111) ' C02m0_coli: p23 = ',p23
@@ -1873,8 +1873,8 @@ c-> 15.01.07:  iy2y3,iy2y4,iy1y3,iy1y4 introduced
         if(ms12.ne.cd0.or.p12.ne.m22.or.p13.ne.m32
      &      .or.ms22.eq.cd0.or.ms32.eq.cd0
      &      .or.ps23.eq.cd0.and.ms32.eq.cd0.and.ms22.eq.cd0
-     &      .or.dimag(p12).ne.0d0.or.dimag(p13).ne.0d0
-     &      .or.dimag(p23).ne.0d0) then
+     &      .or.aimag(p12).ne.0d0.or.aimag(p13).ne.0d0
+     &      .or.aimag(p23).ne.0d0) then
           call setErrFlag_coli(-10)
           call ErrOut_coli('C0ms0ir1_coli',' wrong arguments',
      &          errorwriteflag)
@@ -1904,7 +1904,8 @@ c according to Dittmaier Nucl. Phys. B675 (2003) 447   (B.5,B.6)
             call ErrOut_coli('C0ms0ir1_coli','case not implemented',
      &          errorwriteflag)
             if (errorwriteflag) then
-              write(nerrout_coli,100) 'C0ms0ir1_coli: singular determinant'
+              write(nerrout_coli,100)
+     &                       'C0ms0ir1_coli: singular determinant'
               write(nerrout_coli,111) 'C0ms0ir1_coli: det = ',a
               write(nerrout_coli,111) 'C0ms0ir1_coli: p12 = ',p12
               write(nerrout_coli,111) 'C0ms0ir1_coli: p23 = ',p23
@@ -2097,8 +2098,8 @@ c according to Dittmaier Nucl. Phys. B675 (2003) 447   (B.5,B.6)
      &      ps13.eq.cd0.and.ms32.eq.cd0.or.
      &      ps23.eq.cd0.and.ms32.eq.cd0.or.
      &      ps23.eq.ps13
-     &      .or.dimag(p12).ne.0d0.or.dimag(p23).ne.0d0
-     &      .or.dimag(p13).ne.0d0) then
+     &      .or.aimag(p12).ne.0d0.or.aimag(p23).ne.0d0
+     &      .or.aimag(p13).ne.0d0) then
           call setErrFlag_coli(-10)
           call ErrOut_coli('C0ms1ir0_coli',' wrong arguments',
      &          errorwriteflag)
@@ -2403,8 +2404,8 @@ c     Dittmaier Nucl. Phys. B675 (2003) 447   (B.2)
         if(ms12.ne.cd0.or.ms22.ne.cd0.or.ps12.ne.cd0
      &        .or.ms32.eq.cd0.or.p13.ne.m32.or.p23.eq.m32
      &        .or.ps23.eq.ms32
-     &        .or.dimag(p12).ne.0d0.or.dimag(p23).ne.0d0
-     &        .or.dimag(p13).ne.0d0) then
+     &        .or.aimag(p12).ne.0d0.or.aimag(p23).ne.0d0
+     &        .or.aimag(p13).ne.0d0) then
           call setErrFlag_coli(-10)
           call ErrOut_coli('C0ms1ir1_coli',' wrong arguments',
      &          errorwriteflag)
@@ -2421,8 +2422,8 @@ c     Dittmaier Nucl. Phys. B675 (2003) 447   (B.2)
      &          ms12.ne.cd0,ms22.ne.cd0,ps12.ne.cd0
      &          ,ms32.eq.cd0,p13.ne.m32,p23.eq.m32
      &          ,ps23.eq.ms32
-     &          ,dimag(p12).ne.0d0,dimag(p23).ne.0d0
-     &          ,dimag(p13).ne.0d0
+     &          ,aimag(p12).ne.0d0,aimag(p23).ne.0d0
+     &          ,aimag(p13).ne.0d0
           endif
           C0ms1ir1_coli = undefined
           return
@@ -2776,8 +2777,8 @@ c case: Dittmaier Nucl. Phys. B675 (2003) 447  (B.10)
 
         if(ms12.ne.cd0.or.ms22.ne.cd0.or.ms32.ne.cd0
      &        .or.ps12.ne.cd0.or.ps13.ne.cd0.or.ps23.eq.cd0
-     &        .or.dimag(p12).ne.0d0.or.dimag(p23).ne.0d0
-     &        .or.dimag(p13).ne.0d0) then
+     &        .or.aimag(p12).ne.0d0.or.aimag(p23).ne.0d0
+     &        .or.aimag(p13).ne.0d0) then
           call setErrFlag_coli(-10)
           call ErrOut_coli('C0ms2ir1_coli',' wrong arguments',
      &          errorwriteflag)
@@ -3016,8 +3017,8 @@ c Dittmaier Nucl. Phys. B675 (2003) 447   (B.9)
      &          errorwriteflag)
             if (errorwriteflag) then
               write(nerrout_coli,100) ' C0ms2ir1_coli: (B.13)',
-     &            '    case with 0 soft singularity and 2 zero masses: ',
-     &            '    wrong arguments'
+     &           '    case with 0 soft singularity and 2 zero masses: ',
+     &           '    wrong arguments'
               write(nerrout_coli,111) ' C0ms2ir1_coli: p12 = ',p12
               write(nerrout_coli,111) ' C0ms2ir1_coli: p23 = ',p23
               write(nerrout_coli,111) ' C0ms2ir1_coli: p13 = ',p13
@@ -3061,8 +3062,8 @@ c Dittmaier Nucl. Phys. B675 (2003) 447   (B.13)
      &          errorwriteflag)
             if (errorwriteflag) then
               write(nerrout_coli,100) ' C0ms2ir1_coli: (B.14)',
-     &            '    case with 0 soft singularity and 1 zero masses: ',
-     &            '    wrong arguments'
+     &           '    case with 0 soft singularity and 1 zero masses: ',
+     &           '    wrong arguments'
               write(nerrout_coli,111) ' C0ms2ir1_coli: p12 = ',p12
               write(nerrout_coli,111) ' C0ms2ir1_coli: p23 = ',p23
               write(nerrout_coli,111) ' C0ms2ir1_coli: p13 = ',p13
@@ -3105,8 +3106,8 @@ c Dittmaier Nucl. Phys. B675 (2003) 447   (B.14)
      &          errorwriteflag)
             if (errorwriteflag) then
               write(nerrout_coli,100) ' C0ms2ir1_coli: (B.15)',
-     &            '    case with 0 soft singularity and 0 zero masses: ',
-     &            '    wrong arguments'
+     &           '    case with 0 soft singularity and 0 zero masses: ',
+     &           '    wrong arguments'
               write(nerrout_coli,111) ' C0ms2ir1_coli: p12 = ',p12
               write(nerrout_coli,111) ' C0ms2ir1_coli: p23 = ',p23
               write(nerrout_coli,111) ' C0ms2ir1_coli: p13 = ',p13
@@ -3124,8 +3125,8 @@ c Dittmaier Nucl. Phys. B675 (2003) 447   (B.14)
      &          errorwriteflag)
             if (errorwriteflag) then
               write(nerrout_coli,100) ' C0ms2ir1_coli: (B.15)',
-     &            '    case with 0 soft singularity and 0 zero masses: ',
-     &            '    not yet tested in physical process'
+     &           '    case with 0 soft singularity and 0 zero masses: ',
+     &           '    not yet tested in physical process'
               write(nerrout_coli,111) ' C0ms2ir1_coli: p12 = ',p12
               write(nerrout_coli,111) ' C0ms2ir1_coli: p23 = ',p23
               write(nerrout_coli,111) ' C0ms2ir1_coli: p13 = ',p13

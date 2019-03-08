@@ -7,7 +7,7 @@
 !!  COLLIER is licenced under the GNU GPL version 3, see COPYING for details.
 !!
 
-
+#include "global_coli.h"
 
 c#define WRITERP
 c#define WRITESD
@@ -59,9 +59,9 @@ c#define WRITESTD
       complex*16 r12,r13,r14,r23,r24,r34
       complex*16 r21,r31,r41,r32,r42,r43
       complex*16 a,b,c,d,det
-      complex*16 x(2,4)
+      complex*16 x(2,4),yc(4,4)
       complex*16 ch0,ch1,ch2,ch3,ch4,ch5,l1,l2,argl1
-      complex*16 eta
+      complex*16 eta,chdet
       real*8     ir12,ir13,ir14,ir23,ir24,ir34
       real*8     ix(2,4),ipop(2)
       real*8     test0,test1,test2,test3,test4,test5
@@ -89,7 +89,6 @@ c#define WRITESTD
 #include "params_coli.h"
 #include "checkparams_coli.h"
 
-
  100  format(((a)))
  111  format(a22,2('(',g24.17,',',g24.17,') ':))
 #ifdef CHECK
@@ -107,9 +106,9 @@ c#define WRITESTD
         ps13 = elimminf2_coli(p13)
 
         if(ms32.eq.0d0.or.ms12.eq.cd0.or.ms22.eq.cd0.or.ms42.eq.cd0
-     &      .or.dimag(p12).ne.0d0.or.dimag(p23).ne.0d0
-     &      .or.dimag(p34).ne.0d0.or.dimag(p14).ne.0d0
-     &      .or.dimag(p24).ne.0d0.or.dimag(p13).ne.0d0) then
+     &      .or.aimag(p12).ne.0d0.or.aimag(p23).ne.0d0
+     &      .or.aimag(p34).ne.0d0.or.aimag(p14).ne.0d0
+     &      .or.aimag(p24).ne.0d0.or.aimag(p13).ne.0d0) then
           call setErrFlag_coli(-10)
           call ErrOut_coli('D0regrp_coli',' improper arguments',
      &        errorwriteflag)
@@ -128,14 +127,13 @@ c#define WRITESTD
             write(nerrout_coli,111)' D0regrp_coli: m42 = ',m42
             write(nerrout_coli,*)' D0regrp_coli: test= ',
      &          ms32.eq.0d0,ms12.eq.cd0,ms22.eq.cd0,ms42.eq.cd0
-     &          ,dimag(p12).ne.0d0,dimag(p23).ne.0d0
-     &          ,dimag(p34).ne.0d0,dimag(p14).ne.0d0
-     &          ,dimag(p24).ne.0d0,dimag(p13).ne.0d0
+     &          ,aimag(p12).ne.0d0,aimag(p23).ne.0d0
+     &          ,aimag(p34).ne.0d0,aimag(p14).ne.0d0
+     &          ,aimag(p24).ne.0d0,aimag(p13).ne.0d0
           endif
         endif
       endif
 #endif
-
 
       l12 = (m12+m22-p12)
       l13 = (m12+m32-p13)
@@ -144,14 +142,12 @@ c#define WRITESTD
       l24 = (m22+m42-p24)
       l34 = (m32+m42-p34)
 
-
       if(l12.ne.cd0)then
         r12 = l12/(2d0*m22)*(1d0+sqrt(1d0-4d0*m12*m22/l12**2))
       else
         r12 = dcmplx(0d0,1d0)*sqrt(m12/m22)
       endif
       r21 = r12*m22/m12
-
 
       if(l13.ne.cd0)then
         if(p13.eq.cd0)then
@@ -165,10 +161,7 @@ c#define WRITESTD
         r31 = dcmplx(0d0,1d0)*sqrt(m32/m12)
       endif
 
-
-
       r13 = r31*m12/m32
-
 
       if(l14.ne.cd0)then
         r14 = l14/(2d0*m42)*(1d0+sqrt(1d0-4d0*m12*m42/l14**2))
@@ -198,16 +191,13 @@ c#define WRITESTD
       r42 = 1d0/r24
       r24 = m22/m42/r24
 
-      if( dimag(r31).ne.0d0.and.
-     &    (dimag(m22*r31*r31).gt.0d0.or.dimag(m42*r31*r31).gt.0d0.or.
-     &    dimag(r31*l23).gt.0d0.or.dimag(r31*l34).gt.0d0.or.
-     &    dimag(r31*r31*l24).gt.0d0)) then
+      if( aimag(r31).ne.0d0.and.
+     &    (aimag(m22*r31*r31).gt.0d0.or.aimag(m42*r31*r31).gt.0d0.or.
+     &    aimag(r31*l23).gt.0d0.or.aimag(r31*l34).gt.0d0.or.
+     &    aimag(r31*r31*l24).gt.0d0)) then
         r31 = 1d0/r13
         r13 = m12/m32/r13
       endif
-
-
-
 
       ir12 = sign(1d0,real((r12*r21-1d0)*r12*m12))
       ir13 = sign(1d0,real((r13*r31-1d0)*r13*m12))
@@ -216,27 +206,52 @@ c#define WRITESTD
       ir24 = sign(1d0,real((r24*r42-1d0)*r24*m22))
       ir34 = sign(1d0,real((r34*r43-1d0)*r34*m32))
 
-
       a   =  m42*(l34/r42-l23 + (l12-l14/r42)*r31)
       b   =  m12*m42*(1d0/r13-r31)*(1d0/r42-r24)+l12*l34-l14*l23
       c   =  m12*(l34*r24-l23 + (l12-l14*r24)/r13)
       d   =  l23-r31*l12 - (l34-r31*l14)*r24
       det =  sqrt(b*b-4d0*a*c)
 
+c calculation of det via chdet implemented 23.11.2017
+      if(abs(det)**2.lt.sqrt(calacc)*max(abs(b*b),abs(4d0*a*c))) then
+        yc(1,2) = l12
+        yc(1,3) = l13
+        yc(1,4) = l14
+        yc(2,3) = l23
+        yc(2,4) = l24
+        yc(3,4) = l34
+        yc(2,1) = l12
+        yc(3,1) = l13
+        yc(4,1) = l14
+        yc(3,2) = l23
+        yc(4,2) = l24
+        yc(4,3) = l34
+        yc(1,1) = 2d0*m12
+        yc(2,2) = 2d0*m22
+        yc(3,3) = 2d0*m32
+        yc(4,4) = 2d0*m42
+        det = sqrt(chdet(4,yc))
+      endif
+
       if(abs(a).lt.calacc*abs(m42)*
      &      max(abs(l34/r42),abs(l23),abs(l12*r31),abs(l14/r42*r31))
-     &    .or.abs(det)**2.lt.calacc*max(abs(b*b),abs(4d0*a*c))) then
+     &    .or.abs(det)**2.lt.calacc**2*max(abs(b*b),abs(4d0*a*c))) then
+c changed 23.11.2017
+c     &    .or.abs(det)**2.lt.calacc*max(abs(b*b),abs(4d0*a*c))) then
         call setErrFlag_coli(-7)
         call ErrOut_coli('D0regrp_coli','case not implemented',
      &      errorwriteflag)
         if (errorwriteflag) then
-          write(nerrout_coli,100)' D0regrp_coli: singularity encountered'
+          write(nerrout_coli,100)
+     &           ' D0regrp_coli: singularity encountered'
           if (abs(a).lt.calacc*abs(m42)*
-     &        max(abs(l34/r42),abs(l23),abs(l12*r31),abs(l14/r42*r31))) then
+     &        max(abs(l34/r42),abs(l23),abs(l12*r31),abs(l14/r42*r31)))
+     &    then
             write(nerrout_coli,111)' D0regrp_coli: 0=a = ',a
           endif
           if (abs(det)**2.lt.calacc*max(abs(b*b),abs(4d0*a*c))) then
-            write(nerrout_coli,111)' D0regrp_coli: det =  ',det,b*b,4*a*c
+            write(nerrout_coli,111)
+     &           ' D0regrp_coli: det =  ',det,b*b,4*a*c
           endif
           write(nerrout_coli,111)' D0regrp_coli: p12 =  ',p12
           write(nerrout_coli,111)' D0regrp_coli: p23 =  ',p23
@@ -267,10 +282,8 @@ c#define WRITESTD
       ix(1,1) =  sign(1d0,ix(1,4)*real(r24)) ! needed for correct
       ix(2,1) =  sign(1d0,ix(2,4)*real(r24)) ! continuation
 
-
       x(1,1) = x(1,4)/r24
       x(2,1) = x(2,4)/r24
-
       D0regrp_coli = dcmplx(0d0)
       do i=1,2
         eta=eta2s_coli(-x(i,4),1d0/r24,-ix(i,4),-ir24,-ix(i,1))
@@ -300,7 +313,6 @@ c#define WRITESTD
      &        abs(m42*x(i,4)*r24),abs(l12),abs(r24*l14))
           test45 = min(test2,test3)
 
-
           if (test23.gt.test01.and.test23.gt.test45) then
             argl1 = ch2/ch3
           elseif(test01.gt.test45)then
@@ -309,11 +321,11 @@ c#define WRITESTD
             argl1 = ch4/ch5
           endif
 
-          if(abs(dimag(argl1)).lt.1d1*impacc*abs(argl1)) then
+          if(abs(aimag(argl1)).lt.1d1*impacc*abs(argl1)) then
 
-            if(abs(dimag(r24)).gt.impacc*abs(r24))then
-              v=dimag(x(i,4))/dimag(r24)
-              u=dimag(x(i,4)/r24)/dimag(1d0/r24)
+            if(abs(aimag(r24)).gt.impacc*abs(r24))then
+              v=aimag(x(i,4))/aimag(r24)
+              u=aimag(x(i,4)/r24)/aimag(1d0/r24)
               ipop(i) = real(-m12-m22*v*v-m42*u*u-l12*v-l14*u-l24*u*v)
             else                ! imaginary part results only from x4(i)
               ipop(i) = real(m42*(r24-1d0/r42)*ix(i,4)*d*r31)
@@ -324,14 +336,10 @@ c#define WRITESTD
 
           l1 = cln_coli(argl1,ipop(i))
 
-
-
-
           if(eta.ne.0d0)then
             D0regrp_coli = D0regrp_coli + (2*i-3) * (
      &          + eta*(l1-cln_coli(m32/m12,real(m32-m12))) )
           endif
-
 
         endif
 
@@ -345,13 +353,9 @@ c#define WRITESTD
      &      + cspcos_coli(-x(i,1),r31*r23,-ix(i,1),ir23)
      &      + cspcos_coli(-x(i,1),r31/r32,-ix(i,1),-ir23))
 
-
       enddo
 
-
       D0regrp_coli = D0regrp_coli/det
-
-
 
       end
 
@@ -373,7 +377,7 @@ c#define WRITESTD
 *                     m42                                              *
 *                                                                      *
 *----------------------------------------------------------------------*
-*  09.03.10 Ansgar Denner       last changed 09.03.10 Ansgar Denner    *
+*  09.03.10 Ansgar Denner       last changed 27.11.17 Ansgar Denner    *
 ************************************************************************
 #ifndef ADcode
       use coli_aux2
@@ -384,7 +388,7 @@ c#define WRITESTD
       complex*16 q2(0:3,0:3),m2(0:3)
       complex*16 D0comb_coli,D0regrp_coli,D0m0_coli
 
-      real*8     lambda,al
+      real*8     lambda,ga,omga,gas,omgas,gasomgas
       complex*16 mm2,qq2,D01,D02
       integer    i,j,k,l,i1,i2,i3,i4
       logical    errorwriteflag
@@ -395,10 +399,8 @@ c#define WRITESTD
       complex*16 elimminf2_coli
 #endif
 
-
 #include "params_coli.h"
 #include "checkparams_coli.h"
-
 
  111  format(a22,2('(',g24.17,',',g24.17,') ':))
 
@@ -420,9 +422,9 @@ c#define WRITESTD
         ps13 = elimminf2_coli(p13)
 
         if(ms32.eq.0d0.or.ms12.eq.cd0.or.ms22.eq.cd0.or.ms42.eq.cd0
-     &      .or.dimag(p12).ne.0d0.or.dimag(p23).ne.0d0
-     &      .or.dimag(p34).ne.0d0.or.dimag(p14).ne.0d0
-     &      .or.dimag(p24).ne.0d0.or.dimag(p13).ne.0d0) then
+     &      .or.aimag(p12).ne.0d0.or.aimag(p23).ne.0d0
+     &      .or.aimag(p34).ne.0d0.or.aimag(p14).ne.0d0
+     &      .or.aimag(p24).ne.0d0.or.aimag(p13).ne.0d0) then
           call setErrFlag_coli(-10)
           call ErrOut_coli('D0comb_coli',' improper arguments',
      &        errorwriteflag)
@@ -460,9 +462,8 @@ c#define WRITESTD
       m2(2)=m32
       m2(3)=m42
 
-
-      do i=0,3
-      do j=0,3
+      do i=0,2
+      do j=i+1,3
       if(j.ne.i)then
         if(q2(i,j).eq.0d0)then
           i1=i
@@ -489,6 +490,12 @@ c#define WRITESTD
       enddo
       enddo
 
+      i1=-1
+      i2=-1
+      i3=-1
+      gasomgas = 0d0
+      ga = 0d0
+      omga = 0d0
       do i=0,3
       do j=0,3
       if(j.ne.i)then
@@ -498,91 +505,25 @@ c#define WRITESTD
           lambda=real((q2(i,j)-q2(i,k))**2-2d0*q2(j,k)*(q2(i,j)+q2(i,k))
      &      +q2(j,k)**2)
           if(lambda.ge.0d0)then
-            i1=i
-            i2=j
-            i3=k
-            if(real(q2(j,k)).gt.0d0)then
-              if(real(q2(j,k)).gt.real(q2(i,k)).and.
-     &            real(q2(j,k)).gt.real(q2(i,j)))then
-                i1=k
-                i3=i
-              elseif(real(q2(i,k)).gt.real(q2(i,j)))then
-                i2=k
-                i3=j
-              endif
-            endif
-            if(q2(i2,i3).eq.cd0) then
-              al=0d0
-            elseif(q2(i1,i3).eq.cd0) then
-              al=1d0
-            elseif(q2(i1,i2).eq.cd0) then
-              al=real(q2(i2,i3)/(q2(i2,i3)-q2(i1,i3)))
-            elseif(real(q2(i1,i2)-q2(i1,i3)+q2(i2,i3)).gt.0d0)then
-              al=real((q2(i1,i2)-q2(i1,i3)+q2(i2,i3)+sqrt(lambda))
-     &            /(2d0*q2(i1,i2)))
-
+            if(real(q2(i,j)-q2(i,k)+q2(j,k)).gt.0d0)then
+              ga=real((q2(i,j)-q2(i,k)+q2(j,k)+sqrt(lambda))
+     &            /(2d0*q2(i,j)))
 
             else
-              al=real(2d0*q2(i2,i3)
-     &            /(q2(i1,i2)-q2(i1,i3)+q2(i2,i3)-sqrt(lambda)))
-
+              ga=real(2d0*q2(j,k)
+     &              /(q2(i,j)-q2(i,k)+q2(j,k)-sqrt(lambda)))
 
             endif
-            if(al.lt.0d0.or.al.gt.1d0)then
-              call setErrFlag_coli(-10)
-              call ErrOut_coli('D0comb_coli',' inconsistent alpha1',
-     &            errorwriteflag)
-              if (errorwriteflag) then
-                write(nerrout_coli,*)
-     &            'D0comb_coli: inconsistent alpha1 =',al,lambda
-                write(nerrout_coli,*) 'D0comb_coli: ijk ',i1,i2,i3
-                write(nerrout_coli,*) 'D0comb_coli: qijk ',
-     &              q2(i1,i2),q2(i1,i3),q2(i2,i3)
-                write(nerrout_coli,111)' D0reg_coli: p12 = ',p12
-                write(nerrout_coli,111)' D0reg_coli: p23 = ',p23
-                write(nerrout_coli,111)' D0reg_coli: p34 = ',p34
-                write(nerrout_coli,111)' D0reg_coli: p14 = ',p14
-                write(nerrout_coli,111)' D0reg_coli: p13 = ',p13
-                write(nerrout_coli,111)' D0reg_coli: p24 = ',p24
-                write(nerrout_coli,111)' D0reg_coli: m12 = ',m12
-                write(nerrout_coli,111)' D0reg_coli: m22 = ',m22
-                write(nerrout_coli,111)' D0reg_coli: m32 = ',m32
-                write(nerrout_coli,111)' D0reg_coli: m42 = ',m42
-              endif
-            endif
-            i4=0
-            do l=0,3
-              if(l.ne.i1.and.l.ne.i2.and.l.ne.i3) i4=l
-            enddo
+            if(real(q2(i,j)+q2(i,k)-q2(j,k)).lt.0d0)then
+              omga=real((q2(i,j)+q2(i,k)-q2(j,k)-sqrt(lambda))
+     &            /(2d0*q2(i,j)))
 
-
-
-            mm2=al*(m2(i1)-q2(i1,i3)) + (1d0-al)*(m2(i2)-q2(i2,i3))
-            qq2=al*(q2(i1,i4)-q2(i1,i3))
-     &          + (1d0-al)*(q2(i2,i4)-q2(i2,i3))
-
-
-
-            if (mm2.ne.cd0) then
-              D01= D0regrp_coli(q2(i3,i2),q2(i2,i1)*al*al,qq2,
-     &             q2(i4,i3),cd0,q2(i2,i4),m2(i3),m2(i2),mm2,m2(i4))
-
-              D02= D0regrp_coli(q2(i3,i1),
-     &             (1d0-al)*(1d0-al)*q2(i1,i2),qq2,q2(i4,i3),
-     &             cd0,q2(i1,i4),m2(i3),m2(i1),mm2,m2(i4))
             else
-              D01= D0m0_coli(q2(i3,i2),q2(i2,i1)*al*al,qq2,
-     &             q2(i4,i3),cd0,q2(i2,i4),m2(i3),m2(i2),mm2,m2(i4))
+              omga=real(2d0*q2(i,k)
+     &            /(q2(i,j)+q2(i,k)-q2(j,k)+sqrt(lambda)))
 
-              D02= D0m0_coli(q2(i3,i1),
-     &             (1d0-al)*(1d0-al)*q2(i1,i2),qq2,q2(i4,i3),
-     &             cd0,q2(i1,i4),m2(i3),m2(i1),mm2,m2(i4))
             endif
 
-            D0comb_coli=al*D01+(1-al)*D02
-
-
-            return
           else
             call setErrFlag_coli(-10)
             call ErrOut_coli('D0comb_coli',
@@ -611,114 +552,169 @@ c#define WRITESTD
           lambda=real((q2(i,j)-q2(i,k))**2-2d0*q2(j,k)*(q2(i,j)+q2(i,k))
      &      +q2(j,k)**2)
           if(lambda.ge.0d0)then
-            i1=i
-            i2=j
-            i3=k
-            if(real(q2(i1,i2)-q2(i1,i3)+q2(i2,i3)).lt.0d0)then
-              al=real((q2(i1,i2)-q2(i1,i3)+q2(i2,i3)-sqrt(lambda))
-     &            /(2d0*q2(i1,i2)))
+            if(real(q2(i,j)-q2(i,k)+q2(j,k)).lt.0d0)then
+              ga=real((q2(i,j)-q2(i,k)+q2(j,k)-sqrt(lambda))
+     &            /(2d0*q2(i,j)))
 
 
             else
-              al=real(2d0*q2(i2,i3)
-     &            /(q2(i1,i2)-q2(i1,i3)+q2(i2,i3)+sqrt(lambda)))
+              ga=real(2d0*q2(j,k)
+     &            /(q2(i,j)-q2(i,k)+q2(j,k)+sqrt(lambda)))
             endif
-            if(al.lt.0d0.or.al.gt.1d0)then
-              call setErrFlag_coli(-10)
-              call ErrOut_coli('D0comb_coli',' inconsistent alpha2',
-     &            errorwriteflag)
-              if (errorwriteflag) then
-                write(nerrout_coli,*)
-     &              'D0comb_coli: inconsistent alpha2 =',al,lambda
-                write(nerrout_coli,*) 'D0comb_coli: ijk ',i,j,k
-                write(nerrout_coli,*) 'D0comb_coli: qijk ',
-     &              q2(i,j),q2(i,k),q2(j,k)
-                write(nerrout_coli,111)' D0comb_coli: p12 = ',p12
-                write(nerrout_coli,111)' D0comb_coli: p23 = ',p23
-                write(nerrout_coli,111)' D0comb_coli: p34 = ',p34
-                write(nerrout_coli,111)' D0comb_coli: p14 = ',p14
-                write(nerrout_coli,111)' D0comb_coli: p13 = ',p13
-                write(nerrout_coli,111)' D0comb_coli: p24 = ',p24
-                write(nerrout_coli,111)' D0comb_coli: m12 = ',m12
-                write(nerrout_coli,111)' D0comb_coli: m22 = ',m22
-                write(nerrout_coli,111)' D0comb_coli: m32 = ',m32
-                write(nerrout_coli,111)' D0comb_coli: m42 = ',m42
-              endif
-            endif
-            i4=0
-            do l=0,3
-              if(l.ne.i1.and.l.ne.i2.and.l.ne.i3) i4=l
-            enddo
-
-
-            mm2=al*(m2(i1)-q2(i1,i3)) + (1d0-al)*(m2(i2)-q2(i2,i3))
-            qq2=al*(q2(i1,i4)-q2(i1,i3))
-     &          + (1d0-al)*(q2(i2,i4)-q2(i2,i3))
-
-            if (mm2.ne.cd0) then
-              D0comb_coli=
-     &             al*D0regrp_coli(q2(i3,i4),qq2,
-     &             q2(i1,i2)*al*al,q2(i2,i3),
-     &             cd0,q2(i2,i4),m2(i3),m2(i4),mm2,m2(i2))
-     &             +(1d0-al)*D0regrp_coli(q2(i3,i1),
-     &             (1d0-al)*(1d0-al)*q2(i1,i2),qq2,q2(i4,i3),
-     &             cd0,q2(i1,i4),m2(i3),m2(i1),mm2,m2(i4))
+            if(real(q2(i,j)+q2(i,k)-q2(j,k)).gt.0d0)then
+              omga=real((q2(i,j)+q2(i,k)-q2(j,k)+sqrt(lambda))
+     &            /(2d0*q2(i,j)))
             else
-              D0comb_coli=
-     &             al*D0m0_coli(q2(i3,i4),qq2,
-     &             q2(i1,i2)*al*al,q2(i2,i3),
-     &             cd0,q2(i2,i4),m2(i3),m2(i4),mm2,m2(i2))
-     &             +(1d0-al)*D0m0_coli(q2(i3,i1),
-     &             (1d0-al)*(1d0-al)*q2(i1,i2),qq2,q2(i4,i3),
-     &             cd0,q2(i1,i4),m2(i3),m2(i1),mm2,m2(i4))
+              omga=real(2d0*q2(i,k)
+     &            /(q2(i,j)+q2(i,k)-q2(j,k)-sqrt(lambda)))
             endif
 
-
-            return
           else
-              call setErrFlag_coli(-10)
-              call ErrOut_coli('D0comb_coli',' inconsistent alpha2',
-     &            errorwriteflag)
-              if (errorwriteflag) then
-                write(nerrout_coli,*)
-     &              'D0comb_coli: case 2, lambda<0 =',lambda
-                write(nerrout_coli,*) 'D0comb_coli: ijk ',i,j,k
-                write(nerrout_coli,*) 'D0comb_coli: qijk ',
-     &              q2(i,j),q2(i,k),q2(j,k)
-                write(nerrout_coli,111)' D0comb_coli: p12 = ',p12
-                write(nerrout_coli,111)' D0comb_coli: p23 = ',p23
-                write(nerrout_coli,111)' D0comb_coli: p34 = ',p34
-                write(nerrout_coli,111)' D0comb_coli: p14 = ',p14
-                write(nerrout_coli,111)' D0comb_coli: p13 = ',p13
-                write(nerrout_coli,111)' D0comb_coli: p24 = ',p24
-                write(nerrout_coli,111)' D0comb_coli: m12 = ',m12
-                write(nerrout_coli,111)' D0comb_coli: m22 = ',m22
-                write(nerrout_coli,111)' D0comb_coli: m32 = ',m32
-                write(nerrout_coli,111)' D0comb_coli: m42 = ',m42
-              endif
+            call setErrFlag_coli(-10)
+            call ErrOut_coli('D0comb_coli',
+     &           ' improper call: case 2, lambda<0',
+     &          errorwriteflag)
+            if (errorwriteflag) then
+              write(nerrout_coli,*)
+     &            'D0comb_coli: case 2, lambda<0 =',lambda
+              write(nerrout_coli,*) 'D0comb_coli: ijk ',i,j,k
+              write(nerrout_coli,*) 'D0comb_coli: qijk ',
+     &            q2(i,j),q2(i,k),q2(j,k)
+              write(nerrout_coli,111)' D0comb_coli: p12 = ',p12
+              write(nerrout_coli,111)' D0comb_coli: p23 = ',p23
+              write(nerrout_coli,111)' D0comb_coli: p34 = ',p34
+              write(nerrout_coli,111)' D0comb_coli: p14 = ',p14
+              write(nerrout_coli,111)' D0comb_coli: p13 = ',p13
+              write(nerrout_coli,111)' D0comb_coli: p24 = ',p24
+              write(nerrout_coli,111)' D0comb_coli: m12 = ',m12
+              write(nerrout_coli,111)' D0comb_coli: m22 = ',m22
+              write(nerrout_coli,111)' D0comb_coli: m32 = ',m32
+              write(nerrout_coli,111)' D0comb_coli: m42 = ',m42
+            endif
           endif
+
+        endif
+
+c select variant that maximises ga*omga
+        if (gasomgas.lt.ga*omga) then
+          gasomgas = ga*omga
+          gas = ga
+          omgas = omga
+          i1 = i
+          i2 = j
+          i3 = k
+        end if
+      endif
+      enddo
+      endif
+      enddo
+      enddo
+
+      if (i1.eq.-1) then
+        call setErrFlag_coli(-10)
+        call ErrOut_coli('D0comb_coli',' INCONSISTENT INPUT: '//
+     &      'no viable case found'
+     &      ,errorwriteflag)
+        if (errorwriteflag) then
+          write(nerrout_coli,*) 'D0comb_coli: INCONSISTENT INPUT: '
+          write(nerrout_coli,'(14x,(a))')
+     &        'make sure that momentum invariants that correspond to'
+          write(nerrout_coli,'(14x,(a))')
+     &     'squared external masses assume their exact numerical value!'
+          write(nerrout_coli,111)' D0comb_coli: p12 = ',p12
+          write(nerrout_coli,111)' D0comb_coli: p23 = ',p23
+          write(nerrout_coli,111)' D0comb_coli: p34 = ',p34
+          write(nerrout_coli,111)' D0comb_coli: p14 = ',p14
+          write(nerrout_coli,111)' D0comb_coli: p13 = ',p13
+          write(nerrout_coli,111)' D0comb_coli: p24 = ',p24
+          write(nerrout_coli,111)' D0comb_coli: m12 = ',m12
+          write(nerrout_coli,111)' D0comb_coli: m22 = ',m22
+          write(nerrout_coli,111)' D0comb_coli: m32 = ',m32
+          write(nerrout_coli,111)' D0comb_coli: m42 = ',m42
         endif
       endif
- 99   enddo
-      endif
-      enddo
+
+      i4=0
+      do l=0,3
+        if(l.ne.i1.and.l.ne.i2.and.l.ne.i3) i4=l
       enddo
 
-      call setErrFlag_coli(-10)
-      call ErrOut_coli('D0comb_coli',' no viable case found',
-     &    errorwriteflag)
-      if (errorwriteflag) then
-        write(nerrout_coli,*) 'D0comb_coli: no viable case found'
-        write(nerrout_coli,111)' D0comb_coli: p12 = ',p12
-        write(nerrout_coli,111)' D0comb_coli: p23 = ',p23
-        write(nerrout_coli,111)' D0comb_coli: p34 = ',p34
-        write(nerrout_coli,111)' D0comb_coli: p14 = ',p14
-        write(nerrout_coli,111)' D0comb_coli: p13 = ',p13
-        write(nerrout_coli,111)' D0comb_coli: p24 = ',p24
-        write(nerrout_coli,111)' D0comb_coli: m12 = ',m12
-        write(nerrout_coli,111)' D0comb_coli: m22 = ',m22
-        write(nerrout_coli,111)' D0comb_coli: m32 = ',m32
-        write(nerrout_coli,111)' D0comb_coli: m42 = ',m42
+      ga = gas
+      omga = omgas
+
+      if(ga.lt.0d0.or.omga.lt.0d0)then
+        call setErrFlag_coli(-10)
+        call ErrOut_coli('D0comb_coli',' inconsistent gamma',
+     &      errorwriteflag)
+        if (errorwriteflag) then
+          write(nerrout_coli,*)
+     &        'D0comb_coli: inconsistent gamma =',ga,omga,lambda
+          write(nerrout_coli,*) 'D0comb_coli: ijk ',i1,i2,i3
+          write(nerrout_coli,*) 'D0comb_coli: qijk ',
+     &        q2(i1,i2),q2(i1,i3),q2(i2,i3)
+          write(nerrout_coli,111)' D0reg_coli: p12 = ',p12
+          write(nerrout_coli,111)' D0reg_coli: p23 = ',p23
+          write(nerrout_coli,111)' D0reg_coli: p34 = ',p34
+          write(nerrout_coli,111)' D0reg_coli: p14 = ',p14
+          write(nerrout_coli,111)' D0reg_coli: p13 = ',p13
+          write(nerrout_coli,111)' D0reg_coli: p24 = ',p24
+          write(nerrout_coli,111)' D0reg_coli: m12 = ',m12
+          write(nerrout_coli,111)' D0reg_coli: m22 = ',m22
+          write(nerrout_coli,111)' D0reg_coli: m32 = ',m32
+          write(nerrout_coli,111)' D0reg_coli: m42 = ',m42
+        endif
+      endif
+
+      if(ga.lt.calacc) then
+        mm2=(m2(i2)-q2(i2,i3))
+        qq2=(q2(i2,i4)-q2(i2,i3))
+
+        if (mm2.ne.cd0) then
+          D02= D0regrp_coli(q2(i3,i1),
+     &        q2(i1,i2),qq2,q2(i4,i3),
+     &        cd0,q2(i1,i4),m2(i3),m2(i1),mm2,m2(i4))
+        else
+          D02= D0m0_coli(q2(i3,i1),
+     &        q2(i1,i2),qq2,q2(i4,i3),
+     &        cd0,q2(i1,i4),m2(i3),m2(i1),mm2,m2(i4))
+        endif
+
+        D0comb_coli=D02
+
+      else if (omga.lt.calacc) then
+        mm2=(m2(i1)-q2(i1,i3))
+        qq2=(q2(i1,i4)-q2(i1,i3))
+
+        if (mm2.ne.cd0) then
+          D01= D0regrp_coli(q2(i3,i2),q2(i2,i1),qq2,
+     &        q2(i4,i3),cd0,q2(i2,i4),m2(i3),m2(i2),mm2,m2(i4))
+        else
+          D01= D0m0_coli(q2(i3,i2),q2(i2,i1),qq2,
+     &        q2(i4,i3),cd0,q2(i2,i4),m2(i3),m2(i2),mm2,m2(i4))
+        endif
+
+        D0comb_coli=D01
+
+      else
+        mm2=ga*(m2(i1)-q2(i1,i3)) + omga*(m2(i2)-q2(i2,i3))
+        qq2=ga*(q2(i1,i4)-q2(i1,i3)) + omga*(q2(i2,i4)-q2(i2,i3))
+
+        if (mm2.ne.cd0) then
+          D01= D0regrp_coli(q2(i3,i2),q2(i2,i1)*ga*ga,qq2,
+     &        q2(i4,i3),cd0,q2(i2,i4),m2(i3),m2(i2),mm2,m2(i4))
+          D02= D0regrp_coli(q2(i3,i1),
+     &        omga*omga*q2(i1,i2),qq2,q2(i4,i3),
+     &        cd0,q2(i1,i4),m2(i3),m2(i1),mm2,m2(i4))
+        else
+          D01= D0m0_coli(q2(i3,i2),q2(i2,i1)*ga*ga,qq2,
+     &        q2(i4,i3),cd0,q2(i2,i4),m2(i3),m2(i2),mm2,m2(i4))
+          D02= D0m0_coli(q2(i3,i1),
+     &        omga*omga*q2(i1,i2),qq2,q2(i4,i3),
+     &        cd0,q2(i1,i4),m2(i3),m2(i1),mm2,m2(i4))
+        endif
+
+        D0comb_coli=ga*D01+omga*D02
+
       endif
 
       end

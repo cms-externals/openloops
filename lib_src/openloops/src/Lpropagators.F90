@@ -1,20 +1,21 @@
-
-! Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-!
-! This file is part of OpenLoops.
-!
-! OpenLoops is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! OpenLoops is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-! GNU General Public License for more details.
-!
-! You should have received a copy of the GNU General Public License
-! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+!******************************************************************************!
+! Copyright (C) 2014-2019 OpenLoops Collaboration. For authors see authors.txt !
+!                                                                              !
+! This file is part of OpenLoops.                                              !
+!                                                                              !
+! OpenLoops is free software: you can redistribute it and/or modify            !
+! it under the terms of the GNU General Public License as published by         !
+! the Free Software Foundation, either version 3 of the License, or            !
+! (at your option) any later version.                                          !
+!                                                                              !
+! OpenLoops is distributed in the hope that it will be useful,                 !
+! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+! GNU General Public License for more details.                                 !
+!                                                                              !
+! You should have received a copy of the GNU General Public License            !
+! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+!******************************************************************************!
 
 
 module ol_loop_propagators_/**/REALKIND
@@ -29,7 +30,7 @@ subroutine prop_loop_A_Q(rank_in,rank_out,G_A,K,M,Gout_A)
 ! rank_i/o              = length of tensor array up to highest incoming/outgoing rank
 ! K(4)                  = incoming momentum (light-cone rep)
 ! M                     = complex mass
-! Gout_A(alpha,beta,l') = outgoing dressed anti-quark loop current without I/(K^2-M^2) with increased rank
+! Gout_A(alpha,beta,lp) = outgoing dressed anti-quark loop current without I/(K^2-M^2) with increased rank
 ! HR(i,l)               = rank-raising function
 ! Gout_A(alpha,beta,l)  = G_A(alpha,sigma,l) * [-slash(K)+M](sigma,beta) + sum_{i=1}^4 G_A(alpha,sigma,LR(i,l))*[-gamma_i(sigma,beta)]
 ! gamma_i               = Dirac gamma matrix with covariant light-cone components
@@ -84,7 +85,7 @@ subroutine prop_loop_Q_A(rank_in,rank_out,G_Q,K,M,Gout_Q)
 ! rank_i/o              = length of tensor array up to highest incoming/outgoing rank
 ! K(4)                  = incoming momentum (light-cone rep)
 ! M                     = complex mass
-! Gout_Q(alpha,beta,l') = outgoing dressed quark loop current without I/(K^2-M^2) with increased rank
+! Gout_Q(alpha,beta,lp) = outgoing dressed quark loop current without I/(K^2-M^2) with increased rank
 ! HR(i,l)               = rank-raising function
 ! Gout_Q(alpha,beta,l)  = [slash(K)+M](beta,sigma)*G_Q(alpha,sigma,l) + sum_{i=1}^4 [gamma_i(beta,sigma)]*G_Q(alpha,sigma,LR(i,l))
 ! gamma_i               = Dirac gamma matrix with covariant light-cone components
@@ -94,7 +95,7 @@ subroutine prop_loop_Q_A(rank_in,rank_out,G_Q,K,M,Gout_Q)
   implicit none
   integer,           intent(in)  :: rank_in, rank_out
   complex(REALKIND), intent(in)  :: G_Q(4,rank_in), K(5), M
-  complex(REALKIND), intent(out) :: Gout_Q(4,rank_out)
+  complex(REALKIND), intent(inout) :: Gout_Q(4,rank_out)
   integer :: l
 
   Gout_Q = 0

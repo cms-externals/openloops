@@ -7,7 +7,7 @@
 !!  COLLIER is licenced under the GNU GPL version 3, see COPYING for details.
 !!
 
-
+#include "global_coli.h"
 
 ************************************************************************
 *                                                                      *
@@ -1554,7 +1554,7 @@ c---->  general case
                 sum2a = .5d0
                 do i=2,n
                   sum2 = sum2*x2+1d0
-                  sum2a = sum2a*x2 + dfloat(i)/dfloat(i+1)
+                  sum2a = sum2a*x2 + dble(i)/dble(i+1)
                 end do
                 sum2 = sum2*x2+1d0
                 Bn_coli = (-1)**np*( log(mm12/muuv2)
@@ -1565,7 +1565,7 @@ c---->  general case
                 sum1a = .5d0
                 do i=2,n
                   sum1 = sum1*x1+1d0
-                  sum1a = sum1a*x1 + dfloat(i)/dfloat(i+1)
+                  sum1a = sum1a*x1 + dble(i)/dble(i+1)
                 end do
                 sum1 = sum1*x1+1d0
                 Bn_coli = (-1)**np*( log(mm12/muuv2)
@@ -1975,7 +1975,8 @@ c---->  zero momentum
           x2 = mm12/(mm12-mm22)
           y2 = mm22/(mm22-mm12)
           if (abs(x2).lt.10d0) then
-            DBn_coli = (-1)**n*(1d0/(n+2) + yfpve_coli(np,x2,y2,real(mm22-mm12)))
+            DBn_coli = (-1)**n*(1d0/(n+2)
+     &                 + yfpve_coli(np,x2,y2,real(mm22-mm12)))
      &          /(mm12-mm22)
 
           else

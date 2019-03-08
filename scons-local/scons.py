@@ -2,7 +2,7 @@
 #
 # SCons - a Software Constructor
 #
-# Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 The SCons Foundation
+# Copyright (c) 2001 - 2017 The SCons Foundation
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -23,20 +23,23 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-__revision__ = "src/script/scons.py  2013/03/03 09:48:35 garyo"
+from __future__ import print_function
 
-__version__ = "2.3.0"
+__revision__ = "src/script/scons.py 74b2c53bc42290e911b334a6b44f187da698a668 2017/11/14 13:16:53 bdbaddog"
 
-__build__ = ""
+__version__ = "3.0.1"
 
-__buildsys__ = "reepicheep"
+__build__ = "74b2c53bc42290e911b334a6b44f187da698a668"
 
-__date__ = "2013/03/03 09:48:35"
+__buildsys__ = "hpmicrodog"
 
-__developer__ = "garyo"
+__date__ = "2017/11/14 13:16:53"
+
+__developer__ = "bdbaddog"
 
 import os
 import sys
+
 
 ##############################################################################
 # BEGIN STANDARD SCons SCRIPT HEADER
@@ -55,14 +58,14 @@ import sys
 # engine modules if they're in either directory.
 
 
-if sys.version_info >= (3,0,0):
+if (3,0,0) < sys.version_info < (3,5,0) or sys.version_info < (2,7,0):
     msg = "scons: *** SCons version %s does not run under Python version %s.\n\
-Python 3 is not yet supported.\n"
+Python < 3.5 is not yet supported.\n"
     sys.stderr.write(msg % (__version__, sys.version.split()[0]))
     sys.exit(1)
 
 
-script_dir = sys.path[0]
+script_dir = os.path.dirname(os.path.realpath(__file__))
 
 if script_dir in sys.path:
     sys.path.remove(script_dir)
@@ -71,6 +74,11 @@ libs = []
 
 if "SCONS_LIB_DIR" in os.environ:
     libs.append(os.environ["SCONS_LIB_DIR"])
+
+# - running from source takes priority (since 2.3.2), excluding SCONS_LIB_DIR settings
+script_path = os.path.abspath(os.path.dirname(__file__))
+source_path = os.path.join(script_path, '..', 'engine')
+libs.append(source_path)
 
 local_version = 'scons-local-' + __version__
 local = 'scons-local'
@@ -85,12 +93,14 @@ scons_version = 'scons-%s' % __version__
 # preferred order of scons lookup paths
 prefs = []
 
+
+# - running from egg check
 try:
     import pkg_resources
 except ImportError:
     pass
 else:
-    # when running from an egg add the egg's directory 
+    # when running from an egg add the egg's directory
     try:
         d = pkg_resources.get_distribution('scons')
     except pkg_resources.DistributionNotFound:
@@ -180,13 +190,12 @@ sys.path = libs + sys.path
 if __name__ == "__main__":
     try:
         import SCons.Script
-    except:
-        ROOT = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', 'engine')
-        if os.path.exists(ROOT):
-            sys.path += [ROOT]
-            print("SCons import failed. Trying to run from source directory")
-        import SCons.Script
-  
+    except ImportError:
+        print("SCons import failed. Unable to find engine files in:")
+        for path in libs:
+            print("  {}".format(path))
+        raise
+
     # this does all the work, and calls sys.exit
     # with the proper exit status when done.
     SCons.Script.main()

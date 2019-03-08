@@ -2,9 +2,11 @@
 !!  File DD_4pt.F is part of COLLIER
 !!  - A Complex One-Loop Library In Extended Regularizations
 !!
-!!  Copyright (C) 2015, 2016   Ansgar Denner, Stefan Dittmaier, Lars Hofer
+!!  Copyright (C) 2015, 2016   
+!!  Ansgar Denner, Stefan Dittmaier, Lars Hofer
 !!
-!!  COLLIER is licenced under the GNU GPL version 3, see COPYING for details.
+!!  COLLIER is licenced under the GNU GPL version 3, 
+!!  see COPYING for details.
 !!
 
 **********************************************************************
@@ -19,7 +21,7 @@
 *
 *       D(i>0,j,k,l) calculated for rank r=r2+1 as well.
 *
-*       Duv(i,j,k,l) = coefficient of 1/eps in D(i,j,k,l),  Duv = 4-2*eps
+*       Duv(i,j,k,l) = coeff of 1/eps in D(i,j,k,l),  Duv = 4-2*eps
 *---------------------------------------------------------------------
 *       1.5.2006 Stefan Dittmaier
 **********************************************************************
@@ -55,8 +57,10 @@ c local variables
 c LH: variables for cache system
         complex*16 xcache(10), fct(Ncoefmax4)
         integer n0,n1,n2,n3,n123,cntmax,r2cache
-        logical nocalc/.false./, wrica/.false./
-        save wrica
+c        logical nocalc/.false./, wrica/.false./
+c        save wrica
+         logical :: nocalc = .false.
+         logical, save :: wrica = .false.
 #endif
 
 c       outlevel=2
@@ -177,7 +181,8 @@ c =====================
               endif
 
               r2cache = r2
-              call ReadCache(fct(1:cntmax),cntmax,xcache,10,2,id,4,r2cache,nocalc,wrica)
+              call ReadCache(fct(1:cntmax),cntmax,xcache,10,2,id,4,
+     &                       r2cache,nocalc,wrica)
 
               if(nocalc)then
                 accflag   = nint(dreal(fct(1)))
@@ -363,13 +368,13 @@ c------------------------------------------------
 
         if ((acc.lt.dacc).or.(mode34.eq.0)) goto 599
 
-c mode34=2: improvement by expansion in small Gram/kinematical determinants
-c--------------------------------------------------------------------------
+c mode34=2: improvement by expansion in small Gram/kin. determinants
+c-------------------------------------------------------------------
         if (mode34.eq.2) then
 
 c some criteria / parameter for expansions
           scale2d  = 1d0/sqrt(abs(D(0,0,0,0)))
-c          scale2in = ( abs(p1)+abs(p2)+abs(p3)+abs(p4)+abs(p12)+abs(p23)
+c          scale2in = (abs(p1)+abs(p2)+abs(p3)+abs(p4)+abs(p12)+abs(p23)
 c     &                +abs(m02)+abs(m12)+abs(m22)+abs(m32) )/10d0
           scale2in = max( abs(p1),abs(p2),abs(p3),abs(p4),abs(p12),
      &                    abs(p23),abs(m02),abs(m12),abs(m22),abs(m32) )
@@ -378,6 +383,8 @@ c     &                +abs(m02)+abs(m12)+abs(m22)+abs(m32) )/10d0
 
 c determine indices k,l for expansions
           maxtz_kl = 0d0
+          k = 1
+          l = 1
           do i1=1,3
           do i2=i1,3
             if (abs(tz3(i1,i2)).ge.maxtz_kl) then
@@ -418,6 +425,8 @@ c determine index j=jg for Gram
 
 c determine indices i=igc,j=jgc for Gram/Cayley 
           maxtx3ij = 0d0
+          igc = 1
+          jgc = 1
           do i1=1,3
           do i2=i1,3
             if (abs(tx3(i1,i2)).ge.maxtx3ij) then
@@ -442,7 +451,8 @@ c check if expansions are appropriate
           dmiss = 1d0/scale2lo**2
           prog  = 1d0
           do n=0,3
-            prog = max(prog,Cij_err(tid(nid(n)),r2-1)/Cij_err(tid(nid(n)),0))
+            prog = max(prog,
+     &                 Cij_err(tid(nid(n)),r2-1)/Cij_err(tid(nid(n)),0))
           enddo
           prog  = 10d0*prog**(1d0/(r2-1))
           aa = max( 1d0, maxtx3ij/maxtx_0j, maxttx0klm(id)/maxtz_kl )
@@ -646,7 +656,7 @@ c================
         Dij_err_new_max = 0d0
         if (qmethod_new(id).gt.0) then
           do r=0,r2
-            Dij_err_new_max = max(Dij_err_new_max,Dij_err_new(tid(id),r))
+            Dij_err_new_max= max(Dij_err_new_max,Dij_err_new(tid(id),r))
           enddo
         endif
 
@@ -848,10 +858,10 @@ c     &      (abs(m12/0.303804900000000052D+05-1d0).lt.1d-7).and.
 c     &      (abs(m22/0.303804900000000052D+05-1d0).lt.1d-7).and.
 c     &      (abs(m32/0.303804900000000052D+05-1d0).lt.1d-7) ) then
 c
-c	write(*,*) r2,D(0,4,0,0),qmethod(id),qmethod_new(id)
-c	write(*,*) 'xxxxxxxxxxx'
-c	stop
-c	endif
+c       write(*,*) r2,D(0,4,0,0),qmethod(id),qmethod_new(id)
+c       write(*,*) 'xxxxxxxxxxx'
+c       stop
+c       endif
 
         end
 
@@ -867,7 +877,7 @@ c	endif
 *                        2i    j    k    l  indices
 *       of rank r=i+j+k+l with r <= r2
 *
-*       Duv(i,j,k,l) = coefficient of 1/eps in D(i,j,k,l),  Duv = 4-2*eps
+*       Duv(i,j,k,l) = coeff of 1/eps in D(i,j,k,l),  Duv = 4-2*eps
 *---------------------------------------------------------------------
 *       1.5.2006 Stefan Dittmaier
 **********************************************************************
@@ -928,19 +938,24 @@ c        dpv_calc_dd = dpv_calc_dd + 1
           do i2=0,r-1-i1
             i3 = r-1-i1-i2
               S(n,i1,i2,i3)   = -C0(0,i1,i2,i3) 
-            if ((n.eq.1).and.(i1.eq.0)) S(1,i1,i2,i3) = S(1,i1,i2,i3) + C_n(0,i2,i3)
-            if ((n.eq.2).and.(i2.eq.0)) S(2,i1,i2,i3) = S(2,i1,i2,i3) + C_n(0,i1,i3)
-            if ((n.eq.3).and.(i3.eq.0)) S(3,i1,i2,i3) = S(3,i1,i2,i3) + C_n(0,i1,i2)
+            if ((n.eq.1).and.(i1.eq.0)) 
+     &        S(1,i1,i2,i3) = S(1,i1,i2,i3) + C_n(0,i2,i3)
+            if ((n.eq.2).and.(i2.eq.0)) 
+     &        S(2,i1,i2,i3) = S(2,i1,i2,i3) + C_n(0,i1,i3)
+            if ((n.eq.3).and.(i3.eq.0)) 
+     &        S(3,i1,i2,i3) = S(3,i1,i2,i3) + C_n(0,i1,i2)
           enddo
           enddo
           enddo
         enddo
 
 c initialization of error propagation
-        Cij_err0(0)  = max(Cij_err(tid(nid(0)),0),Cij_err(tid(nid(1)),0),
-     &                     Cij_err(tid(nid(2)),0),Cij_err(tid(nid(3)),0))
-        Cij_err02(0) = max(Cij_err2(tid(nid(0)),0),Cij_err2(tid(nid(1)),0),
-     &                     Cij_err2(tid(nid(2)),0),Cij_err2(tid(nid(3)),0))
+        Cij_err0(0)  = 
+     &    max(Cij_err(tid(nid(0)),0),Cij_err(tid(nid(1)),0),
+     &        Cij_err(tid(nid(2)),0),Cij_err(tid(nid(3)),0))
+        Cij_err02(0) = 
+     &    max(Cij_err2(tid(nid(0)),0),Cij_err2(tid(nid(1)),0),
+     &        Cij_err2(tid(nid(2)),0),Cij_err2(tid(nid(3)),0))
         Dij_err(tid(id),0)  = scalint_err(id)
         Dij_err2(tid(id),0) = scalint_err(id)
         D00_err(tid(id),0)  = 0d0
@@ -1019,12 +1034,13 @@ c PaVe reduction of D_{00...} of rank r+1 -- Eq.(5.10)
         do 103 i2=0,r+1-i0-i1
           i3 = r+1-i0-i1-i2
           Duv(i0/2,i1,i2,i3) = 1d0/2d0/r*( 
-     &            Cuv0(i0/2-1,i1,i2,i3) + 2d0*m02*Duv(i0/2-1,i1,i2,i3) 
-     &          + f(1)*Duv(i0/2-1,i1+1,i2,i3) + f(2)*Duv(i0/2-1,i1,i2+1,i3) 
+     &            Cuv0(i0/2-1,i1,i2,i3) + 2d0*m02*Duv(i0/2-1,i1,i2,i3)
+     &          + f(1)*Duv(i0/2-1,i1+1,i2,i3) 
+     &          + f(2)*Duv(i0/2-1,i1,i2+1,i3) 
      &          + f(3)*Duv(i0/2-1,i1,i2,i3+1) )
           D(i0/2,i1,i2,i3)   = 1d0/2d0/r*( 4d0*Duv(i0/2,i1,i2,i3)
      &          + C0(i0/2-1,i1,i2,i3) + 2d0*m02*D(i0/2-1,i1,i2,i3) 
-     &          + f(1)*D(i0/2-1,i1+1,i2,i3) + f(2)*D(i0/2-1,i1,i2+1,i3) 
+     &          + f(1)*D(i0/2-1,i1+1,i2,i3) + f(2)*D(i0/2-1,i1,i2+1,i3)
      &          + f(3)*D(i0/2-1,i1,i2,i3+1) )
 103       continue
 
@@ -1032,13 +1048,16 @@ c PaVe reduction of D_{00...} of rank r+1 -- Eq.(5.10)
         aux   = z3(1,1)
 
 c error propagation for PaVe
-        Cij_err0(r)  = max(Cij_err(tid(nid(0)),r),Cij_err(tid(nid(1)),r),
-     &                     Cij_err(tid(nid(2)),r),Cij_err(tid(nid(3)),r)) 
-        Cij_err02(r) = max(Cij_err2(tid(nid(0)),r),Cij_err2(tid(nid(1)),r),
-     &                     Cij_err2(tid(nid(2)),r),Cij_err2(tid(nid(3)),r)) 
+        Cij_err0(r)  = 
+     &    max(Cij_err(tid(nid(0)),r),Cij_err(tid(nid(1)),r),
+     &        Cij_err(tid(nid(2)),r),Cij_err(tid(nid(3)),r)) 
+        Cij_err02(r) = 
+     &    max(Cij_err2(tid(nid(0)),r),Cij_err2(tid(nid(1)),r),
+     &        Cij_err2(tid(nid(2)),r),Cij_err2(tid(nid(3)),r)) 
 
         if (r.ge.2) then
-          D00_err(tid(id),r) = max(Cij_err0(r-2),abs(m02)*Dij_err(tid(id),r-2),
+          D00_err(tid(id),r) = max(Cij_err0(r-2),
+     &                             abs(m02)*Dij_err(tid(id),r-2),
      &      maxzif*Cij_err0(r-2),ziff*Dij_err(tid(id),r-2),
      &      maxzif*D00_err(tid(id),r-1))
 c          acc = max(acc,D00_err(tid(id),r)/abs(D(1,0,0,0)))
@@ -1082,7 +1101,7 @@ c        Dij_err(tid(id),r) = Dmax*accr(r)
 *                        2i    j    k    l  indices
 *       of rank r=i+j+k+l with r <= r2
 *
-*       Duv(i,j,k,l) = coefficient of 1/eps in D(i,j,k,l),  Duv = 4-2*eps
+*       Duv(i,j,k,l) = coeff of 1/eps in D(i,j,k,l),  Duv = 4-2*eps
 *---------------------------------------------------------------------
 *       9.2.2009 Stefan Dittmaier
 **********************************************************************
@@ -1135,9 +1154,12 @@ c        dapv_calc_dd = dapv_calc_dd + 1
           do i2=0,r-1-i0-i1
             i3 = r-1-i0-i1-i2
               Sh(n,i0/2,i1,i2,i3) = -C0(i0/2,i1,i2,i3) 
-            if ((n.eq.1).and.(i1.eq.0)) Sh(1,i0/2,i1,i2,i3)=Sh(1,i0/2,i1,i2,i3)+C_n(i0/2,i2,i3)
-            if ((n.eq.2).and.(i2.eq.0)) Sh(2,i0/2,i1,i2,i3)=Sh(2,i0/2,i1,i2,i3)+C_n(i0/2,i1,i3)
-            if ((n.eq.3).and.(i3.eq.0)) Sh(3,i0/2,i1,i2,i3)=Sh(3,i0/2,i1,i2,i3)+C_n(i0/2,i1,i2)
+            if ((n.eq.1).and.(i1.eq.0)) 
+     &        Sh(1,i0/2,i1,i2,i3)=Sh(1,i0/2,i1,i2,i3)+C_n(i0/2,i2,i3)
+            if ((n.eq.2).and.(i2.eq.0)) 
+     &        Sh(2,i0/2,i1,i2,i3)=Sh(2,i0/2,i1,i2,i3)+C_n(i0/2,i1,i3)
+            if ((n.eq.3).and.(i3.eq.0)) 
+     &        Sh(3,i0/2,i1,i2,i3)=Sh(3,i0/2,i1,i2,i3)+C_n(i0/2,i1,i2)
           enddo
           enddo
           enddo
@@ -1146,7 +1168,7 @@ c        dapv_calc_dd = dapv_calc_dd + 1
 
 c initialization of error propagation
         Cij_err0(0) = max(Cij_err(tid(nid(0)),0),Cij_err(tid(nid(1)),0),
-     &                    Cij_err(tid(nid(2)),0),Cij_err(tid(nid(3)),0)) 
+     &                    Cij_err(tid(nid(2)),0),Cij_err(tid(nid(3)),0))
         acc     = 10*dprec_dd
         accr(0) = acc
         Dij_err_aux(0)       = scalint_err(id)
@@ -1179,13 +1201,13 @@ c Duv_{00...} from conventional PaVe reduction -- Eq.(5.10)
           if (i0.lt.2) then
             Duv(i0/2+1,i1,i2,i3) = 0d0
           else
-            Duv(i0/2+1,i1,i2,i3) = 1d0/dfloat(2*r)*( 
+            Duv(i0/2+1,i1,i2,i3) = 1d0/dble(2*r)*( 
      &            Cuv0(i0/2,i1,i2,i3) + 2d0*m02*Duv(i0/2,i1,i2,i3) 
      &          + f(1)*Duv(i0/2,i1+1,i2,i3) + f(2)*Duv(i0/2,i1,i2+1,i3) 
      &          + f(3)*Duv(i0/2,i1,i2,i3+1) )
           endif
 c alternative PaVe reduction of D_{00...} -- Eq.(5.16)
-          D(i0/2+1,i1,i2,i3) = 1d0/dfloat(2*r)*( 
+          D(i0/2+1,i1,i2,i3) = 1d0/dble(2*r)*( 
      &            4d0*Duv(i0/2+1,i1,i2,i3) + C0(i0/2,i1,i2,i3) 
      &          + detx3/tx3(0,0)*D(i0/2,i1,i2,i3) )
           do n=1,3
@@ -1193,15 +1215,15 @@ c alternative PaVe reduction of D_{00...} -- Eq.(5.16)
             l(2) = i2-del(n,2)
             l(3) = i3-del(n,3)
             D(i0/2+1,i1,i2,i3) = D(i0/2+1,i1,i2,i3) 
-     &          - tx3(0,n)/tx3(0,0)/dfloat(2*r)*Sh(n,i0/2,i1,i2,i3)
+     &          - tx3(0,n)/tx3(0,0)/dble(2*r)*Sh(n,i0/2,i1,i2,i3)
             if (i(n).gt.0) then
               D(i0/2+1,i1,i2,i3) = D(i0/2+1,i1,i2,i3)
-     &          + tx3(0,n)/tx3(0,0)*i(n)/dfloat(r)*D(i0/2+1,l(1),l(2),l(3))
+     &          +tx3(0,n)/tx3(0,0)*i(n)/dble(r)*D(i0/2+1,l(1),l(2),l(3))
             endif
           enddo
 105     continue
 
-c*** Cayley reduction of all D(0,i1,i2,i3) with i1+i2+i3 > 0 -- Eq.(5.15)
+c*** Cayley reduction of all D(0,i1,i2,i3) with i1+i2+i3>0 -- Eq.(5.15)
 c       compare two versions of D(0,i1,i2,i3):  
 c                       D(0,i1+1,i2,i3) vs. D(0,j1,j2+1,j3) 
 c       and deduce error estimate from difference
@@ -1252,7 +1274,7 @@ c NOTE: D_{...} with <=2 indices "0" are UV finite !
 
 c error propagation for alternative PaVe
         Cij_err0(r) = max(Cij_err(tid(nid(0)),r),Cij_err(tid(nid(1)),r),
-     &                    Cij_err(tid(nid(2)),r),Cij_err(tid(nid(3)),r)) 
+     &                    Cij_err(tid(nid(2)),r),Cij_err(tid(nid(3)),r))
         D00_err_aux(r+1) = max( Cij_err0(r-1),
      &    abs(detx3/tx3(0,0))*Dij_err_aux(r-1),
      &    maxtx30n/abs(tx3(0,0))*max(Cij_err0(r-1),D00_err_aux(r)) )
@@ -1293,7 +1315,7 @@ c find maximal value for |D(0,...)| of rank r
 *                        2i    j    k    l  indices
 *       of rank r=i+j+k+l with r <= r2
 *
-*       Duv(i,j,k,l) = coefficient of 1/eps in D(i,j,k,l),  Duv = 4-2*eps
+*       Duv(i,j,k,l) = coeff of 1/eps in D(i,j,k,l),  Duv = 4-2*eps
 *---------------------------------------------------------------------
 *       19.7.2006 Stefan Dittmaier
 **********************************************************************
@@ -1375,11 +1397,11 @@ c----------------
 c S functions
           do n=1,3
             if (n.eq.1) then
-              call C_dd(  C_n,Cuv_n,p12,p3,p4,m02,m22,m32,ruplimit,nid(1))
+              call C_dd(C_n,Cuv_n,p12,p3,p4,m02,m22,m32,ruplimit,nid(1))
             elseif (n.eq.2) then
-              call C_dd(  C_n,Cuv_n,p1,p23,p4,m02,m12,m32,ruplimit,nid(2))
+              call C_dd(C_n,Cuv_n,p1,p23,p4,m02,m12,m32,ruplimit,nid(2))
             else
-              call C_dd(  C_n,Cuv_n,p1,p2,p12,m02,m12,m22,ruplimit,nid(3))
+              call C_dd(C_n,Cuv_n,p1,p2,p12,m02,m12,m22,ruplimit,nid(3))
             endif
             do r=0,ruplimit
             do i0=0,r,2
@@ -1387,9 +1409,12 @@ c S functions
             do i2=0,r-i0-i1
               i3 = r-i0-i1-i2
                 Sh(n,i0/2,i1,i2,i3) = -C0(i0/2,i1,i2,i3) 
-              if ((n.eq.1).and.(i1.eq.0)) Sh(1,i0/2,i1,i2,i3)=Sh(1,i0/2,i1,i2,i3)+C_n(i0/2,i2,i3)
-              if ((n.eq.2).and.(i2.eq.0)) Sh(2,i0/2,i1,i2,i3)=Sh(2,i0/2,i1,i2,i3)+C_n(i0/2,i1,i3)
-              if ((n.eq.3).and.(i3.eq.0)) Sh(3,i0/2,i1,i2,i3)=Sh(3,i0/2,i1,i2,i3)+C_n(i0/2,i1,i2)
+              if ((n.eq.1).and.(i1.eq.0)) 
+     &          Sh(1,i0/2,i1,i2,i3)=Sh(1,i0/2,i1,i2,i3)+C_n(i0/2,i2,i3)
+              if ((n.eq.2).and.(i2.eq.0)) 
+     &          Sh(2,i0/2,i1,i2,i3)=Sh(2,i0/2,i1,i2,i3)+C_n(i0/2,i1,i3)
+              if ((n.eq.3).and.(i3.eq.0)) 
+     &          Sh(3,i0/2,i1,i2,i3)=Sh(3,i0/2,i1,i2,i3)+C_n(i0/2,i1,i2)
             enddo
             enddo
             enddo
@@ -1405,9 +1430,10 @@ c Duv_{00...} from PaVe reduction -- Eq.(5.10)
             if (i0.le.2) then
               Duv(i0/2,i1,i2,i3) = 0d0
             else
-              Duv(i0/2,i1,i2,i3) = 1d0/2d0/dfloat(r-1)*( 
-     &              Cuv0(i0/2-1,i1,i2,i3) + 2d0*m02*Duv(i0/2-1,i1,i2,i3) 
-     &            + f(1)*Duv(i0/2-1,i1+1,i2,i3) + f(2)*Duv(i0/2-1,i1,i2+1,i3) 
+              Duv(i0/2,i1,i2,i3) = 1d0/2d0/dble(r-1)*( 
+     &              Cuv0(i0/2-1,i1,i2,i3) + 2d0*m02*Duv(i0/2-1,i1,i2,i3)
+     &            + f(1)*Duv(i0/2-1,i1+1,i2,i3) 
+     &            + f(2)*Duv(i0/2-1,i1,i2+1,i3) 
      &            + f(3)*Duv(i0/2-1,i1,i2,i3+1) )
             endif
           enddo
@@ -1447,7 +1473,7 @@ c D_{00...} from iteration Eq.(5.40)
         i(1) = i1
         i(2) = i2
         i(3) = i3
-          D(i0/2,i1,i2,i3) = 1d0/2d0/dfloat(i0+2*i1+2*i2+2*i3)*(
+          D(i0/2,i1,i2,i3) = 1d0/2d0/dble(i0+2*i1+2*i2+2*i3)*(
      &      4d0*Duv(i0/2,i1,i2,i3) 
      &      - detz3/tz3(k,l)
      &          *D(i0/2-1,i1+del(k,1)+del(l,1),i2+del(k,2)+del(l,2),
@@ -1460,7 +1486,7 @@ crrr terms rearranged - end
      &      )
           do n=1,3
             D(i0/2,i1,i2,i3) = D(i0/2,i1,i2,i3) 
-     &        + 1d0/2d0/dfloat(i0+2*i1+2*i2+2*i3)*(
+     &        + 1d0/2d0/dble(i0+2*i1+2*i2+2*i3)*(
      &           tz3(n,l)/tz3(k,l)
      &            *Sh(n,i0/2-1,i1+del(k,1),i2+del(k,2),i3+del(k,3))
      &           - Sh(n,i0/2-1,i1+del(n,1),i2+del(n,2),i3+del(n,3)) )
@@ -1469,28 +1495,28 @@ crrr terms rearranged - end
           do 102 m=1,3
           if ((k.eq.n).or.(l.eq.m)) goto 102
             D(i0/2,i1,i2,i3) = D(i0/2,i1,i2,i3) 
-     &        + 1d0/2d0/dfloat(i0+2*i1+2*i2+2*i3)*(
+     &        + 1d0/2d0/dble(i0+2*i1+2*i2+2*i3)*(
      &        - ttz3(k,n,l,m)/tz3(k,l)*f(n)*Sh(m,i0/2-1,i1,i2,i3) 
 crrr     &        + ttz3(k,n,l,m)/tz3(k,l)*f(n)*f(m)*D(i0/2-1,i1,i2,i3) 
      &        )
 
             if (i(n).ne.0) D(i0/2,i1,i2,i3) = D(i0/2,i1,i2,i3) 
-     &        - i(n)/dfloat(i0+2*i1+2*i2+2*i3)*ttz3(k,n,l,m)/tz3(k,l)
+     &        - i(n)/dble(i0+2*i1+2*i2+2*i3)*ttz3(k,n,l,m)/tz3(k,l)
      &          *(Sh(m,i0/2,i1-del(1,n),i2-del(2,n),i3-del(3,n))
      &            -f(m)*D(i0/2,i1-del(1,n),i2-del(2,n),i3-del(3,n)))
             if (i(m).ne.0) D(i0/2,i1,i2,i3) = D(i0/2,i1,i2,i3) 
-     &        + i(m)/dfloat(i0+2*i1+2*i2+2*i3)*ttz3(k,n,l,m)/tz3(k,l)
+     &        + i(m)/dble(i0+2*i1+2*i2+2*i3)*ttz3(k,n,l,m)/tz3(k,l)
      &          *f(n)*D(i0/2,i1-del(1,m),i2-del(2,m),i3-del(3,m))
             if (i(n)*i(m).ne.0) then
               if (n.ne.m) then
                 D(i0/2,i1,i2,i3) = D(i0/2,i1,i2,i3) 
-     &            +2d0*i(n)*i(m)/dfloat(i0+2*i1+2*i2+2*i3)
+     &            +2d0*i(n)*i(m)/dble(i0+2*i1+2*i2+2*i3)
      &              *ttz3(k,n,l,m)/tz3(k,l)
      &              *D(i0/2+1,i1-del(1,m)-del(1,n),i2-del(2,m)-del(2,n),
      &                      i3-del(3,m)-del(3,n))
               elseif (i(n).gt.1) then
                 D(i0/2,i1,i2,i3) = D(i0/2,i1,i2,i3) 
-     &            + 2d0*i(n)*(i(n)-1)/dfloat(i0+2*i1+2*i2+2*i3)
+     &            + 2d0*i(n)*(i(n)-1)/dble(i0+2*i1+2*i2+2*i3)
      &              *ttz3(k,n,l,m)/tz3(k,l)
      &              *D(i0/2+1,i1-2*del(1,n),i2-2*del(2,n),i3-2*del(3,n))
               endif
@@ -1509,13 +1535,14 @@ c coefficients D(0,i1,i2,i3) from Eq.(5.38)
         i(3) = i3
           D(i0/2,i1,i2,i3) = 0d0
           do 104 n=1,3
-            D(i0/2,i1,i2,i3) = D(i0/2,i1,i2,i3) - tz3(j,n)*Sh(n,i0/2,i1,i2,i3) 
+            D(i0/2,i1,i2,i3) = D(i0/2,i1,i2,i3) 
+     &                         - tz3(j,n)*Sh(n,i0/2,i1,i2,i3) 
             if (i(n).ne.0) D(i0/2,i1,i2,i3) = D(i0/2,i1,i2,i3)
      &        + 2d0*i(n)*tz3(j,n)
      &          *D(i0/2+1,i1-del(1,n),i2-del(2,n),i3-del(3,n))
 104       continue
           D(i0/2,i1,i2,i3) = ( D(i0/2,i1,i2,i3)
-     &      +detz3*D(i0/2,i1+del(1,j),i2+del(2,j),i3+del(3,j)) )/tx3(0,j) 
+     &      +detz3*D(i0/2,i1+del(1,j),i2+del(2,j),i3+del(3,j)))/tx3(0,j)
         Dmax(r) = max(Dmax(r),abs(D(i0/2,i1,i2,i3)))
 103     continue
 
@@ -1535,10 +1562,12 @@ c         acc = abs(D(0,0,0,0)/scalint(id)-1d0)
         endif
 
 c error propagation for Gram expansion
-          Cij_err0(rup) = max(Cij_err(tid(nid(0)),rup),Cij_err(tid(nid(1)),rup),
-     &                        Cij_err(tid(nid(2)),rup),Cij_err(tid(nid(3)),rup)) 
-          C00_err0(rup) = max(C00_err(tid(nid(0)),rup),C00_err(tid(nid(1)),rup),
-     &                        C00_err(tid(nid(2)),rup),C00_err(tid(nid(3)),rup)) 
+          Cij_err0(rup) = 
+     &      max(Cij_err(tid(nid(0)),rup),Cij_err(tid(nid(1)),rup),
+     &          Cij_err(tid(nid(2)),rup),Cij_err(tid(nid(3)),rup)) 
+          C00_err0(rup) = 
+     &      max(C00_err(tid(nid(0)),rup),C00_err(tid(nid(1)),rup),
+     &          C00_err(tid(nid(2)),rup),C00_err(tid(nid(3)),rup)) 
 
           do 800 r=rup,0,-1
           if (r.ge.1) then
@@ -1607,7 +1636,7 @@ c final absolute error
 *                        2i    j    k    l  indices
 *       of rank r=i+j+k+l with r <= r2
 *
-*       Duv(i,j,k,l) = coefficient of 1/eps in D(i,j,k,l),  Duv = 4-2*eps
+*       Duv(i,j,k,l) = coeff of 1/eps in D(i,j,k,l),  Duv = 4-2*eps
 *---------------------------------------------------------------------
 *       6.6.2014 Stefan Dittmaier
 **********************************************************************
@@ -1688,11 +1717,11 @@ c----------------
 c S functions
           do n=1,3
             if (n.eq.1) then
-              call C_dd(  C_n,Cuv_n,p12,p3,p4,m02,m22,m32,ruplimit,nid(1))
+              call C_dd(C_n,Cuv_n,p12,p3,p4,m02,m22,m32,ruplimit,nid(1))
             elseif (n.eq.2) then
-              call C_dd(  C_n,Cuv_n,p1,p23,p4,m02,m12,m32,ruplimit,nid(2))
+              call C_dd(C_n,Cuv_n,p1,p23,p4,m02,m12,m32,ruplimit,nid(2))
             else
-              call C_dd(  C_n,Cuv_n,p1,p2,p12,m02,m12,m22,ruplimit,nid(3))
+              call C_dd(C_n,Cuv_n,p1,p2,p12,m02,m12,m22,ruplimit,nid(3))
             endif
             do r=0,ruplimit
             do i0=0,2*r,2
@@ -1700,9 +1729,12 @@ c S functions
             do i2=0,r-i0/2-i1
             i3   = r-i0/2-i1-i2
               Sh(n,i0/2,i1,i2,i3) = -C0(i0/2,i1,i2,i3) 
-              if ((n.eq.1).and.(i1.eq.0)) Sh(1,i0/2,i1,i2,i3)=Sh(1,i0/2,i1,i2,i3)+C_n(i0/2,i2,i3)
-              if ((n.eq.2).and.(i2.eq.0)) Sh(2,i0/2,i1,i2,i3)=Sh(2,i0/2,i1,i2,i3)+C_n(i0/2,i1,i3)
-              if ((n.eq.3).and.(i3.eq.0)) Sh(3,i0/2,i1,i2,i3)=Sh(3,i0/2,i1,i2,i3)+C_n(i0/2,i1,i2)
+              if ((n.eq.1).and.(i1.eq.0)) 
+     &          Sh(1,i0/2,i1,i2,i3)=Sh(1,i0/2,i1,i2,i3)+C_n(i0/2,i2,i3)
+              if ((n.eq.2).and.(i2.eq.0)) 
+     &          Sh(2,i0/2,i1,i2,i3)=Sh(2,i0/2,i1,i2,i3)+C_n(i0/2,i1,i3)
+              if ((n.eq.3).and.(i3.eq.0)) 
+     &          Sh(3,i0/2,i1,i2,i3)=Sh(3,i0/2,i1,i2,i3)+C_n(i0/2,i1,i2)
             enddo
             enddo
             enddo
@@ -1718,9 +1750,10 @@ c Duv_{00...} from PaVe reduction -- Eq.(5.10)
             if (i0.lt.4) then
               Duv(i0/2,i1,i2,i3) = 0d0
             else
-              Duv(i0/2,i1,i2,i3) = 1d0/2d0/dfloat(i0+i1+i2+i3-1)*( 
-     &              Cuv0(i0/2-1,i1,i2,i3) + 2d0*m02*Duv(i0/2-1,i1,i2,i3) 
-     &            + f(1)*Duv(i0/2-1,i1+1,i2,i3) + f(2)*Duv(i0/2-1,i1,i2+1,i3) 
+              Duv(i0/2,i1,i2,i3) = 1d0/2d0/dble(i0+i1+i2+i3-1)*( 
+     &              Cuv0(i0/2-1,i1,i2,i3) + 2d0*m02*Duv(i0/2-1,i1,i2,i3)
+     &            + f(1)*Duv(i0/2-1,i1+1,i2,i3) 
+     &            + f(2)*Duv(i0/2-1,i1,i2+1,i3) 
      &            + f(3)*Duv(i0/2-1,i1,i2,i3+1) )
             endif
           enddo
@@ -1763,7 +1796,8 @@ c reduction -- Eq.(5.14)
         i(3) = i3
           D(i0/2,i1,i2,i3) = detz3/detx3*( 
      &                      2*(i0+i1+i2+i3+1)*D(i0/2+1,i1,i2,i3)  
-     &                      - 4d0*Duv(i0/2+1,i1,i2,i3) - C0(i0/2,i1,i2,i3) )
+     &                      - 4d0*Duv(i0/2+1,i1,i2,i3) 
+     &                      - C0(i0/2,i1,i2,i3) )
           do n=1,3
             ii(1) = i1-del(n,1)
             ii(2) = i2-del(n,2)
@@ -1795,10 +1829,12 @@ c         acc = abs(D(0,0,0,0)/scalint(id)-1d0)
 
 c error propagation for Gram expansion
           do r=0,rup
-            Cij_err0(r) = max(Cij_err(tid(nid(0)),r),Cij_err(tid(nid(1)),r),
-     &                        Cij_err(tid(nid(2)),r),Cij_err(tid(nid(3)),r)) 
-            C00_err0(r) = max(C00_err(tid(nid(0)),r),C00_err(tid(nid(1)),r),
-     &                        C00_err(tid(nid(2)),r),C00_err(tid(nid(3)),r)) 
+            Cij_err0(r) = 
+     &        max(Cij_err(tid(nid(0)),r),Cij_err(tid(nid(1)),r),
+     &            Cij_err(tid(nid(2)),r),Cij_err(tid(nid(3)),r)) 
+            C00_err0(r) = 
+     &        max(C00_err(tid(nid(0)),r),C00_err(tid(nid(1)),r),
+     &            C00_err(tid(nid(2)),r),C00_err(tid(nid(3)),r)) 
           enddo
 
         do 800 r=rup,0,-1
@@ -1858,7 +1894,7 @@ c final absolute error
 *                        2i    j    k    l  indices
 *       of rank r=i+j+k+l with r <= r2
 *
-*       Duv(i,j,k,l) = coefficient of 1/eps in D(i,j,k,l),  Duv = 4-2*eps
+*       Duv(i,j,k,l) = coeff of 1/eps in D(i,j,k,l),  Duv = 4-2*eps
 *---------------------------------------------------------------------
 *       21.7.2006 Stefan Dittmaier
 **********************************************************************
@@ -1931,22 +1967,28 @@ c----------------
           if (rup.gt.ruplimit) ruplimit = min(ruplimit+step,rupmax)
 
           if (allocated(C0)) deallocate(C0,Cuv0,C_n,Cuv_n,Sh)
-          allocate(C0(0:ruplimit+2,0:ruplimit+2,0:ruplimit+2,0:ruplimit+2))
-          allocate(Cuv0(0:ruplimit+2,0:ruplimit+2,0:ruplimit+2,0:ruplimit+2))
+          allocate(C0(0:ruplimit+2,0:ruplimit+2,
+     &                0:ruplimit+2,0:ruplimit+2))
+          allocate(Cuv0(0:ruplimit+2,0:ruplimit+2,
+     &                  0:ruplimit+2,0:ruplimit+2))
           allocate(C_n(0:ruplimit+2,0:ruplimit+2,0:ruplimit+2))
           allocate(Cuv_n(0:ruplimit+2,0:ruplimit+2,0:ruplimit+2))
-          allocate(Sh(3,0:ruplimit+2,0:ruplimit+2,0:ruplimit+2,0:ruplimit+2))
+          allocate(Sh(3,0:ruplimit+2,0:ruplimit+2,
+     &                  0:ruplimit+2,0:ruplimit+2))
 
           call C0_dd(C0,Cuv0,p2,p3,p23,m12,m22,m32,ruplimit+2,nid(0))
 
 c S functions
           do n=1,3
             if (n.eq.1) then
-              call C_dd(  C_n,Cuv_n,p12,p3,p4,m02,m22,m32,ruplimit+2,nid(1))
+              call C_dd(C_n,Cuv_n,p12,p3,p4,m02,m22,m32,
+     &                  ruplimit+2,nid(1))
             elseif (n.eq.2) then
-              call C_dd(  C_n,Cuv_n,p1,p23,p4,m02,m12,m32,ruplimit+2,nid(2))
+              call C_dd(C_n,Cuv_n,p1,p23,p4,m02,m12,m32,
+     &                  ruplimit+2,nid(2))
             else
-              call C_dd(  C_n,Cuv_n,p1,p2,p12,m02,m12,m22,ruplimit+2,nid(3))
+              call C_dd(C_n,Cuv_n,p1,p2,p12,m02,m12,m22,
+     &                  ruplimit+2,nid(3))
             endif
             do r=0,ruplimit+2
             do i0=0,r,2
@@ -1954,9 +1996,12 @@ c S functions
             do i2=0,r-i0-i1
             i3 = r-i0-i1-i2
               Sh(n,i0/2,i1,i2,i3) = -C0(i0/2,i1,i2,i3) 
-              if ((n.eq.1).and.(i1.eq.0)) Sh(1,i0/2,i1,i2,i3)=Sh(1,i0/2,i1,i2,i3)+C_n(i0/2,i2,i3)
-              if ((n.eq.2).and.(i2.eq.0)) Sh(2,i0/2,i1,i2,i3)=Sh(2,i0/2,i1,i2,i3)+C_n(i0/2,i1,i3)
-              if ((n.eq.3).and.(i3.eq.0)) Sh(3,i0/2,i1,i2,i3)=Sh(3,i0/2,i1,i2,i3)+C_n(i0/2,i1,i2)
+              if ((n.eq.1).and.(i1.eq.0)) 
+     &          Sh(1,i0/2,i1,i2,i3)=Sh(1,i0/2,i1,i2,i3)+C_n(i0/2,i2,i3)
+              if ((n.eq.2).and.(i2.eq.0)) 
+     &          Sh(2,i0/2,i1,i2,i3)=Sh(2,i0/2,i1,i2,i3)+C_n(i0/2,i1,i3)
+              if ((n.eq.3).and.(i3.eq.0)) 
+     &          Sh(3,i0/2,i1,i2,i3)=Sh(3,i0/2,i1,i2,i3)+C_n(i0/2,i1,i2)
             enddo
             enddo
             enddo
@@ -1982,9 +2027,10 @@ c Duv_{00...} from PaVe reduction -- Eq.(5.10)
             if (i0.le.2) then
               Duv(i0/2,i1,i2,i3) = 0d0
             else
-              Duv(i0/2,i1,i2,i3) = 1d0/2d0/dfloat(r-1)*( 
-     &          Cuv0(i0/2-1,i1,i2,i3) + 2d0*m02*Duv(i0/2-1,i1,i2,i3) 
-     &        + f(1)*Duv(i0/2-1,i1+1,i2,i3) + f(2)*Duv(i0/2-1,i1,i2+1,i3) 
+              Duv(i0/2,i1,i2,i3) = 1d0/2d0/dble(r-1)*( 
+     &          Cuv0(i0/2-1,i1,i2,i3) + 2d0*m02*Duv(i0/2-1,i1,i2,i3)
+     &        + f(1)*Duv(i0/2-1,i1+1,i2,i3) 
+     &        + f(2)*Duv(i0/2-1,i1,i2+1,i3) 
      &        + f(3)*Duv(i0/2-1,i1,i2,i3+1) )
             endif
           enddo
@@ -2031,21 +2077,21 @@ c D_{00...} from iteration Eq.(5.40)
         h(m2) = i2
 
 c coefficients D_{00...} from Eq.(5.49)
-          D(i0/2,h(1),h(2),h(3)) = 1d0/2d0/dfloat(il+1)/tz3(k,l)*(
+          D(i0/2,h(1),h(2),h(3)) = 1d0/2d0/dble(il+1)/tz3(k,l)*(
      &      tx3(k,0)*D(i0/2-1,h(1)+del(1,l),h(2)+del(2,l),h(3)+del(3,l))
      &      - detz3*D(i0/2-1,h(1)+del(1,l)+del(1,k),
      &                h(2)+del(2,l)+del(2,k),h(3)+del(3,l)+del(3,k)) )
           do n=1,3
             D(i0/2,h(1),h(2),h(3)) = D(i0/2,h(1),h(2),h(3))
-     &        + 1d0/2d0/dfloat(il+1)/tz3(k,l)*tz3(k,n)
+     &        + 1d0/2d0/dble(il+1)/tz3(k,l)*tz3(k,n)
      &          *Sh(n,i0/2-1,h(1)+del(1,l),h(2)+del(2,l),h(3)+del(3,l))
           enddo
-          if (h(m1).gt.0) D(i0/2,h(1),h(2),h(3)) = D(i0/2,h(1),h(2),h(3)) 
-     &      - 1d0/dfloat(il+1)/tz3(k,l)*h(m1)*tz3(k,m1)
+          if (h(m1).gt.0) D(i0/2,h(1),h(2),h(3))= D(i0/2,h(1),h(2),h(3))
+     &      - 1d0/dble(il+1)/tz3(k,l)*h(m1)*tz3(k,m1)
      &          *D(i0/2,h(1)-del(1,m1)+del(1,l),h(2)-del(2,m1)+del(2,l),
      &                h(3)-del(3,m1)+del(3,l))
-          if (h(m2).gt.0) D(i0/2,h(1),h(2),h(3)) = D(i0/2,h(1),h(2),h(3)) 
-     &      - 1d0/dfloat(il+1)/tz3(k,l)*h(m2)*tz3(k,m2)
+          if (h(m2).gt.0) D(i0/2,h(1),h(2),h(3))= D(i0/2,h(1),h(2),h(3))
+     &      - 1d0/dble(il+1)/tz3(k,l)*h(m2)*tz3(k,m2)
      &          *D(i0/2,h(1)-del(1,m2)+del(1,l),h(2)-del(2,m2)+del(2,l),
      &                h(3)-del(3,m2)+del(3,l))
 102     continue
@@ -2295,6 +2341,7 @@ c        neither p2(0,2) nor p2(1,3) small
 
 60      continue
 c try next permutation of propagators
+
         if (perm.gt.24) then
           if (cout_on.and.(cout.le.coutmax)) then
             write(outchannel,*) 
@@ -2302,6 +2349,8 @@ c try next permutation of propagators
             call DD_debugoutput()
           endif
           stopflag = min(-10,stopflag)
+          D0dd = 0d0
+          return
         endif
         perm = perm+1
         call D0args(p2(0,1),p2(1,2),p2(2,3),p2(0,3),
@@ -2632,7 +2681,7 @@ c---------------------------------------------
 *           *---*             q4 can be small, 
 *        q2/ m32 \q3          but q4=/=0
 *
-*       Note: calculated from [q1=small->MIR2] + difference from dim. reg.
+*    Note: calculated from [q1=small->MIR2] + difference from dim. reg.
 c---------------------------------------------
           elseif ((abs(q2)+abs(m32).gt.1d-18).and.
      &            (dcmplx(q2).ne.m32).and.(q4.ne.0d0) ) then

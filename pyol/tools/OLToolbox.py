@@ -1,28 +1,35 @@
-
-# Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-#
-# This file is part of OpenLoops.
-#
-# OpenLoops is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# OpenLoops is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+#!******************************************************************************!
+#! Copyright (C) 2014-2019 OpenLoops Collaboration. For authors see authors.txt !
+#!                                                                              !
+#! This file is part of OpenLoops.                                              !
+#!                                                                              !
+#! OpenLoops is free software: you can redistribute it and/or modify            !
+#! it under the terms of the GNU General Public License as published by         !
+#! the Free Software Foundation, either version 3 of the License, or            !
+#! (at your option) any later version.                                          !
+#!                                                                              !
+#! OpenLoops is distributed in the hope that it will be useful,                 !
+#! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+#! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+#! GNU General Public License for more details.                                 !
+#!                                                                              !
+#! You should have received a copy of the GNU General Public License            !
+#! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+#!******************************************************************************!
 
 
 import os
 import collections
 import hashlib
 import time
+import sys
 
 timeformat = '%Y-%m-%d-%H-%M-%S'
+
+def remove_duplicates(ls):
+    seen = set()
+    # seen.add() returns None
+    return [el for el in ls if not (el in seen or seen.add(el))]
 
 # =================================================== #
 # functions to manage lists and dictionaries in files #
@@ -50,22 +57,26 @@ def import_list(filename, lines=None, fatal=True,
             except IOError:
                 if fatal:
                     if '%s' in error_message:
-                        print error_message % (filename,)
+                        print(error_message % (filename,))
                     else:
-                        print error_message
+                        print(error_message)
                     raise
                 else:
                     return None
         else:
-            import urllib2
+            if sys.version_info < (3,0,0):
+                from urllib2 import urlopen, URLError
+            else:
+                from urllib.request import urlopen
+                from urllib.error import URLError
             try:
-                fh = urllib2.urlopen(filename)
-            except urllib2.HTTPError:
+                fh = urlopen(filename)
+            except URLError:
                 if fatal:
                     if '%s' in error_message:
-                        print error_message % (filename,)
+                        print(error_message % (filename,))
                     else:
-                        print error_message
+                        print(error_message)
                     raise
                 else:
                     return None
@@ -120,7 +131,7 @@ def export_list(filename, ls):
     try:
         fh = open(filename, 'w')
     except IOError:
-        print 'export_list: cannot open file', filename, 'for writing.'
+        print('export_list: cannot open file', filename, 'for writing.')
         raise
     for el in ls:
         fh.write(el)
@@ -138,38 +149,28 @@ def export_dictionary(filename, dic, form='%s %s'):
 
 
 # ============ #
-# SVN revision #
+# git revision #
 # ============ #
 
-def get_svn_revision(mandatory=False):
-    """Get the SVN revision number from `svn info`
+def get_git_revision(mandatory=False):
+    """Get the git revision number from `git log -1`
     in the current working directory."""
     import subprocess
-    svninfo_exitcode = 1
+    git_exitcode = 1
     try:
-        svninfo_proc = subprocess.Popen(
-            ['svn', 'info'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        svninfo_out, svninfo_err = svninfo_proc.communicate()
-        svninfo_exitcode = svninfo_proc.returncode
+        git_proc = subprocess.Popen(
+            ['git', 'rev-parse', '--short', 'HEAD'],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        git_out, git_err = git_proc.communicate()
+        git_exitcode = git_proc.returncode
     except OSError:
-        try:
-            svninfo_proc = subprocess.Popen(
-                ['svnlite', 'info'],
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            svninfo_out, svninfo_err = svninfo_proc.communicate()
-            svninfo_exitcode = svninfo_proc.returncode
-        except OSError:
-            pass
+        pass
     revision = 'none'
-    if not svninfo_exitcode:
-        for line in svninfo_out.split('\n'):
-            line = line.split()
-            if len(line) == 2 and line[0] == 'Revision:' and line[1].isdigit():
-                revision = int(line[1])
-                break
-    if mandatory and (revision == 'none' or svninfo_exitcode != 0):
-        raise OSError(svninfo_exitcode,
-                      '`svn info` failed. ' + svninfo_err.strip())
+    if not git_exitcode:
+        revision = git_out.decode('utf-8').strip()
+    if mandatory and (revision == 'none' or git_exitcode != 0):
+        raise OSError(git_exitcode,
+                      '`git info` failed. ' + git_err.decode('utf-8').strip())
     return revision
 
 
@@ -177,7 +178,7 @@ def get_svn_revision(mandatory=False):
 # Process library source files #
 # ============================ #
 
-def get_subprocess_src(loops, sub_process, processlib_src_dir,
+def get_subprocess_src(loops, sub_process, processlib_src_dir, config,
                        nvirtualfiles=0, override_loops=False):
     """Return lists of double precision, multi precision and info files
     which belong to a subprocess. Used to determine which files must be
@@ -187,20 +188,23 @@ def get_subprocess_src(loops, sub_process, processlib_src_dir,
     process definition; the info file does not exist yet)."""
     info_files = [os.path.join(processlib_src_dir,
                                'info_' + sub_process + '.txt')]
-    # Read info file for subprocess and check for 'Type' option
-    # to override loops specification.
+    # Read info file for subprocess and
+    # * check for 'Type' option to override loops specification,
+    # * check for 'OLMode' option yo set olmode.
+    olmode = 0
     if override_loops:
         try:
             fh = open(info_files[0], 'r')
         except IOError:
-            print "Error reading process info file", info_files[0]
+            print("Error reading process info file", info_files[0])
             raise
         info = fh.read()
         fh.close()
         for opt in info.split():
             if opt.startswith('Type='):
                 loops = opt[5:]
-                break
+            elif opt.startswith('OLMode='):
+                olmode = int(opt[7:])
 
     if loops == 't':
         dp_src = ['born_generic_' + sub_process + '.F90']
@@ -218,12 +222,27 @@ def get_subprocess_src(loops, sub_process, processlib_src_dir,
                    'checks_' + sub_process + '.F90']
                 + ['virtual_' + str(n+1) + '_' + sub_process + '.F90'
                    for n in range(nvirtualfiles)])
-
         if 't' in loops:
             dp_src.append('born_generic4loop_' + sub_process + '.F90')
             mp_src.append('born4loop_' + sub_process + '.F90')
         if 'p' in loops:
             mp_src.append('pseudotree_' + sub_process + '.F90')
+        # Decide if the loop process code is duplicated
+        # to compiled it in quad precision.
+        enable_process_qp = True
+        if 's' in loops and not 't' in loops:
+            # Loop-squared: qp only for checks
+            enable_process_qp = config['process_qp_checks']
+        else:
+            if olmode <= 1:
+                # OL1-type NLO or helicity optimised NLO: qp as rescue mode
+                enable_process_qp = config['process_qp_rescue']
+            else:
+                # On-the-fly reduction: qp only for checks
+                enable_process_qp = config['process_qp_checks']
+        if not enable_process_qp:
+            dp_src.extend(mp_src)
+            mp_src = []
 
     dp_src = [os.path.join(processlib_src_dir, srcfile) for srcfile in dp_src]
     mp_src = [os.path.join(processlib_src_dir, srcfile) for srcfile in mp_src]
@@ -232,17 +251,17 @@ def get_subprocess_src(loops, sub_process, processlib_src_dir,
 
 
 
-def get_processlib_src(loops, processlib, process_src_dir, compile_extra=True):
+def get_processlib_src(loops, processlib, config):
     """Return lists of double precision, multi precision and info files
     which belong to a process library. Used to determine which files must be
     compiled. Not used to determine which files are generated."""
-    processlib_src_dir = os.path.join(process_src_dir, processlib)
+    processlib_src_dir = os.path.join(config['process_src_dir'], processlib)
     subprocesses = import_list(os.path.join(
         processlib_src_dir, 'process_definition', 'subprocesses.list'))
     subprocesses_extra = import_list(os.path.join(
         processlib_src_dir, 'process_definition', 'subprocesses_extra.list'),
         fatal=False)
-    if subprocesses_extra and compile_extra:
+    if subprocesses_extra and config['compile_extra']:
         subprocesses.extend(subprocesses_extra)
     dp_src = [os.path.join(processlib_src_dir,
                            'version_' + processlib + '.F90')]
@@ -251,7 +270,7 @@ def get_processlib_src(loops, processlib, process_src_dir, compile_extra=True):
 
     for sub_process in subprocesses:
         dp_add, mp_add, info_add = get_subprocess_src(
-            loops, sub_process, processlib_src_dir, override_loops=True)
+            loops, sub_process, processlib_src_dir, config, override_loops=True)
         dp_src.extend(dp_add)
         mp_src.extend(mp_add)
         info_files.extend(info_add)
@@ -399,7 +418,7 @@ class ChannelDB:
                 data.extend([' '.join(ch) for ch in self.content[proc]])
             channels_hash = hashlib.md5()
             for iline in data:
-                channels_hash.update(iline)
+                channels_hash.update(iline.encode('utf-8'))
             data.insert(0, channels_hash.hexdigest() + '  ' +
                            time.strftime(timeformat))
             export_list(tmp_file, data)

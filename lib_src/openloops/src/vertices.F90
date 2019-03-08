@@ -1,24 +1,32 @@
-
-! Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-!
-! This file is part of OpenLoops.
-!
-! OpenLoops is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! OpenLoops is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-! GNU General Public License for more details.
-!
-! You should have received a copy of the GNU General Public License
-! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
+!******************************************************************************!
+! Copyright (C) 2014-2019 OpenLoops Collaboration. For authors see authors.txt !
+!                                                                              !
+! This file is part of OpenLoops.                                              !
+!                                                                              !
+! OpenLoops is free software: you can redistribute it and/or modify            !
+! it under the terms of the GNU General Public License as published by         !
+! the Free Software Foundation, either version 3 of the License, or            !
+! (at your option) any later version.                                          !
+!                                                                              !
+! OpenLoops is distributed in the hope that it will be useful,                 !
+! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+! GNU General Public License for more details.                                 !
+!                                                                              !
+! You should have received a copy of the GNU General Public License            !
+! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+!******************************************************************************!
 
 
 module ol_vertices_/**/REALKIND
   implicit none
+
+  ! interface to support explicit momenta and momentum integers
+  interface vert_UV_W
+    module procedure vert_UV_W_mexpl, vert_UV_W_mids
+  end interface
+
+
   contains
 
 ! **********************************************************************
@@ -212,7 +220,9 @@ end subroutine vert_QA_V
 
 ! **********************************************************************
 ! subroutine vert_VV_V(J_V1, P1, J_V2, P2, Jout_V)
-subroutine vert_UV_W(J_V1, P1, J_V2, P2, Jout_V)
+! TODO:  <09-11-18, J.-N. Lang> !
+
+subroutine vert_UV_W_mexpl(J_V1, P1, J_V2, P2, Jout_V)
 ! bare VV -> V vertex
 ! ----------------------------------------------------------------------
 ! J_Vi(4)    = incoming gluon currents (light-cone rep.)
@@ -234,8 +244,36 @@ subroutine vert_UV_W(J_V1, P1, J_V2, P2, Jout_V)
   P2J1 = cont_VV(P1+P2+P2,J_V1)
   Jout_V = J1J2 * (P1 - P2) + P2J1 * J_V2 - P1J2 * J_V1
 
-! end subroutine vert_VV_V
-end subroutine vert_UV_W
+end subroutine vert_UV_W_mexpl
+
+! **********************************************************************
+subroutine vert_UV_W_mids(J_V1, mom1, J_V2, mom2, Jout_V)
+! bare VV -> V vertex
+! ----------------------------------------------------------------------
+! J_Vi(4)    = incoming gluon currents (light-cone rep.)
+! Pi(4)      = incoming J_Vi momentum  (light-cone rep.)
+! Jout_V(4)  = outgoing gluon current  (light-cone rep.)
+! Jout_V(a3) = {  g(a1,a2)*[P1-P2](a3) + g(a2,a3)*[P2+Pout](a1)
+!               + g(a3,a1)*[-Pout-P1](a2)} * J_V1(a1) * J_V2(a2)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  use ol_kinematics_/**/REALKIND, only: get_LC_4
+  implicit none
+
+  integer,           intent(in)  :: mom1, mom2
+  complex(REALKIND), intent(in)  :: J_V1(4), J_V2(4)
+  complex(REALKIND), intent(out) :: Jout_V(4)
+  complex(REALKIND) :: J1J2, P1J2, P2J1, P1(4), P2(4)
+
+  P1 = get_LC_4(mom1)
+  P2 = get_LC_4(mom2)
+  J1J2 = cont_VV(J_V1,J_V2)
+  P1J2 = cont_VV(P1+P1+P2,J_V2)
+  P2J1 = cont_VV(P1+P2+P2,J_V1)
+  Jout_V = J1J2 * (P1 - P2) + P2J1 * J_V2 - P1J2 * J_V1
+
+end subroutine vert_UV_W_mids
 
 
 ! **********************************************************************
@@ -828,6 +866,36 @@ end subroutine vert_HHG_G
 
 
 ! **********************************************************************
+subroutine counter_HHG_G_vert(S1, S2, V3, P3, V_out, P4)
+! Effective Higgs Higgs gluon -> gluon vertex
+! V_out(4) = (P3(4)*P4(3) - P3.P4*g(3,4))*S1*S2*V3(3) = S1*S2*(P3.V2*P3(4) - P3.P4*V3(4))
+! note that P4 is outgoing
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S1(4), S2(4), V3(4), P3(4), P4(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  call vert_HHG_G(S1, S2, V3, P3, V_out, P4)
+end subroutine counter_HHG_G_vert
+
+
+! **********************************************************************
+subroutine vert_HHHG_G(S1, S2, S3, V4, P4, V_out, P5)
+! Effective Higgs Higgs Higgs gluon -> gluon vertex
+! V_out(5) = (P4(5)*P5(4) - P4.P5*g(4,5))*S1*S2*S3*V4(4) = S1*S2*S3*(P4.V3*P4(5) - P4.P5*V4(5))
+! note that P4 is outgoing
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S1(4), S2(4), S3(4), V4(4), P4(4), P5(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  V_out = S1(1)*S2(1)*S3(1)*(cont_VV(P5,V4) * P4 - cont_VV(P4,P5) * V4)
+end subroutine vert_HHHG_G
+
+
+! **********************************************************************
 subroutine vert_HGGG_H(S1, V2, P2, V3, P3, V4, P4, S_out)
 ! Effective Higgs gluon gluon gluon -> Higgs vertex
 ! S_out = (g(2,3)*(P2-P3)(4) + g(3,4)*(P3-P4)(2) + g(4,2)*(P4-P2)(3)) * V2(2)*V3(3)*V4(4)*S1
@@ -840,6 +908,19 @@ subroutine vert_HGGG_H(S1, V2, P2, V3, P3, V4, P4, S_out)
   complex(REALKIND), intent(out) :: S_out(4)
   S_out(1) = S1(1)*(cont_VV(V2,V3)*cont_VV(P2-P3,V4) + cont_VV(V3,V4)*cont_VV(P3-P4,V2) + cont_VV(V4,V2)*cont_VV(P4-P2,V3))
 end subroutine vert_HGGG_H
+
+
+! **********************************************************************
+subroutine vert_HHGGG_H(S1, S2, V3, P3, V4, P4, V5, P5, S_out)
+! Effective Higgs Higgs gluon gluon gluon -> Higgs vertex
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S1(4), S2(4), V3(4), P3(4), V4(4), P4(4), V5(4), P5(4)
+  complex(REALKIND), intent(out) :: S_out(4)
+  S_out(1) = S1(1)*S2(1)*(cont_VV(V3,V4)*cont_VV(P3-P4,V5) + cont_VV(V4,V5)*cont_VV(P4-P5,V3) + cont_VV(V5,V3)*cont_VV(P5-P3,V4))
+end subroutine vert_HHGGG_H
 
 
 ! **********************************************************************
@@ -858,6 +939,35 @@ end subroutine vert_HHGG_G
 
 
 ! **********************************************************************
+subroutine counter_HHGG_G_vert(S1, S2, V3, P3, V4, P4, V_out, P5)
+! Effective Higgs Higgs gluon gluon -> gluon vertex
+! V_out(5) = (g(3,4)*(P3-P4)(5) + g(4,5)*(P4+P5)(3) + g(5,3)*(-P5-P3)(4))*S1*S2*V4(3)*V4(4)
+!          = S1*S2*(V3.V4*(P3-P4)(5) + (P4+P5).V3*V4(5) - (P5+P3).V4*V3(5))
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S1(4), S2(4), V3(4), P3(4), V4(4), P4(4), P5(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  call vert_HHGG_G(S1, S2, V3, P3, V4, P4, V_out, P5)
+end subroutine counter_HHGG_G_vert
+
+
+
+! **********************************************************************
+subroutine vert_HHHGG_G(S1, S2, S3, V4, P4, V5, P5, V_out, P6)
+! Effective Higgs Higgs Higgs gluon gluon -> gluon vertex
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S1(4), S2(4), S3(4), V4(4), P4(4), V5(4), P5(4), P6(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  V_out = S1(1)*S2(1)*S3(1)*(cont_VV(V4,V5) * (P4-P5) + cont_VV(P5+P6,V4) * V5 - cont_VV(P6+P4,V5) * V4)
+end subroutine vert_HHHGG_G
+
+
+! **********************************************************************
 subroutine vert_HGGGG_H(S1, V2, V3, V4, V5, S_out)
 ! Effective Higgs gluon gluon gluon gluon -> Higgs vertex
 ! for factorised colour monomials f(a,b,x)*f(c,d,x)
@@ -871,6 +981,19 @@ subroutine vert_HGGGG_H(S1, V2, V3, V4, V5, S_out)
   complex(REALKIND), intent(out) :: S_out(4)
   S_out(1) = S1(1)*(cont_VV(V2,V4)*cont_VV(V3,V5) - cont_VV(V2,V5)*cont_VV(V3,V4))
 end subroutine vert_HGGGG_H
+
+! **********************************************************************
+subroutine vert_HHGGGG_H(S1, S2, V3, V4, V5, V6, S_out)
+! Effective Higgs Higgs gluon gluon gluon gluon -> Higgs vertex
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S1(4), S2(4), V3(4), V4(4), V5(4), V6(4)
+  complex(REALKIND), intent(out) :: S_out(4)
+  S_out(1) = S1(1)*S2(1)*(cont_VV(V3,V5)*cont_VV(V4,V6) - cont_VV(V3,V6)*cont_VV(V4,V5))
+end subroutine vert_HHGGGG_H
+
 
 
 ! **********************************************************************
@@ -890,6 +1013,20 @@ end subroutine vert_HHGGG_G
 
 
 ! **********************************************************************
+subroutine vert_HHHGGG_G(S1, S2, S3, V4, V5, V6, V_out)
+! Effective Higgs Higgs Higgs gluon gluon gluon -> gluon vertex
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_contractions_/**/REALKIND, only: cont_VV
+  implicit none
+  complex(REALKIND), intent(in)  :: S1(4), S2(4), S3(4), V4(4), V5(4), V6(4)
+  complex(REALKIND), intent(out) :: V_out(4)
+  V_out = S1(1)*S2(1)*S3(1)*(cont_VV(V4,V6) * V5 - cont_VV(V5,V6) * V4)
+end subroutine vert_HHHGGG_G
+
+
+
+! **********************************************************************
 ! HiggsPO Effective couplings
 ! **********************************************************************
 
@@ -902,8 +1039,8 @@ subroutine vert_SV_V_kap(J_S, J_V, P, Jout_V, P_out)
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND
   implicit none
-  complex(REALKIND), intent(in)  :: J_S(4), J_V(4)
-  complex(REALKIND), intent(out) :: Jout_V(4), P(4), P_out(4)
+  complex(REALKIND), intent(in)  :: J_S(4), J_V(4), P(4), P_out(4)
+  complex(REALKIND), intent(out) :: Jout_V(4)
   Jout_V = J_S(1) * J_V
 end subroutine vert_SV_V_kap
 
@@ -918,8 +1055,8 @@ subroutine vert_SV_V_eps(J_S, J_V, P, Jout_V, P_out)
   use KIND_TYPES, only: REALKIND
   use ol_contractions_/**/REALKIND, only: cont_VV
   implicit none
-  complex(REALKIND), intent(in)  :: J_S(4), J_V(4)
-  complex(REALKIND), intent(out) :: Jout_V(4), P(4), P_out(4)
+  complex(REALKIND), intent(in)  :: J_S(4), J_V(4), P(4), P_out(4)
+  complex(REALKIND), intent(out) :: Jout_V(4)
   Jout_V = -cont_VV(P,P_out)*J_V + cont_VV(P_out,J_V)*P
   Jout_V = J_S(1) * Jout_V
 end subroutine vert_SV_V_eps
@@ -935,8 +1072,8 @@ subroutine vert_SV_V_aeps(J_S, J_V, P1, Jout_V, P2)
   use KIND_TYPES, only: REALKIND
   use ol_contractions_/**/REALKIND, only: cont_EpVVV
   implicit none
-  complex(REALKIND), intent(in)  :: J_S(4), J_V(4)
-  complex(REALKIND), intent(out) :: Jout_V(4), P1(4), P2(4)
+  complex(REALKIND), intent(in)  :: J_S(4), J_V(4), P1(4), P2(4)
+  complex(REALKIND), intent(out) :: Jout_V(4)
   call cont_EpVVV(J_V, P1, P2, Jout_V)
   Jout_V = J_S(1) * Jout_V
 end subroutine vert_SV_V_aeps
@@ -1065,6 +1202,12 @@ end module ol_vertices_/**/REALKIND
 
 module ol_s_vertices_/**/REALKIND
   implicit none
+
+  ! interface to support explicit momenta and momentum integers
+  interface vert_UV_W
+    module procedure vert_UV_W_mexpl, vert_UV_W_mids
+  end interface
+
   contains
 
 !************************************************************************
@@ -1449,7 +1592,7 @@ end subroutine vert_QA_V
 
 
 ! **********************************************************************
-subroutine vert_UV_W(V1, P1, V2, P2, V_out)
+subroutine vert_UV_W_mexpl(V1, P1, V2, P2, V_out)
 ! bare VV -> V vertex
 ! ----------------------------------------------------------------------
 ! Vi          = incoming gluon (light-cone rep.)
@@ -1471,7 +1614,36 @@ subroutine vert_UV_W(V1, P1, V2, P2, V_out)
   P1J2 = cont_PP(P1+P1+P2,V2%j)
   P2J1 = cont_PP(P1+P2+P2,V1%j)
   V_out%j = J1J2 * (P1 - P2) + P2J1 * V2%j - P1J2 * V1%j
-end subroutine vert_UV_W
+end subroutine vert_UV_W_mexpl
+
+
+! **********************************************************************
+subroutine vert_UV_W_mids(V1, mom1, V2, mom2, V_out)
+! bare VV -> V vertex
+! ----------------------------------------------------------------------
+! Vi          = incoming gluon (light-cone rep.)
+! Pi(4)       = incoming Vi momentum  (light-cone rep.)
+! V_out(4)    = outgoing gluon (light-cone rep.)
+! V_out%j(a3) = {  g(a1,a2)*[P1-P2](a3) + g(a2,a3)*[P2+Pout](a1)
+!               + g(a3,a1)*[-Pout-P1](a2)} * V1%j(a1) * V2%j(a2)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_s_contractions_/**/REALKIND, only: cont_PP
+  use ol_kinematics_/**/REALKIND, only: get_LC_4
+  implicit none
+  type(wfun),        intent(in)  :: V1, V2
+  integer,           intent(in)  :: mom1, mom2
+  type(wfun),        intent(out) :: V_out
+  complex(REALKIND) :: J1J2, P1J2, P2J1, P1(4), P2(4)
+
+  P1 = get_LC_4(mom1)
+  P2 = get_LC_4(mom2)
+  J1J2 = cont_PP(V1%j,V2%j)
+  P1J2 = cont_PP(P1+P1+P2,V2%j)
+  P2J1 = cont_PP(P1+P2+P2,V1%j)
+  V_out%j = J1J2 * (P1 - P2) + P2J1 * V2%j - P1J2 * V1%j
+end subroutine vert_UV_W_mids
 
 
 ! **********************************************************************
@@ -1947,6 +2119,32 @@ end module ol_s_vertices_/**/REALKIND
 
 module ol_h_vertices_/**/REALKIND
   implicit none
+
+  ! interface to support explicit momenta and momentum integers
+  interface vert_UV_W
+    module procedure vert_UV_W_mexpl, vert_UV_W_mids
+  end interface
+
+  interface vert_VS_T
+    module procedure vert_VS_T_mexpl, vert_VS_T_mids
+  end interface
+
+  interface vert_TV_S
+    module procedure vert_TV_S_mexpl, vert_TV_S_mids
+  end interface
+
+  interface vert_ST_V
+    module procedure vert_ST_V_mexpl, vert_ST_V_mids
+  end interface
+
+  interface vert_DV_C
+    module procedure vert_DV_C_mexpl, vert_DV_C_mids
+  end interface
+
+  interface vert_VC_D
+    module procedure vert_VC_D_mexpl, vert_VC_D_mids
+  end interface
+
   contains
 
 ! ! **********************************************************************
@@ -2451,7 +2649,7 @@ end subroutine vert_QA_V
 
 
 ! **********************************************************************
-subroutine vert_UV_W(ntry, V1, P1, V2, P2, V_out, n, t)
+subroutine vert_UV_W_mexpl(ntry, V1, P1, V2, P2, V_out, n, t)
 ! bare VV -> V vertex
 ! ----------------------------------------------------------------------
 ! ntry           = 1 (2) for 1st (subsequent) PS points
@@ -2497,7 +2695,57 @@ subroutine vert_UV_W(ntry, V1, P1, V2, P2, V_out, n, t)
 
   if (ntry == 1) call helbookkeeping_vert3(ntry, V1, V2, V_out, n, t)
 
-end subroutine vert_UV_W
+end subroutine vert_UV_W_mexpl
+
+! **********************************************************************
+subroutine vert_UV_W_mids(ntry, V1, mom1, V2, mom2, V_out, n, t)
+! bare VV -> V vertex
+! ----------------------------------------------------------------------
+! ntry           = 1 (2) for 1st (subsequent) PS points
+! Vi(1:n(i))     = incoming gluon (light-cone representation)
+! Pi(4)          = incoming Vi momentum  (light-cone representation)
+! V_out(1:n(3))  = outgoing gluon (light-cone representation)
+! V_out(h)%j(a3) = {  g(a1,a2)*[P1-P2](a3) + g(a2,a3)*[P2+Pout](a1)
+!               + g(a3,a1)*[-Pout-P1](a2)} * V1(t(1,h))%j(a1) * V2(t(2,h))%j(a2)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3
+  use ol_kinematics_/**/REALKIND, only: get_LC_4
+!   use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)   :: ntry
+  integer,           intent(in)   :: mom1, mom2
+  integer(intkind2), intent(inout):: n(3), t(2,n(3))
+  type(wfun),        intent(in)   :: V1(n(1)), V2(n(2))
+  type(wfun),        intent(out)  :: V_out(n(3))
+  complex(REALKIND) :: J1J2, P1J2(n(2)), P2J1(n(1))
+  complex(REALKIND) :: P1half(4), P2half(4), P12(4), P112(4), P122(4)
+  integer :: h
+
+  P1half = 0.5_/**/REALKIND * get_LC_4(mom1)
+  P2half = 0.5_/**/REALKIND * get_LC_4(mom2)
+  P12  = P1half - P2half
+  P112 = P1half + P1half + P2half
+  P122 = P1half + P2half + P2half
+  do h = 1, n(1)
+    P2J1(h) = P122(1) * V1(h)%j(2) + P122(2) * V1(h)%j(1) &
+            - P122(3) * V1(h)%j(4) - P122(4) * V1(h)%j(3)
+  end do
+  do h = 1, n(2)
+    P1J2(h) = P112(1) * V2(h)%j(2) + P112(2) * V2(h)%j(1) &
+             -P112(3) * V2(h)%j(4) - P112(4) * V2(h)%j(3)
+  end do
+  do h = 1, n(3)
+    J1J2 = V1(t(1,h))%j(1) * V2(t(2,h))%j(2) + V1(t(1,h))%j(2) * V2(t(2,h))%j(1) &
+          -V1(t(1,h))%j(3) * V2(t(2,h))%j(4) - V1(t(1,h))%j(4) * V2(t(2,h))%j(3)
+
+    V_out(h)%j = J1J2 * P12 + P2J1(t(1,h)) * V2(t(2,h))%j - P1J2(t(2,h)) * V1(t(1,h))%j
+  end do
+
+  if (ntry == 1) call helbookkeeping_vert3(ntry, V1, V2, V_out, n, t)
+
+end subroutine vert_UV_W_mids
 
 
 ! **********************************************************************
@@ -2728,7 +2976,7 @@ end subroutine vert_SSS_S
 
 
 ! **********************************************************************
-subroutine vert_VS_T(ntry, V, P1, S, P2, S_out, n, t)
+subroutine vert_VS_T_mexpl(ntry, V, P1, S, P2, S_out, n, t)
 ! Vector boson + two scalars vertex
 ! ----------------------------------------------------------------------
 ! ntry            : 1 (2) for 1st (subsequent) PS points
@@ -2760,11 +3008,41 @@ subroutine vert_VS_T(ntry, V, P1, S, P2, S_out, n, t)
     call helbookkeeping_vert3(ntry, V, S, S_out, n, t)
   end if
 
-end subroutine vert_VS_T
+end subroutine vert_VS_T_mexpl
+
+! **********************************************************************
+subroutine vert_VS_T_mids(ntry, V, mom1, S, mom2, S_out, n, t)
+! Vector boson + two scalars vertex
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3, checkzero_scalar
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  use ol_kinematics_/**/REALKIND, only: get_LC_4
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer,           intent(in)    :: mom1, mom2
+  integer(intkind2), intent(inout) :: n(3), t(2,n(3))
+  type(wfun),        intent(in)    :: V(n(1)), S(n(2))
+  type(wfun),        intent(out)   :: S_out(n(3))
+  complex(REALKIND) :: P122(4)
+  integer :: h
+
+  P122 = get_LC_4(mom1 + mom2) + get_LC_4(mom2)
+  do h = 1, n(3)
+    S_out(h)%j(1) = cont_PP(P122, V(t(1,h))%j) * S(t(2,h))%j(1)
+  end do
+
+  if (ntry == 1) then
+    call  checkzero_scalar(S_out)
+    call helbookkeeping_vert3(ntry, V, S, S_out, n, t)
+  end if
+
+end subroutine vert_VS_T_mids
 
 
 ! **********************************************************************
-subroutine vert_TV_S(ntry, S, P1, V, P2, S_out, n, t)
+subroutine vert_TV_S_mexpl(ntry, S, P1, V, P2, S_out, n, t)
 ! Vector boson + two scalars vertex
 ! ----------------------------------------------------------------------
 ! ntry            : 1 (2) for 1st (subsequent) PS points
@@ -2796,11 +3074,40 @@ subroutine vert_TV_S(ntry, S, P1, V, P2, S_out, n, t)
     call helbookkeeping_vert3(ntry, S, V, S_out, n, t)
   end if
 
-end subroutine vert_TV_S
-
+end subroutine vert_TV_S_mexpl
 
 ! **********************************************************************
-subroutine vert_ST_V(ntry, S1, P1, S2, P2, V_out, n, t)
+subroutine vert_TV_S_mids(ntry, S, mom1, V, mom2, S_out, n, t)
+! Vector boson + two scalars vertex
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3, checkzero_scalar
+  use ol_kinematics_/**/REALKIND, only: get_LC_4
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer,           intent(in)    :: mom1, mom2
+  integer(intkind2), intent(inout) :: n(3), t(2,n(3))
+  type(wfun),        intent(in)    :: S(n(1)), V(n(2))
+  type(wfun),        intent(out)   :: S_out(n(3))
+  complex(REALKIND) :: P112(4)
+  integer :: h
+
+  P112 = get_LC_4(mom1) + get_LC_4(mom1 + mom2)
+  do h = 1, n(3)
+    S_out(h)%j(1) = - cont_PP(P112, V(t(2,h))%j) * S(t(1,h))%j(1)
+  end do
+
+  if (ntry == 1) then
+    call checkzero_scalar(S_out)
+    call helbookkeeping_vert3(ntry, S, V, S_out, n, t)
+  end if
+
+end subroutine vert_TV_S_mids
+
+! **********************************************************************
+subroutine vert_ST_V_mexpl(ntry, S1, P1, S2, P2, V_out, n, t)
 ! Vector boson + two scalars vertex
 ! ----------------------------------------------------------------------
 ! ntry            : 1 (2) for 1st (subsequent) PS points
@@ -2827,7 +3134,33 @@ subroutine vert_ST_V(ntry, S1, P1, S2, P2, V_out, n, t)
 
   if (ntry == 1) call helbookkeeping_vert3(ntry, S1, S2, V_out, n, t)
 
-end subroutine vert_ST_V
+end subroutine vert_ST_V_mexpl
+
+! **********************************************************************
+subroutine vert_ST_V_mids(ntry, S1, mom1, S2, mom2, V_out, n, t)
+! Vector boson + two scalars vertex
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3
+  use ol_kinematics_/**/REALKIND, only: get_LC_4
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer,           intent(in)    :: mom1, mom2
+  integer(intkind2), intent(inout) :: n(3), t(2,n(3))
+  type(wfun),        intent(in)    :: S1(n(1)), S2(n(2))
+  type(wfun),        intent(out)   :: V_out(n(3))
+  complex(REALKIND) :: P12(4)
+  integer :: h
+
+  P12 = get_LC_4(mom1 - mom2)
+  do h = 1, n(3)
+    V_out(h)%j = (S1(t(1,h))%j(1) * S2(t(2,h))%j(1)) * P12
+  end do
+
+  if (ntry == 1) call helbookkeeping_vert3(ntry, S1, S2, V_out, n, t)
+
+end subroutine vert_ST_V_mids
 
 
 ! **********************************************************************
@@ -3231,7 +3564,7 @@ end subroutine vert_CD_V
 
 
 ! **********************************************************************
-subroutine vert_DV_C(ntry, D, P1, V, D_out, n, t)
+subroutine vert_DV_C_mexpl(ntry, D, P1, V, D_out, n, t)
 ! Anti-ghost/gluon/anti-ghost vertex
 ! ----------------------------------------------------------------------
 ! ntry                : 1 (2) for 1st (subsequent) PS points
@@ -3260,11 +3593,38 @@ subroutine vert_DV_C(ntry, D, P1, V, D_out, n, t)
     call helbookkeeping_vert3(ntry, D, V, D_out, n, t)
   end if
 
-end subroutine vert_DV_C
-
+end subroutine vert_DV_C_mexpl
 
 ! **********************************************************************
-subroutine vert_VC_D(ntry, V, P1, C, P2, C_out, n, t)
+subroutine vert_DV_C_mids(ntry, D, mom1, V, D_out, n, t)
+! Anti-ghost/gluon/anti-ghost vertex
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3, checkzero_scalar
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  use ol_kinematics_/**/REALKIND, only: get_LC_4
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer,           intent(in)    :: mom1
+  integer(intkind2), intent(inout) :: n(3), t(2,n(3))
+  type(wfun),        intent(in)    :: D(n(1)), V(n(2))
+  type(wfun),        intent(out)   :: D_out(n(3))
+  integer :: h
+
+  do h = 1, n(3)
+    D_out(h)%j(1) = - D(t(1,h))%j(1) * cont_PP(get_LC_4(mom1), V(t(2,h))%j)
+  end do
+
+  if (ntry == 1) then
+    call checkzero_scalar(D_out)
+    call helbookkeeping_vert3(ntry, D, V, D_out, n, t)
+  end if
+
+end subroutine vert_DV_C_mids
+
+! **********************************************************************
+subroutine vert_VC_D_mexpl(ntry, V, P1, C, P2, C_out, n, t)
 ! Ghost/gluon/ghost vertex
 ! ----------------------------------------------------------------------
 ! ntry           : 1 (2) for 1st (subsequent) PS points
@@ -3295,7 +3655,37 @@ subroutine vert_VC_D(ntry, V, P1, C, P2, C_out, n, t)
     call helbookkeeping_vert3(ntry, V, C, C_out, n, t)
   end if
 
-end subroutine vert_VC_D
+end subroutine vert_VC_D_mexpl
+
+! **********************************************************************
+subroutine vert_VC_D_mids(ntry, V, mom1, C, mom2, C_out, n, t)
+! Ghost/gluon/ghost vertex
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert3, checkzero_scalar
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  use ol_kinematics_/**/REALKIND, only: get_LC_4
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer,           intent(in)    :: mom1, mom2
+  integer(intkind2), intent(inout) :: n(3), t(2,n(3))
+  type(wfun),        intent(in)    :: V(n(1)), C(n(2))
+  type(wfun),        intent(out)   :: C_out(n(3))
+  complex(REALKIND) :: P12(4)
+  integer :: h
+
+  P12 = get_LC_4(mom1 + mom2)
+  do h = 1, n(3)
+    C_out(h)%j(1) = C(t(2,h))%j(1) * cont_PP(P12, V(t(1,h))%j)
+  end do
+
+  if (ntry == 1) then
+    call checkzero_scalar(C_out)
+    call helbookkeeping_vert3(ntry, V, C, C_out, n, t)
+  end if
+
+end subroutine vert_VC_D_mids
 
 
 ! ======================================================================
@@ -3599,7 +3989,7 @@ subroutine vert_HGGGG_H(ntry, S1, V2, V3, V4, V5, S_out, n, t)
 ! Effective Higgs gluon gluon gluon gluon -> Higgs vertex
 ! for factorised colour monomials f(a,b,x)*f(c,d,x)
 ! S_out = (g(2,4)*g(3,5) - g(2,5)*g(3,4)) * S_in * V2(2) * V3(3) * V4(4) * V5(5)
-!       = S_in * (V2.V3*V3.V5 - V2.V5*V3.V4)
+!       = S_in * (V2.V4*V3.V5 - V2.V5*V3.V4)
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND, intkind1, intkind2
   use ol_data_types_/**/REALKIND, only: wfun
@@ -3645,6 +4035,181 @@ subroutine vert_HHGGG_G(ntry, S1, S2, V3, V4, V5, V_out, n, t)
   end do
   if (ntry == 1) call helbookkeeping_vert6(ntry, S1, S2, V3, V4, V5, V_out, n, t)
 end subroutine vert_HHGGG_G
+
+
+! ======================================================================
+! HHHEFT vertices
+! =====================================================================
+
+
+! **********************************************************************
+subroutine vert_HHGG_H(ntry, S1, S2, V3, P3, V4, P4, S_out, n, t)
+! Effective Higgs Higgs gluon gluon -> Higgs vertex
+! S_out = (P3.P4*g(3,4) - P3(4)*P4(3))*V3(3)*V4(4)*S1*S2 = S1*S2*(V3.V4*P3.P4 - P3.V4*P4.V3)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert5, checkzero_scalar
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(5), t(4,n(5))
+  type(wfun),        intent(in)    :: S1(n(1))
+  type(wfun),        intent(in)    :: S2(n(2))
+  type(wfun),        intent(in)    :: V3(n(3)), V4(n(4))
+  complex(REALKIND), intent(in)    :: P3(4), P4(4)
+  type(wfun),        intent(out)   :: S_out(n(4))
+  integer :: h
+  do h = 1, n(5)
+    S_out(h)%j(1) = S1(t(1,h))%j(1)*S2(t(2,h))%j(1)*(cont_PP(V3(t(3,h))%j, V4(t(4,h))%j) * cont_PP(P3, P4) &
+                & - cont_PP(P3, V4(t(4,h))%j) * cont_PP(P4, V3(t(3,h))%j))
+  end do
+  if (ntry == 1) then
+    call checkzero_scalar(S_out)
+    call helbookkeeping_vert5(ntry, S1, S2, V3, V4, S_out, n, t)
+  end if
+end subroutine vert_HHGG_H
+
+
+! **********************************************************************
+subroutine vert_HHHG_G(ntry, S1, S2, S3, V4, P4, V_out, P5, n, t)
+! Effective Higgs Higgs gluon -> gluon vertex
+! V_out(4) = (P4(5)*P5(4) - P4.P3*g(4,5))*S1*S2*S3*V4(4) = S1*S2*S3*P5.V4*P4(3) - S1*S2*S3*P4.P5*V4(3)
+! note that P4 is outgoing
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert5
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(5), t(4,n(3))
+  type(wfun),        intent(in)    :: S1(n(1)), S2(n(2)), S3(n(3)), V4(n(4))
+  complex(REALKIND), intent(in)    :: P4(4), P5(4)
+  type(wfun),        intent(out)   :: V_out(n(5))
+  integer :: h
+  do h = 1, n(5)
+    V_out(h)%j = S1(t(1,h))%j(1) * S2(t(2,h))%j(1) * S3(t(3,h))%j(1) * (cont_PP(P5, V4(t(4,h))%j) * P4 &
+             & - cont_PP(P4, P5) * V4(t(4,h))%j)
+  end do
+  if (ntry == 1) call helbookkeeping_vert5(ntry, S1, S2, S3, V4, V_out, n, t)
+end subroutine vert_HHHG_G
+
+
+! **********************************************************************
+subroutine vert_HHGGG_H(ntry, S1, S2, V3, P3, V4, P4, V5, P5, S_out, n, t)
+! Effective Higgs Higgs gluon gluon gluon -> Higgs vertex
+! S_out = (g(2,3)*(P2-P3)(4) + g(3,4)*(P3-P4)(2) + g(4,2)*(P4-P2)(3)) * S1*V2(2)*V3(3)*V4(4)
+!       = S1*(V2.V3*(P2-P3).V4 + V3.V4*(P3-P4).V2 + V4.V2*(P4-P2).V3)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert6, checkzero_scalar
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(6), t(5,n(4))
+  type(wfun),        intent(in)    :: S1(n(1)), S2(n(2)), V3(n(3)), V4(n(4)), V5(n(5))
+  complex(REALKIND), intent(in)    :: P3(4), P4(4), P5(4)
+  type(wfun),        intent(out)   :: S_out(n(6))
+  integer :: h
+  do h = 1, n(6)
+    S_out(h)%j(1) = cont_PP(V3(t(3,h))%j, V4(t(4,h))%j) * cont_PP(P3-P4, V5(t(5,h))%j) * S1(t(1,h))%j(1) * S2(t(2,h))%j(1) &
+                & + cont_PP(V4(t(4,h))%j, V5(t(5,h))%j) * cont_PP(P4-P3, V3(t(3,h))%j) * S1(t(1,h))%j(1) * S2(t(2,h))%j(1) &
+                & + cont_PP(V5(t(5,h))%j, V3(t(3,h))%j) * cont_PP(P5-P3, V4(t(4,h))%j) * S1(t(1,h))%j(1) * S2(t(2,h))%j(1)
+  end do
+  if (ntry == 1) then
+    call checkzero_scalar(S_out)
+    call helbookkeeping_vert6(ntry, S1, S2, V3, V4, V5, S_out, n, t)
+  end if
+end subroutine vert_HHGGG_H
+
+
+! **********************************************************************
+subroutine vert_HHHGG_G(ntry, S1, S2, S3, V4, P4, V5, P5, V_out, P6, n, t)
+! Effective Higgs Higgs Higgs gluon gluon -> gluon vertex
+! V_out(6) = (g(4,5)*(P4-P5)(6) + g(5,6)*(P5+P6)(4) + g(6,4)*(-P6-P4)(5)) * S1*S2*S3*V4(4)*V5(5)
+!          = S1*S2*S3*V4.V5*(P4-P5)(6) + S1*S2*S3*(P5+P6).V4*V5(6) - S1*S2*S3*(P6+P4).V5*V4(6)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert6
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(6), t(5,n(6))
+  type(wfun),        intent(in)    :: S1(n(1)), S2(n(2)), S3(n(3)), V4(n(4)), V5(n(5))
+  complex(REALKIND), intent(in)    :: P4(4), P5(4), P6(4)
+  type(wfun),        intent(out)   :: V_out(n(6))
+  complex(REALKIND) :: P56_V4(n(4)), P64_V5(n(5))
+  integer :: h
+  do h = 1, n(4)
+    P56_V4(h) = cont_PP(P5+P6, V4(h)%j)
+  end do
+  do h = 1, n(5)
+    P64_V5(h) = cont_PP(P6+P4, V5(h)%j)
+  end do
+  do h = 1, n(6)
+    V_out(h)%j = (S1(t(1,h))%j(1) * S2(t(2,h))%j(1) * S3(t(3,h))%j(1) * cont_PP(V4(t(4,h))%j, V5(t(5,h))%j)) * (P4-P5) &
+             & + (S1(t(1,h))%j(1) * S2(t(2,h))%j(1) * S3(t(3,h))%j(1) * P56_V4(t(4,h))) * V5(t(5,h))%j &
+             & - (S1(t(1,h))%j(1) * S2(t(2,h))%j(1) * S3(t(3,h))%j(1) * P64_V5(t(5,h))) * V4(t(4,h))%j
+  end do
+  if (ntry == 1) call helbookkeeping_vert6(ntry, S1, S2, S3, V4, V5, V_out, n, t)
+end subroutine vert_HHHGG_G
+
+
+! **********************************************************************
+subroutine vert_HHGGGG_H(ntry, S1, S2, V3, V4, V5, V6, S_out, n, t)
+! Effective Higgs Higgs gluon gluon gluon gluon -> Higgs vertex
+! for factorised colour monomials f(a,b,x)*f(c,d,x)
+! S_out = (g(3,5)*g(4,6) - g(3,6)*g(4,5)) * S1 * S2 * S3 * V3(3) * V4(4) * V5(5) * V6(6)
+!       = S1 * S2 * S3 * (V3.V5*V4.V6 - V3.V6*V4.V5)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert7, checkzero_scalar
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(7), t(6,n(7))
+  type(wfun),        intent(in)    :: S1(n(1)), S2(n(2)), V3(n(3)), V4(n(4)), V5(n(5)), V6(n(6))
+  type(wfun),        intent(out)   :: S_out(n(7))
+  integer :: h
+  do h = 1, n(7)
+    S_out(h)%j(1) = S1(t(1,h))%j(1) * S2(t(2,h))%j(1) * cont_PP(V3(t(3,h))%j, V5(t(5,h))%j) * cont_PP(V4(t(4,h))%j, V6(t(6,h))%j) &
+                & - S1(t(1,h))%j(1) * S2(t(2,h))%j(1) * cont_PP(V3(t(3,h))%j, V6(t(6,h))%j) * cont_PP(V4(t(4,h))%j, V5(t(5,h))%j)
+  end do
+  if (ntry == 1) then
+    call checkzero_scalar(S_out)
+    call helbookkeeping_vert7(ntry, S1, S2, V3, V4, V5, V6, S_out, n, t)
+  end if
+end subroutine vert_HHGGGG_H
+
+
+! **********************************************************************
+subroutine vert_HHHGGG_G(ntry, S1, S2, S3, V4, V5, V6, V_out, n, t)
+! Effective Higgs Higgs Higgs gluon gluon gluon -> gluon vertex
+! for factorised colour monomials f(a,b,x)*f(c,d,x)
+! V_out(7) = (g(4,6)*g(5,7) - g(4,7)*g(4,6)) * S1 * S2 * S3 * V4(4) * V5(5) * V6(6)
+!          = S1*S2*S3*V3.V5*V4(6) - S1*S2*S3*V4.V5*V3(6)
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, intkind1, intkind2
+  use ol_data_types_/**/REALKIND, only: wfun
+  use ol_helicity_bookkeeping_/**/REALKIND, only: helbookkeeping_vert7
+  use ol_h_contractions_/**/REALKIND, only: cont_PP
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(7), t(6,n(7))
+  type(wfun),        intent(in)    :: S1(n(1)), S2(n(2)), S3(n(3)), V4(n(4)), V5(n(5)), V6(n(6))
+  type(wfun),        intent(out)   :: V_out(n(7))
+  integer :: h
+  do h = 1, n(7)
+    V_out(h)%j = (S1(t(1,h))%j(1) * S2(t(2,h))%j(1) * S3(t(3,h))%j(1) * cont_PP(V4(t(4,h))%j, V6(t(6,h))%j)) * V5(t(5,h))%j &
+             & - (S1(t(1,h))%j(1) * S2(t(2,h))%j(1) * S3(t(3,h))%j(1) * cont_PP(V5(t(5,h))%j, V6(t(6,h))%j)) * V4(t(4,h))%j
+  end do
+  if (ntry == 1) call helbookkeeping_vert7(ntry, S1, S2, S3, V4, V5, V6, V_out, n, t)
+end subroutine vert_HHHGGG_G
+
 
 
 ! **********************************************************************
@@ -3760,15 +4325,15 @@ end subroutine vert_SV_V_kap
 !   type(wfun),        intent(out)   :: V_out(n(3))
 !   complex(REALKIND), intent(in)    :: P1(4), P2(4)
 !   integer :: h
-! 
+!
 !   do h = 1, n(3)
 !     V_out(h)%j = S(t(1,h))%j(1) * V(t(2,h))%j
 !   end do
-! 
+!
 !   if (ntry == 1) call helbookkeeping_vert3(ntry, S, V, V_out, n, t)
-! 
+!
 ! end subroutine vert_SV_W_kap
-! 
+!
 
 
 ! **********************************************************************
@@ -3856,16 +4421,16 @@ end subroutine vert_SV_V_aeps
 !   type(wfun),        intent(out)   :: V_out(n(3))
 !   complex(REALKIND), intent(in)    :: P1(4), P2(4)
 !   integer :: h
-! 
+!
 !   do h = 1, n(3)
 !     call cont_EpPPP(V(t(1,h))%j, P1, P2, V_out(h)%j)
 !     V_out(h)%j = S(t(2,h))%j(1) * V_out(h)%j
 !   end do
-! 
+!
 !   if (ntry == 1) call helbookkeeping_vert3(ntry, S, V, V_out, n, t)
-! 
+!
 ! end subroutine vert_VS_V_aeps
-! 
+!
 
 ! **********************************************************************
 subroutine vert_SQA_V(g, ntry, S, Q, A, V_out, n, t)

@@ -1,21 +1,21 @@
-
-! Copyright 2014 Fabio Cascioli, Jonas Lindert, Philipp Maierhoefer, Stefano Pozzorini
-!
-! This file is part of OpenLoops.
-!
-! OpenLoops is free software: you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation, either version 3 of the License, or
-! (at your option) any later version.
-!
-! OpenLoops is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-! GNU General Public License for more details.
-!
-! You should have received a copy of the GNU General Public License
-! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.
-
+!******************************************************************************!
+! Copyright (C) 2014-2019 OpenLoops Collaboration. For authors see authors.txt !
+!                                                                              !
+! This file is part of OpenLoops.                                              !
+!                                                                              !
+! OpenLoops is free software: you can redistribute it and/or modify            !
+! it under the terms of the GNU General Public License as published by         !
+! the Free Software Foundation, either version 3 of the License, or            !
+! (at your option) any later version.                                          !
+!                                                                              !
+! OpenLoops is distributed in the hope that it will be useful,                 !
+! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+! GNU General Public License for more details.                                 !
+!                                                                              !
+! You should have received a copy of the GNU General Public License            !
+! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+!******************************************************************************!
 
 module ol_helicity_bookkeeping_/**/REALKIND
   implicit none
@@ -44,7 +44,7 @@ subroutine helbookkeeping_wf(hel, ex, shift)
 ! attributes additive global labels (0, 1,..., n_k-1)*shift_k
 ! to helicity states (1,2,...,n_k) of kth external particle, where
 ! shift_1 = 1 and shift_k+1 = n_k*shift_k
-! shift = shift_k + 1 is returned as output to fix next particle's labels
+! shift = shift_k + 1 is returned as output to fix next particles labels
 ! **********************************************************************
   use ol_data_types_/**/REALKIND, only: wfun
   implicit none
@@ -639,7 +639,7 @@ subroutine helbookkeeping_vert6(ntry, WF1, WF2, WF3, WF4, WF5, WF6, n, t)
   n(4) = h4
 
 
-  ! sets n(4) = # of non-zero WF4 components and check that all zeros are at the end
+  ! sets n(5) = # of non-zero WF5 components and check that all zeros are at the end
   h5 = n(5)
   do i = 1, n(5)
     if (WF5(i)%e == -1_intkind2) then
@@ -660,7 +660,7 @@ subroutine helbookkeeping_vert6(ntry, WF1, WF2, WF3, WF4, WF5, WF6, n, t)
 
 
   ! restrict I/O table to non-vanishing helicity configurations
-  i  = 0 ! index of WF5 states
+  i  = 0 ! index of WF6 states
   h6 = 0 ! index of non-zero WF5 states
   do h1 = 1, n(1)
     do h2 = 1, n(2)
@@ -693,9 +693,9 @@ subroutine helbookkeeping_vert6(ntry, WF1, WF2, WF3, WF4, WF5, WF6, n, t)
   end do
 
   ! sets n(6) = # of non-vanishing I/O helicity configurations
-  n(6) = h5
+  n(6) = h6
 
-  ! sort non-vanishing WF5(1:h5) components and adapt table accordingly
+  ! sort non-vanishing WF6(1:h6) components and adapt table accordingly
   do i = 1, n(6) - 1
     emin = WF6(i)%e
     imin = i
@@ -715,6 +715,215 @@ subroutine helbookkeeping_vert6(ntry, WF1, WF2, WF3, WF4, WF5, WF6, n, t)
   end do
 
 end subroutine helbookkeeping_vert6
+
+
+! **********************************************************************
+subroutine helbookkeeping_vert7(ntry, WF1, WF2, WF3, WF4, WF5, WF6, WF7, n, t)
+! ----------------------------------------------------------------------
+! WF1(1:n(1)),..., WF6(1:n(4))                     = input wfun arrays
+! WF7(1:n(4))                                      = output wfun array
+! vanishing components moved at the end of WF6 array and marked via %e = -1
+! non-zero WF5 components ordered according to global helicity label
+! WF1(h1), WF2(h2), WF3(h3), WF4(h4), WF(h5) <-> WF6(h6) connection stored in
+! table hi = t(i,h6) with i=1,2,3,4,5
+! array sizes n(1), n(2), n(3), n(4), n(5), n(6) restricted to non-vanishing components
+! **********************************************************************
+  use KIND_TYPES, only: intkind1, intkind2
+  use ol_generic, only: to_string
+  use ol_debug, only: ol_error, ol_fatal
+  use ol_data_types_/**/REALKIND, only: wfun
+  implicit none
+  integer(intkind1), intent(in)    :: ntry
+  integer(intkind2), intent(inout) :: n(7), t(6,n(7))
+  type(wfun),        intent(in)    :: WF1(n(1)), WF2(n(2)), WF3(n(3)), WF4(n(4)), WF5(n(5)), WF6(n(6))
+  type(wfun),        intent(out)   :: WF7(n(7))
+  integer(intkind2) :: h1, h2, h3, h4, h5, h6, h7, i, n2_in, n3_in, n4_in, n5_in, n6_in
+  integer(intkind2) :: iq, imin, emin
+  integer(intkind2) :: taux(6)
+  type(wfun)        :: WFaux
+
+  if(ntry /= 1) then ! the following operations input table t in initialisation form
+    call ol_error(2,'in subroutine helbookkeeping_vert7:')
+    call ol_error(2,'ntry =' // to_string(ntry) // ' not allowed')
+    call ol_fatal()
+  end if
+  ! sets n(1) = # of non-zero WF1 components and check that all zeros are at the end
+  h1 = n(1)
+  do i = 1, n(1)
+    if (WF1(i)%e == -1_intkind2) then
+      h1 = i - 1
+      exit
+    end if
+  end do
+  do i = h1 + 1, n(1)
+    if (WF1(i)%e /= -1_intkind2) then
+      call ol_error(2,'in subroutine helbookkeeping_vert5:')
+      call ol_error(2,'i, h1, n(1), WF1(i)%e =' // to_string(i) // " " // to_string(h1) // " " //  &
+                  &  to_string(n(1)) // " " //  to_string(WF1(i)%e))
+      call ol_fatal()
+    end if
+  end do
+  n(1) = h1
+
+  ! sets n(2) = # of non-zero WF2 components and check that all zeros are at the end
+  h2 = n(2)
+  do i = 1, n(2)
+    if (WF2(i)%e == -1_intkind2) then
+      h2 = i - 1
+      exit
+    end if
+  end do
+  do i = h2 + 1, n(2)
+    if (WF2(i)%e /= -1_intkind2) then
+      call ol_error(2,'in subroutine helbookkeeping_vert5:')
+      call ol_error(2,'i, h2, n(2), WF2(i)%e =' // to_string(i) // " " // to_string(h2) // " " //  &
+                  &  to_string(n(2)) // " " //  to_string(WF2(i)%e))
+      call ol_fatal()
+    end if
+  end do
+  n2_in = n(2)
+  n(2) = h2
+
+  ! sets n(3) = # of non-zero WF3 components and check that all zeros are at the end
+  h3 = n(3)
+  do i = 1, n(3)
+    if (WF3(i)%e == -1_intkind2) then
+      h3 = i - 1
+      exit
+    end if
+  end do
+  do i = h3 + 1, n(3)
+    if (WF3(i)%e /= -1_intkind2) then
+      call ol_error(2,'in subroutine helbookkeeping_vert5:')
+      call ol_error(2,'i, h3, n(3), WF3(i)%e =' // to_string(i) // " " // to_string(h3) // " " //  &
+                  &  to_string(n(3)) // " " //  to_string(WF3(i)%e))
+      call ol_fatal()
+    end if
+  end do
+  n3_in = n(3)
+  n(3) = h3
+
+
+  ! sets n(4) = # of non-zero WF4 components and check that all zeros are at the end
+  h4 = n(4)
+  do i = 1, n(4)
+    if (WF4(i)%e == -1_intkind2) then
+      h4 = i - 1
+      exit
+    end if
+  end do
+  do i = h4 + 1, n(4)
+    if (WF4(i)%e /= -1_intkind2) then
+      call ol_error(2,'in subroutine helbookkeeping_vert5:')
+      call ol_error(2,'i, h4, n(4), WF4(i)%e =' // to_string(i) // " " // to_string(h4) // " " //  &
+                  &  to_string(n(4)) // " " //  to_string(WF4(i)%e))
+      call ol_fatal()
+    end if
+  end do
+  n4_in = n(4)
+  n(4) = h4
+
+
+  ! sets n(5) = # of non-zero WF5 components and check that all zeros are at the end
+  h5 = n(5)
+  do i = 1, n(5)
+    if (WF5(i)%e == -1_intkind2) then
+      h5 = i - 1
+      exit
+    end if
+  end do
+  do i = h5 + 1, n(5)
+    if (WF5(i)%e /= -1_intkind2) then
+      call ol_error(2,'in subroutine helbookkeeping_vert7:')
+      call ol_error(2,'i, h5, n(5), WF5(i)%e =' // to_string(i) // " " // to_string(h5) // " " //  &
+                  &  to_string(n(5)) // " " //  to_string(WF5(i)%e))
+      call ol_fatal()
+    end if
+  end do
+  n5_in = n(5)
+  n(5) = h5
+
+
+  ! sets n(6) = # of non-zero WF6 components and check that all zeros are at the end
+  h6 = n(6)
+  do i = 1, n(6)
+    if (WF6(i)%e == -1_intkind2) then
+      h6 = i - 1
+      exit
+    end if
+  end do
+  do i = h6 + 1, n(6)
+    if (WF6(i)%e /= -1_intkind2) then
+      call ol_error(2,'in subroutine helbookkeeping_vert7:')
+      call ol_error(2,'i, h6, n(6), WF6(i)%e =' // to_string(i) // " " // to_string(h6) // " " //  &
+                  &  to_string(n(6)) // " " //  to_string(WF6(i)%e))
+      call ol_fatal()
+    end if
+  end do
+  n6_in = n(6)
+  n(6) = h6
+
+  ! restrict I/O table to non-vanishing helicity configurations
+  i  = 0 ! index of WF7 states
+  h7 = 0 ! index of non-zero WF6 states
+  do h1 = 1, n(1)
+    do h2 = 1, n(2)
+      do h3 = 1, n(3)
+        do h4 = 1, n(4)
+          do h5 = 1, n(5)
+            do h6 = 1, n(6)
+              i  = h6 + n6_in * (h5-1 + n5_in * (h4-1 + n4_in * (h3-1 + n3_in * (h2-1 + n2_in * (h1-1))))) ! assumes input table in standard inititalisation form
+              if (all(WF7(i)%j == 0)) cycle ! skips vanishing WF5 components
+              h7 = h7 + 1
+              t(1,h7) = h1
+              t(2,h7) = h2
+              t(3,h7) = h3
+              t(4,h7) = h4
+              t(5,h7) = h5
+              t(6,h7) = h6
+              WF7(h7)%e = WF1(h1)%e + WF2(h2)%e + WF3(h3)%e + WF4(h4)%e + WF5(h5)%e + WF6(h6)%e ! additive helicity label for outgoing states
+              if (h7 == i) cycle
+              WF7(h7)%j = WF7(i)%j ! shifts non-zero components to first part of WF7 array
+              WF7(h7)%h = WF7(i)%h ! shifts non-zero components to first part of WF7 array
+            end do
+          end do
+        end do
+      end do
+    end do
+  end do
+
+  ! put vanishing components at the end of WF7 array
+  do i = h7 + 1, n(7)
+    WF7(i)%j = 0
+    WF7(i)%h = B"00"
+    WF7(i)%e = -1_intkind2 ! marker for vanising helicity states
+  end do
+
+  ! sets n(7) = # of non-vanishing I/O helicity configurations
+  n(7) = h7
+
+  ! sort non-vanishing WF5(1:h5) components and adapt table accordingly
+  do i = 1, n(7) - 1
+    emin = WF7(i)%e
+    imin = i
+    do iq = i + 1, n(7)              ! look for component with helicity < emin
+      if (WF7(iq)%e >= emin) cycle
+      emin = WF7(iq)%e
+      imin = iq
+    end do
+    if (imin > i) then
+       WFaux     = WF7(i) ! flip WF7(i) <-> WF7(imin) components
+       WF7(i)    = WF7(imin)
+       WF7(imin) = WFaux
+       taux        = t(1:6,i) ! same for table
+       t(1:6,i)    = t(1:6,imin)
+       t(1:6,imin) = taux
+    end if
+  end do
+
+end subroutine helbookkeeping_vert7
+
+
 
 
 ! **********************************************************************
@@ -949,7 +1158,7 @@ subroutine flip_phase(P, pol, MOM, omega)
   call wf_V_Std(P, 0._/**/REALKIND, pol, eps) ! light-cone polarisation vector
   call Std2LC_Rep(MOM, MOM_LC)
 
-  ! Don't use h_contractions::cont_PP(eps,MOM_LC) to avoid cyclic dependencies
+  ! Do not use h_contractions::cont_PP(eps,MOM_LC) to avoid cyclic dependencies
   omega(1) = eps(1)*MOM_LC(2) + eps(2)*MOM_LC(1) - eps(3)*MOM_LC(4) - eps(4)*MOM_LC(3)
   omega(1) = omega(1)/abs(omega(1))
   omega(1) = omega(1)*omega(1)

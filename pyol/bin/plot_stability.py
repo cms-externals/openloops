@@ -1,6 +1,25 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
+#!******************************************************************************!
+#! Copyright (C) 2014-2019 OpenLoops Collaboration. For authors see authors.txt !
+#!                                                                              !
+#! This file is part of OpenLoops.                                              !
+#!                                                                              !
+#! OpenLoops is free software: you can redistribute it and/or modify            !
+#! it under the terms of the GNU General Public License as published by         !
+#! the Free Software Foundation, either version 3 of the License, or            !
+#! (at your option) any later version.                                          !
+#!                                                                              !
+#! OpenLoops is distributed in the hope that it will be useful,                 !
+#! but WITHOUT ANY WARRANTY; without even the implied warranty of               !
+#! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                !
+#! GNU General Public License for more details.                                 !
+#!                                                                              !
+#! You should have received a copy of the GNU General Public License            !
+#! along with OpenLoops.  If not, see <http://www.gnu.org/licenses/>.           !
+#!******************************************************************************!
+
 # This module can be run as a command line tool
 # or imported as a module for interactive use.
 
@@ -11,7 +30,7 @@
 
 from __future__ import division
 import os
-import optparse
+import argparse
 import math
 import collections
 import tarfile
@@ -20,9 +39,9 @@ try:
     from matplotlib.ticker import MultipleLocator
     from matplotlib.backends.backend_pdf import PdfPages
 except ImportError:
-    print """*** matplotlib is not available. ***
+    print("""*** matplotlib is not available. ***
 Unless matplotlib is installed, creating plots is not possible.
-Only data accumulation can be performed."""
+Only data accumulation can be performed.""")
 
 
 # lower limit of the x axis
@@ -56,14 +75,14 @@ class StabilityData(object):
             if self.points is None:
                 self.points = points
             else:
-                self.points = map(sum, zip(self.points, points))
+                self.points = list(map(sum, zip(self.points, points)))
             self.killed += killed
         if points_qp:
             self.total_qp += total_qp
             if self.points_qp is None:
                 self.points_qp = points_qp
             else:
-                self.points_qp = map(sum, zip(self.points_qp, points_qp))
+                self.points_qp = list(map(sum, zip(self.points_qp, points_qp)))
             self.qp += qp
             self.killed_qp += killed_qp
         if channel:
@@ -79,16 +98,16 @@ class StabilityData(object):
         dat = dataline.split('|')
         try:
             total = int(dat[0])
-            points = map(int, dat[1].split())
-            triggerdat = map(int, dat[2].split())
+            points = list(map(int, dat[1].split()))
+            triggerdat = list(map(int, dat[2].split()))
             if len(triggerdat) == 8:
                 # workaround for missing np(2:6) slicing
                 # in old finish_histograms()
                 triggerdat[1:6]
             n_qp, killed = triggerdat[-2:]
         except:
-            print 'unexpected histogram data format:'
-            print '\'' + dataline + '\''
+            print('unexpected histogram data format:')
+            print('\'' + dataline + '\'')
             raise
         if qp:
             self.add(None, total, None, points, n_qp, None, killed, channel)
@@ -204,9 +223,9 @@ def import_files(filesdirs, libraries=None, channels=None):
                     data_dict[ch].add_dataline(
                         fh.readline(), qp=qp, channel=ch)
             if no_imported_file:
-                print """Directory '{}'
+                print("""Directory '{}'
 does not contain any histogram files which are suited
-for automatic channel name extraction.""".format(f)
+for automatic channel name extraction.""".format(f))
         # add all files from the tar archive
         elif os.path.isfile(filedir) and (filedir.endswith('.tar') or
              filedir.endswith('.tar.gz') or filedir.endswith('.tar.bz2') or
@@ -224,9 +243,9 @@ for automatic channel name extraction.""".format(f)
                             tarfh.readline(), qp=qp, channel=ch)
                         tarfh.close()
                 if no_imported_file:
-                    print """Archive '{}'
+                    print("""Archive '{}'
 does not contain any histogram files which are suited
-for automatic channel name extraction.""".format(f)
+for automatic channel name extraction.""".format(f))
         # add individual files
         elif os.path.isfile(filedir):
             lib, ch, qp = select_file(filedir, libraries, channels)
@@ -283,8 +302,13 @@ def stability_plot(data):
     # double precision histogram
     if data.points:
         dp_points = list(data.points)
-        while dp_points[-1] == 0:
+        while dp_points and dp_points[-1] == 0:
             dp_points.pop()
+        if not dp_points:
+            print('Note: histogram for channel ' + data.channel + 'is empty. Skipped.')
+            pyplot.clf()
+            pyplot.close()
+            return False
         # If a value is zero in a logarithmic step plot, matplotlib
         # will omit the vertical line --> use a small number instead.
         n_dp_points = len(dp_points)
@@ -321,23 +345,25 @@ def stability_plot(data):
         min_point = min_dp_point
     else:
         min_point = min(min_dp_point, min_qp_point)
-    pyplot.xlim(xlimit_lower, max(xlimit_upper,
-                                  n_dp_points + xlimit_lower,
-                                  n_qp_points + xlimit_lower))
+    xlimit_upper_local = max(
+        xlimit_upper,
+        n_dp_points + xlimit_lower, n_qp_points + xlimit_lower)
+    pyplot.xlim(xlimit_lower, xlimit_upper_local)
+    pyplot.xticks(range(xlimit_lower, xlimit_upper_local, 2))
     # lower limit of y axis values for log scale:
     # 10^n with the largest integer n such that 10^n is smaller
     # than the smallest value
     miny = 10**math.floor(math.log(min_point, 10))
     pyplot.ylim(miny, 2)
     # minor ticks at integer x values
-    pyplot.axes().xaxis.set_minor_locator(MultipleLocator(1))
+    pyplot.gca().xaxis.set_minor_locator(MultipleLocator(1))
     pyplot.semilogy()
+    return True
 
 
 if __name__ == '__main__':
     # option handling
-    parser = optparse.OptionParser(
-        usage='%prog [options] file_or_directory [file_or_directory ...]',
+    parser = argparse.ArgumentParser(
         description="""Create stability histogram plots from OpenLoops
 stability log files. Files can be specified directly, as (first-level) content
 of directories or as tar archives. File names must follow the OpenLoops naming
@@ -345,21 +371,23 @@ convention. If directories or archives are included, files which do not match
 the naming convention are skipped silently. Plots are shown unless --output is
 specified. Showing plots only works if the matplotlib back end is properly
 configured and the back end is available from the terminal which is used.""")
-    parser.add_option('-o', '--output', dest='outfile', metavar='outfile',
-                      default='', help='PDF output file name.')
-    parser.add_option('-a', '--accumulate', action='store_true', default=False,
-                      help="""Save accumulated histogram data to files instead
+    parser.add_argument('-o', '--output', dest='outfile', metavar='outfile',
+                        default='', help='PDF output file name.')
+    parser.add_argument('-a', '--accumulate', action='store_true', default=False,
+                        help="""Save accumulated histogram data to files instead
 of creating plots. Per channel: histogram_<channel>_[qp_]acc.log. The output
 directory can be specified with --output (directory must exist).""")
-    parser.add_option('-c', '--channel', action='append', dest='channels',
-                      metavar='channel',
-                      help="""Select the specified partonic channel from the
+    parser.add_argument('-c', '--channel', action='append', dest='channels',
+                        metavar='channel',
+                        help="""Select the specified partonic channel from the
 input files. Can be specified multiple times.""")
-    parser.add_option('-l', '--library', action='append', dest='libraries',
-                      metavar='library',
-                      help="""Select files from the specified library only.
+    parser.add_argument('-l', '--library', action='append', dest='libraries',
+                        metavar='library',
+                        help="""Select files from the specified library only.
 Can be specified multiple times.""")
-    (args, files) = parser.parse_args()
+    parser.add_argument('files', metavar='file_or_directory', nargs='+',
+                        help='File or directory to import.')
+    args = parser.parse_args()
 
     outfile = args.outfile
     if outfile:
@@ -367,18 +395,20 @@ Can be specified multiple times.""")
             outfile += '.pdf'
 
     # read histogram data and create plots
-    stability_data = import_files(files, libraries=args.libraries,
+    stability_data = import_files(args.files, libraries=args.libraries,
                                   channels=args.channels)
     if args.accumulate:
         for data in stability_data:
             data.export(outdir=args.outfile)
     else:
+        plots_created = 0
         for data in stability_data:
-            stability_plot(data)
+            if stability_plot(data):
+                plots_created = plots_created + 1
         # output
         if outfile:
             pdf = PdfPages(outfile)
-            for n in range(len(stability_data)):
+            for n in range(plots_created):
                 pyplot.figure(n+1)
                 pdf.savefig()
             pdf.close()

@@ -2,9 +2,11 @@
 !!  File DD_aux.F is part of COLLIER
 !!  - A Complex One-Loop Library In Extended Regularizations
 !!
-!!  Copyright (C) 2015, 2016   Ansgar Denner, Stefan Dittmaier, Lars Hofer
+!!  Copyright (C) 2015, 2016   
+!!  Ansgar Denner, Stefan Dittmaier, Lars Hofer
 !!
-!!  COLLIER is licenced under the GNU GPL version 3, see COPYING for details.
+!!  COLLIER is licenced under the GNU GPL version 3, 
+!!  see COPYING for details.
 !!
 
 **********************************************************************
@@ -172,9 +174,10 @@ c local variables
 **********************************************************************
 *       get accuracy estimate for last master call of DD library
 *
-*       rank       = highest rank calculated by DD for n-point function
-*       accrel(n)  = relative accuracy of rank <= rmax in n-point function
-*       accabs(n)  = absolute accuracy for coefficients T_ij... (i,j,...=/=0)
+*       rank       = highest rank calculated by DD for n-point fct.
+*       accrel(n)  = relative accuracy of rank <= rmax in n-point fct.
+*       accabs(n)  = absolute accuracy 
+*                    for coefficients T_ij... (i,j,...=/=0)
 *       accrel2(n) = as accrel(n), but relevant for whole tensor
 *       accabs2(n) = as accabs(n), but relevant for whole tensor
 *
@@ -204,15 +207,16 @@ c local variables
         end
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-        FUNCTION cspen_dd(Z)                                              
+        FUNCTION cspen_dd(Z)
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C       SPENCE-FUNKTION KOMPLEX, FREI NACH HOLLIK                     C
 C---------------------------------------------------------------------C
 C       20.07.83    LAST CHANGED 10.05.89        ANSGAR DENNER        C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-        COMPLEX*16 cspen_dd,W,SUM,Z,U                                     
+        COMPLEX*16 cspen_dd,W,SUM,Z,U                                  
         REAL*8 RZ,AZ,A1                                                
-        REAL*8 B(9)/                                                   
+c        REAL*8 B(9)/                                                   
+        REAL*8 :: B(9) = (/
      1   0.1666666666666666666666666667D0,                             
      2  -0.0333333333333333333333333333D0,                             
      3   0.0238095238095238095238095238D0,                             
@@ -221,7 +225,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
      6  -0.2531135531135531135531135531D0,                             
      7   1.1666666666666666666666666667D0,                             
      8  -7.09215686274509804D0         ,                               
-     9  54.97117794486215539D0         /                               
+     9  54.97117794486215539D0         /)
+c     9  54.97117794486215539D0         /                               
 C     BEACHTE:                 B(N)=B2N                                
 C     B(1)=1./6.                                                       
 C     B(2)=-1./30.                                                     
@@ -241,70 +246,70 @@ C
       RZ=DREAL(Z)                                                      
       AZ=CDABS(Z)                                                      
       A1=CDABS(1D0-Z)                                                  
-C     IF((SNGL(RZ) .EQ. 0.0) .AND. (SNGL(DIMAG(Z)) .EQ. 0.0)) THEN     
+C     IF((SNGL(RZ) .EQ. 0.0) .AND. (SNGL(DIMAG(Z)) .EQ. 0.0)) THEN
 C ---> CHANGED  10.5.89                                                
       IF(AZ .LT. 1D-20) THEN                                           
-        cspen_dd=-CDLOG(1D0-Z)                                            
+        cspen_dd=-log(1D0-Z)                                            
         RETURN                                                         
       END IF                                                           
-c      IF((SNGL(RZ) .EQ. 1.0) .AND. (SNGL(DIMAG(Z)) .EQ. 0.0)) THEN     
+c      IF((SNGL(RZ) .EQ. 1.0) .AND. (SNGL(DIMAG(Z)) .EQ. 0.0)) THEN
 c ---> changed 5.7.94
-       IF( (ABS(RZ-1D0).LT.1D-18) .AND. (ABS(DIMAG(Z)).LT.1D-18) ) THEN     
-        cspen_dd=1.64493406684822643D0                                    
+       IF( (ABS(RZ-1D0).LT.1D-18) .AND. (ABS(DIMAG(Z)).LT.1D-18) ) THEN
+        cspen_dd=1.64493406684822643D0                     
         RETURN                                                         
       END IF                                                           
       IF(RZ.GT.5D-1) GOTO 20                                           
       IF(AZ.GT.1D0) GOTO 10                                            
-      W=-CDLOG(1D0-Z)                                                  
+      W=-log(1D0-Z)                                                  
       SUM=W-0.25D0*W*W                                                 
       U=W                                                              
       IF(CDABS(U).LT.1D-10) GOTO 2                                     
       DO 1 K=1,9                                                       
-      U=U*W*W/DFLOAT(2*K*(2*K+1))                                      
+      U=U*W*W/dble(2*K*(2*K+1))                                      
       IF(CDABS(U*B(K)/SUM).LT.1D-20) GOTO 2                            
       SUM=SUM+U*B(K)                                                   
  1    CONTINUE                                                         
- 2    cspen_dd=SUM                                                        
+ 2    cspen_dd=SUM                        
       RETURN                                                           
-10    W=-CDLOG(1D0-1D0/Z)                                              
+10    W=-log(1D0-1D0/Z)                                              
       SUM=W-0.25D0*W*W                                                 
       U=W                                                              
       IF(CDABS(U).LT.1D-10) GOTO 12                                    
                                                                        
       DO 11 K=1,9                                                      
-      U=U*W*W/DFLOAT(2*K*(2*K+1))                                      
+      U=U*W*W/dble(2*K*(2*K+1))                                      
       IF(CDABS(B(K)*U/SUM).LT.1D-20) GOTO 12                           
       SUM=SUM+U*B(K)                                                   
 11    CONTINUE                                                         
-12    cspen_dd=-SUM-1.64493406684822643D0-.5D0*CDLOG(-Z)**2               
+12    cspen_dd=-SUM-1.64493406684822643D0-.5D0*log(-Z)**2               
       RETURN                                                           
 20    IF(A1.GT.1D0) GOTO 30                                            
-      W=-CDLOG(Z)                                                      
+      W=-log(Z)                                                      
       SUM=W-0.25D0*W*W                                                 
       U=W                                                              
       IF(CDABS(U).LT.1D-10) GOTO 22                                    
       DO 21 K=1,9                                                      
-      U=U*W*W/DFLOAT(2*K*(2*K+1))                                      
+      U=U*W*W/dble(2*K*(2*K+1))                                      
       IF(CDABS(U*B(K)/SUM).LT.1D-20) GOTO 22                           
       SUM=SUM+U*B(K)                                                   
 21    CONTINUE                                                         
-22    cspen_dd=-SUM+1.64493406684822643D0-CDLOG(Z)*CDLOG(1D0-Z)           
+22    cspen_dd=-SUM+1.64493406684822643D0-log(Z)*log(1D0-Z)           
       RETURN                                                           
-30    W=CDLOG(1D0-1D0/Z)                                               
+30    W=log(1D0-1D0/Z)                                               
       SUM=W-0.25D0*W*W                                                 
       U=W                                                              
       IF(CDABS(U).LT.1D-10) GOTO 32                                    
       DO 31 K=1,9                                                      
-      U=U*W*W/DFLOAT(2*K*(2*K+1))                                      
+      U=U*W*W/dble(2*K*(2*K+1))                                      
       IF(CDABS(U*B(K)/SUM).LT.1D-20) GOTO 32                           
       SUM=SUM+U*B(K)                                                   
 31    CONTINUE                                                         
-32    cspen_dd=SUM+3.28986813369645287D0                                  
-     *               +.5D0*CDLOG(Z-1D0)**2-CDLOG(Z)*CDLOG(1D0-Z)       
+32    cspen_dd=SUM+3.28986813369645287D0                      
+     *               +.5D0*log(Z-1D0)**2-log(Z)*log(1D0-Z)       
         END                                                            
 
 ***********************************************************************
-        FUNCTION eta_dd(C1,C2)                                            
+        FUNCTION eta_dd(C1,C2)
 ***********************************************************************
 *       COMPLEX ETA-FUNKTION                                           
 *---------------------------------------------------------------------*
@@ -313,7 +318,7 @@ c ---> changed 5.7.94
         use DD_global
         IMPLICIT   real*8(A-Z)                                        
 
-        COMPLEX*16 eta_dd,C1,C2                                           
+        COMPLEX*16 eta_dd,C1,C2                          
         REAL*8     PI,IM1,IM2,IM12                                     
 
         PI     = 4D0*DATAN(1D0)                                        
@@ -336,16 +341,16 @@ c ---> changed 5.7.94
         endif
                                                                        
         IF(IM1.LT.0D0.AND.IM2.LT.0D0.AND.IM12.GT.0D0) THEN             
-            eta_dd = DCMPLX(0D0,2D0*PI)                                   
+            eta_dd = DCMPLX(0D0,2D0*PI)  
         ELSE IF (IM1.GT.0D0.AND.IM2.GT.0D0.AND.IM12.LT.0D0) THEN       
-            eta_dd = DCMPLX(0D0,-2D0*PI)                                  
+            eta_dd = DCMPLX(0D0,-2D0*PI)              
         ELSE                                                           
-            eta_dd = DCMPLX(0D0)                                          
+            eta_dd = DCMPLX(0D0)                           
         END IF                                                         
         END                                                            
 
 ***********************************************************************
-        function sqe_dd(a,b,c)                                            
+        function sqe_dd(a,b,c)
 ***********************************************************************
 *       Solution of quadratic equation a*x^2 + b*x + c = 0
 *----------------------------------------------------------------------
@@ -380,11 +385,11 @@ c ---> changed 5.7.94
 
 ***********************************************************************
         function xdet_dd(A,n)
-************************************************************************
+***********************************************************************
 *       determinant of complex nxn-matrix A
-*-----------------------------------------------------------------------
+*----------------------------------------------------------------------
 *       10.6.04 Stefan Dittmaier
-************************************************************************
+***********************************************************************
         implicit real*8 (a-z)
         integer n
         complex*16 A(n,n),Q(n,n),R(n,n),detQ,xdet_dd
@@ -401,11 +406,11 @@ c ---> changed 5.7.94
 
 ***********************************************************************
         subroutine xinverse_dd(A,iA,detA,n)
-************************************************************************
+***********************************************************************
 *       inverse of complex nxn-matrix A
-*-----------------------------------------------------------------------
+*----------------------------------------------------------------------
 *       8.1.04 Stefan Dittmaier
-************************************************************************
+***********************************************************************
         implicit real*8 (a-z)
         integer n
         complex*16 A(n,n),Q(n,n),R(n,n),iA(n,n),iR(n,n),detQ,w,detA
@@ -451,12 +456,13 @@ c inverse of A
 
 ***********************************************************************
         subroutine xQRdecomp_dd(A,Q,R,detQ,n)
-************************************************************************
-*       QR-decomposition of complex nxn-matrix A using Householder matrices
+***********************************************************************
+*       QR-decomposition of complex nxn-matrix A 
+*       using Householder matrices
 *       Q = orthogonal matrix, R = upper triangle matrix
-*-----------------------------------------------------------------------
+*----------------------------------------------------------------------
 *       8.1.04 Stefan Dittmaier
-************************************************************************
+***********************************************************************
         implicit real*8 (a-z)
         integer n
         complex*16 A(n,n),Q(n,n),R(n,n),w(n),wr(n),qw(n),detQ,aux,kap
@@ -551,11 +557,11 @@ c calculate matrix Q
 
 ***********************************************************************
         function det_dd(A,n)
-************************************************************************
+***********************************************************************
 *       determinant of real nxn-matrix A
-*-----------------------------------------------------------------------
+*----------------------------------------------------------------------
 *       8.1.04 Stefan Dittmaier
-************************************************************************
+***********************************************************************
         implicit real*8 (a-z)
         integer n
         real*8 A(n,n),Q(n,n),R(n,n)
@@ -572,11 +578,11 @@ c calculate matrix Q
 
 ***********************************************************************
         subroutine inverse_dd(A,iA,detA,n)
-************************************************************************
+***********************************************************************
 *       inverse of real nxn-matrix A
-*-----------------------------------------------------------------------
+*----------------------------------------------------------------------
 *       8.1.04 Stefan Dittmaier
-************************************************************************
+***********************************************************************
         implicit real*8 (a-z)
         integer n
         real*8 A(n,n),Q(n,n),R(n,n),iA(n,n),iR(n,n)
@@ -622,12 +628,13 @@ c inverse of A
 
 ***********************************************************************
         subroutine QRdecomp_dd(A,Q,R,detQ,n)
-************************************************************************
-*       QR-decomposition of real nxn-matrix A using Householder matrices
+***********************************************************************
+*       QR-decomposition of real nxn-matrix A 
+*       using Householder matrices
 *       Q = orthogonal matrix, R = upper triangle matrix
-*-----------------------------------------------------------------------
+*----------------------------------------------------------------------
 *       8.1.04 Stefan Dittmaier
-************************************************************************
+***********************************************************************
         implicit real*8 (a-z)
         integer n
         real*8 A(n,n),Q(n,n),R(n,n)
@@ -722,11 +729,11 @@ c calculate matrix Q
 
 ***********************************************************************
         subroutine DD_debugoutput()
-************************************************************************
+***********************************************************************
 *       write out debug info
-*-----------------------------------------------------------------------
+*----------------------------------------------------------------------
 *       8.3.13 Stefan Dittmaier
-************************************************************************
+***********************************************************************
         use DD_global
         implicit real*8 (a-z)
         integer i
