@@ -26,10 +26,6 @@ module ol_self_energy_integrals_/**/REALKIND
   use ol_loop_parameters_decl_/**/REALKIND, only: de1_UV, de1_IR
   use ol_loop_parameters_decl_/**/DREALKIND, only: se_integral_switch, coli_cache_use, &
     & a_switch
-#ifdef USE_COLLIER
-  use collier, only: setmode_cll
-  use cache, only: SwitchOffCacheSystem_cll, SwitchOnCacheSystem_cll
-#endif
 #ifdef USE_ONELOOP
     use avh_olo_/**/REALKIND
 #endif
@@ -42,6 +38,39 @@ module ol_self_energy_integrals_/**/REALKIND
 #endif
 
   contains
+
+  subroutine init_ol_self_energy_integrals(init)
+#ifdef USE_COLLIER
+  use collier, only: setmode_cll
+  use cache, only: SwitchOffCacheSystem_cll, SwitchOnCacheSystem_cll
+#endif
+  implicit none
+  logical :: init
+  if(init) then
+    if ((se_integral_switch == 1 .or. se_integral_switch == 7) &
+      .and. coli_cache_use == 1) then
+        call SwitchOffCacheSystem_cll
+    end if
+    if (se_integral_switch == 1 .and. a_switch /= 1) then
+      call setmode_cll(1)
+    end if
+    if (se_integral_switch == 7 .and. a_switch /= 7) then
+      call setmode_cll(2)
+    end if
+  else
+    if (se_integral_switch == 1 .and. a_switch == 1) then
+      call setmode_cll(2)
+    end if
+    if (se_integral_switch == 7 .and. a_switch /= 1) then
+      call setmode_cll(1)
+    end if
+    if ((se_integral_switch == 1 .or. se_integral_switch == 7) &
+      .and. coli_cache_use == 1) then
+        call SwitchOnCacheSystem_cll
+    end if
+  end if
+  end subroutine
+
 
   function calcA0(m12_in)
 #ifdef USE_COLLIER
@@ -63,41 +92,16 @@ module ol_self_energy_integrals_/**/REALKIND
     m12 = m12_in
 
 #if defined(USE_COLLIER)
-    if ((se_integral_switch == 1 .or. se_integral_switch == 7 .or. se_integral_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOffCacheSystem_cll
-    end if
-    if (se_integral_switch == 1 .or. se_integral_switch == 99) then
-      call setmode_cll(1)
+    if (se_integral_switch == 1 .or. se_integral_switch == 7) then
       call A0_cll(A0_coli,m12)
       calcA0 = A0_coli
-      if (se_integral_switch == 99) then
-        print*, "A0 CO:  ", A0_coli
-      end if
-      if (a_switch == 7) call setmode_cll(2)
-    end if
-    if (se_integral_switch == 7 .or. se_integral_switch == 99) then
-      call setmode_cll(2)
-      call A0_cll(A0_coli,m12)
-      calcA0 = A0_coli
-      if (se_integral_switch == 99) then
-        print*, "A0 DD:  ", A0_coli
-      end if
-      if (a_switch == 1) call setmode_cll(1)
-    end if
-    if ((se_integral_switch == 1 .or. se_integral_switch == 7 .or. se_integral_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOnCacheSystem_cll
     end if
 #endif
 
 #ifdef USE_ONELOOP
-    if (se_integral_switch == 3 .or. se_integral_switch == 99) then
+    if (se_integral_switch == 3) then
       call olo_a0(rslt,m12_in)
       calcA0 = rslt(0) + rslt(1)*de1_UV
-      if (se_integral_switch == 99) then
-        print*, "A0 OLO: ", calcA0
-      end if
     end if
 #endif
 
@@ -131,47 +135,21 @@ module ol_self_energy_integrals_/**/REALKIND
     m22 = m22_in
 
 #ifdef USE_COLLIER
-    if ((se_integral_switch == 1 .or. se_integral_switch == 7 .or. se_integral_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOffCacheSystem_cll
-    end if
-    if (se_integral_switch == 1 .or. se_integral_switch == 99) then
-      call setmode_cll(1)
+    if (se_integral_switch == 1 .or. se_integral_switch == 7) then
       p2 = real(p2)
       call B0_cll(B0_coli,p2,m12,m22)
       calcB0 = B0_coli
-      if (se_integral_switch == 99) then
-        print*, "B0 CO:  ", B0_coli
-      end if
-      if (a_switch == 7) call setmode_cll(2)
-    end if
-    if (se_integral_switch == 7 .or. se_integral_switch == 99) then
-      call setmode_cll(2)
-      p2 = real(p2)
-      call B0_cll(B0_coli,p2,m12,m22)
-      calcB0 = B0_coli
-      if (se_integral_switch == 99) then
-        print*, "B0 DD:  ", B0_coli
-      end if
-      if (a_switch == 1) call setmode_cll(1)
-    end if
-    if ((se_integral_switch == 1 .or. se_integral_switch == 7 .or. se_integral_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOnCacheSystem_cll
     end if
 #endif
 
 #ifdef USE_ONELOOP
-    if (se_integral_switch == 3 .or. se_integral_switch == 99) then
+    if (se_integral_switch == 3) then
       p2q = real(p2_in)
       call olo_b0(rslt,real(p2q),m12_in,m22_in)
       if (p2q .eq. 0 .and. m12_in .eq. 0 .and. m22_in .eq. 0) then
         calcB0 = de1_UV - de1_IR
       else
         calcB0 = rslt(0) + rslt(1)*de1_UV
-      end if
-      if (se_integral_switch == 99) then
-        print*, "B0 OLO: ", calcB0
       end if
     end if
 #endif
@@ -205,43 +183,21 @@ module ol_self_energy_integrals_/**/REALKIND
     m22 = m22_in
 
 #ifdef USE_COLLIER
-    if ((se_integral_switch == 1 .or. se_integral_switch == 7 .or. se_integral_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOffCacheSystem_cll
-    end if
-    if (se_integral_switch == 1 .or. se_integral_switch == 99) then
+    if (se_integral_switch == 1 .or. se_integral_switch == 7) then
       p2 = real(p2)
       call DB0_cll(DB0_coli,p2,m12,m22)
       calcdB0 = DB0_coli
-      if (se_integral_switch == 99) then
-        print*, "dB0 CO:  ", DB0_coli
-      end if
-    end if
-    if (se_integral_switch == 7 .or. se_integral_switch == 99) then
-      p2 = real(p2)
-      call DB0_cll(DB0_coli,p2,m12,m22)
-      calcdB0 = DB0_coli
-      if (se_integral_switch == 99) then
-        print*, "dB0 DD:  ", DB0_coli
-      end if
-    end if
-    if ((se_integral_switch == 1 .or. se_integral_switch == 7 .or. se_integral_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOnCacheSystem_cll
     end if
 #endif
 
 #ifdef USE_ONELOOP
-    if (se_integral_switch == 3 .or. se_integral_switch == 99) then
+    if (se_integral_switch == 3) then
       p2q = real(p2_in)
       if (p2q == 0. .and. m12 == 0. .and. m22 == 0. ) then
         calcdB0 = 0.
       else
         call olo_db0(rslt,p2q,m12_in,m22_in)
         calcdB0 = rslt(0) + rslt(1)*de1_IR
-      end if
-      if (se_integral_switch == 99) then
-        print*, "dB0 OLO: ", calcdB0
       end if
     end if
 #endif
@@ -276,46 +232,20 @@ module ol_self_energy_integrals_/**/REALKIND
     m22 = m22_in
 
 #ifdef USE_COLLIER
-    if ((se_integral_switch == 1 .or. se_integral_switch == 7 .or. se_integral_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOffCacheSystem_cll
-    end if
-    if (se_integral_switch == 1 .or. se_integral_switch == 99) then
-      call setmode_cll(1)
+    if (se_integral_switch == 1 .or. se_integral_switch == 7) then
       p2 = real(p2)
       call B_cll(B,Buv,p2,m12,m22,1)
       calcB1 = B(1,0)
-      if (se_integral_switch == 99) then
-        print*, "B1 CO:  ", calcB1
-      end if
-      if (a_switch == 7) call setmode_cll(2)
-    end if
-    if (se_integral_switch == 7 .or. se_integral_switch == 99) then
-      call setmode_cll(2)
-      p2 = real(p2)
-      call B_cll(B,Buv,p2,m12,m22,1)
-      calcB1 = B(1,0)
-      if (se_integral_switch == 99) then
-        print*, "B1 DD:  ", calcB1
-      end if
-      if (a_switch == 1) call setmode_cll(1)
-    end if
-    if ((se_integral_switch == 1 .or. se_integral_switch == 7 .or. se_integral_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOnCacheSystem_cll
     end if
 #endif
 
 #ifdef USE_ONELOOP
-    if (se_integral_switch == 3 .or. se_integral_switch == 99) then
+    if (se_integral_switch == 3) then
       call olo_b11(rslt_b11,rslt_b00,rslt_b1,rslt_b0,real(p2_in),m12_in,m22_in)
       if (p2 .eq. 0 .and. m12_in .eq. 0 .and. m22_in .eq. 0) then
         calcB1 = rslt_b1(0) + (de1_IR - de1_UV)/2
       else
         calcB1 = rslt_b1(0) + rslt_b1(1)*de1_UV
-      end if
-      if (se_integral_switch == 99) then
-        print*, "B1 OLO: ", calcB1
       end if
     end if
 #endif
@@ -349,43 +279,17 @@ module ol_self_energy_integrals_/**/REALKIND
     m22 = m22_in
 
 #if defined(USE_COLLIER)
-    if ((se_integral_switch == 1 .or. se_integral_switch == 7 .or. se_integral_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOffCacheSystem_cll
-    end if
-    if (se_integral_switch == 1 .or. se_integral_switch == 99) then
-      call setmode_cll(1)
+    if (se_integral_switch == 1 .or. se_integral_switch == 7) then
       p2 = real(p2)
       call B_cll(B,Buv,p2,m12,m22,2)
       calcB00 = B(1,0)
-      if (se_integral_switch == 99) then
-        print*, "B00 CO:  ", calcB00
-      end if
-      if (a_switch == 7) call setmode_cll(2)
-    end if
-    if (se_integral_switch == 7 .or. se_integral_switch == 99) then
-      call setmode_cll(2)
-      p2 = real(p2)
-      call B_cll(B,Buv,p2,m12,m22,2)
-      calcB00 = B(1,0)
-      if (se_integral_switch == 99) then
-        print*, "B00 DD:  ", calcB00
-      end if
-      if (a_switch == 1) call setmode_cll(1)
-    end if
-    if ((se_integral_switch == 1 .or. se_integral_switch == 7 .or. se_integral_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOnCacheSystem_cll
     end if
 #endif
 
 #ifdef USE_ONELOOP
-    if (se_integral_switch == 3 .or. se_integral_switch == 99) then
+    if (se_integral_switch == 3) then
       call olo_b11(rslt_b11,rslt_b00,rslt_b1,rslt_b0,real(p2_in),m12_in,m22_in)
       calcB00 = rslt_b00(0) + rslt_b00(1)*de1_UV
-      if (se_integral_switch == 99) then
-        print*, "B00 OLO: ", calcB00
-      end if
     end if
 #endif
 
@@ -418,43 +322,17 @@ module ol_self_energy_integrals_/**/REALKIND
     m22 = m22_in
 
 #if defined(USE_COLLIER)
-    if ((se_integral_switch == 1 .or. se_integral_switch == 7 .or. se_integral_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOffCacheSystem_cll
-    end if
-    if (se_integral_switch == 1 .or. se_integral_switch == 99) then
-      call setmode_cll(1)
+    if (se_integral_switch == 1 .or. se_integral_switch == 7) then
       p2 = real(p2)
       call B_cll(B,Buv,p2,m12,m22,2)
       calcB11 = B(0,2)
-      if (se_integral_switch == 99) then
-        print*, "B11 CO:  ", calcB11
-      end if
-      if (a_switch == 7) call setmode_cll(2)
-    end if
-    if (se_integral_switch == 7 .or. se_integral_switch == 99) then
-      call setmode_cll(2)
-      p2 = real(p2)
-      call B_cll(B,Buv,p2,m12,m22,2)
-      calcB11 = B(0,2)
-      if (se_integral_switch == 99) then
-        print*, "B11 DD:  ", calcB11
-      end if
-      if (a_switch == 1) call setmode_cll(1)
-    end if
-    if ((se_integral_switch == 1 .or. se_integral_switch == 7 .or. se_integral_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOnCacheSystem_cll
     end if
 #endif
 
 #ifdef USE_ONELOOP
-    if (se_integral_switch == 3 .or. se_integral_switch == 99) then
+    if (se_integral_switch == 3) then
       call olo_b11(rslt_b11,rslt_b00,rslt_b1,rslt_b0,real(p2_in),m12_in,m22_in)
       calcB11 = rslt_b11(0) + rslt_b11(1)*de1_UV
-      if (se_integral_switch == 99) then
-        print*, "B11 OLO: ", calcB11
-      end if
     end if
 #endif
 
@@ -481,34 +359,15 @@ module ol_self_energy_integrals_/**/REALKIND
     m22 = m22_in
 
 #ifdef USE_COLLIER
-    if ((se_integral_switch == 1 .or. se_integral_switch == 7 .or. se_integral_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOffCacheSystem_cll
-    end if
-    if (se_integral_switch == 1 .or. se_integral_switch == 99) then
+    if (se_integral_switch == 1 .or. se_integral_switch == 7) then
       p2 = real(p2)
       call DB1_cll(DB1_coli,p2,m12,m22)
       calcdB1 = DB1_coli
-      if (se_integral_switch == 99) then
-        print*, "dB1 CO:  ", calcdB1
-      end if
-    end if
-    if (se_integral_switch == 7 .or. se_integral_switch == 99) then
-      p2 = real(p2)
-      call DB1_cll(DB1_coli,p2,m12,m22)
-      calcdB1 = DB1_coli
-      if (se_integral_switch == 99) then
-        print*, "dB1 DD:  ", calcdB1
-      end if
-    end if
-    if ((se_integral_switch == 1 .or. se_integral_switch == 7 .or. se_integral_switch == 99) &
-          .and. coli_cache_use == 1) then
-      call SwitchOnCacheSystem_cll
     end if
 #endif
 
 #ifdef USE_ONELOOP
-    if (se_integral_switch == 3 .or. se_integral_switch == 99) then
+    if (se_integral_switch == 3) then
       p2q = real(p2_in)
       if (abs(p2q) > eps) then
         calcdB1 = - (m22_in-m12_in)/2/p2q**2*(calcB0(p2_in,m12_in,m22_in)-calcB0(ZERO,m12_in,m22_in)) &
@@ -526,9 +385,6 @@ module ol_self_energy_integrals_/**/REALKIND
           calcdB1 = -(2.*m12_in**3+3.*m12_in**2*m22_in-6.*m12_in*m22_in**2+m22_in**3 &
        &              +6.*m12_in**2*m22_in*log(m22_in/m12_in))/6./(m12_in-m22_in)**4
         end if
-      end if
-      if (se_integral_switch == 99) then
-        print*, "dB1 OLO: ", calcdB1
       end if
     end if
 #endif

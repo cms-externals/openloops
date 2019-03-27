@@ -530,6 +530,7 @@ function gluon_ofsse(p2,pid)
   nlf = real(N_lf,kind=REALKIND)
   ! gs**2/(16*pi**2) stripped, assert(Nf == 6)
 
+  call init_ol_self_energy_integrals(.true.)
   B01 = calcB0(p2,ZERO,ZERO)
   cc1 = +(5*ncc-2*nlf)*(B01)/real(3,kind=REALKIND)
 
@@ -554,6 +555,8 @@ function gluon_ofsse(p2,pid)
       call ol_fatal('Flavor scheme N_lf=' // trim(to_string(N_lf)) // ' not implemented for bubble_vertex.')
   end select
   end do
+  call init_ol_self_energy_integrals(.false.)
+
 
   if (CT_is_on .eq. 0) then
     dZ = 0
@@ -634,8 +637,11 @@ function quark_ofsse(p2,pid)
     dM = 0
   end if
 
+  call init_ol_self_energy_integrals(.true.)
   B0_1 = calcB0(p2,ZERO,M2)
   A0_1 = calcA0(M2)
+  call init_ol_self_energy_integrals(.false.)
+
   fac = rONE*cf
   quark_ofsse(1) = dZ + fac*((M2+p2) * B0_1 - A0_1 -p2)/p2  ! w^i_out = pslash^{ij} w^j_in
   quark_ofsse(2) = M*(dM + dZ) + fac*(4*M*B0_1-2*M)         ! w^i_out = w^i_in

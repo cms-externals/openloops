@@ -332,6 +332,7 @@ subroutine ew_renormalisation
 
 
   ! calculate one- and two-point functions
+  call init_ol_self_energy_integrals(.true.)
   A0W = calcA0(MW2)
   A0Z = calcA0(MZ2)
   A0H = calcA0(MH2)
@@ -452,6 +453,7 @@ subroutine ew_renormalisation
   dB000L  = calcdB0(ZERO,ZERO,ML2)
   B0ZLL   = calcB0(MZ2,ML2,ML2)
   dB0ZLL  = calcdB0(MZ2,ML2,ML2)
+  call init_ol_self_energy_integrals(.false.)
 
 
   ! calculate renormalisation constants
