@@ -45,11 +45,16 @@
 
 # TODO: better use a pseudo builder to modify target directories
 
+from __future__ import print_function
+
 import os
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join('pyol', 'tools')))
 import OLBaseConfig
 config = OLBaseConfig.get_config()
+
+if config['print_python_version']:
+    print('cpp.scons uses Python', sys.version)
 
 cpp_flags = ['--traditional-cpp', '-P']
 

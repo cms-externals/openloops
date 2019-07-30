@@ -149,6 +149,7 @@ def get_config(args=[]):
     parse_option(config, 'clean', converter=split_list,
                  subset_of=['procs', 'src'])
     parse_option(config, 'debug', converter=int, one_of=range(8))
+    parse_option(config, 'print_python_version', converter=parse_bool)
     parse_option(config, 'math_flags', converter=split_list)
     parse_option(config, 'generic_optimisation', converter=split_list)
     parse_option(config, 'born_optimisation', converter=split_list)

@@ -43,10 +43,10 @@ subroutine Hloop_A_Q(ntry, G_Q, momid, M, Gout_Q, n)
   use ol_data_types_/**/REALKIND, only: hol
   use ol_prop_interface_/**/REALKIND, only: loop_A_Q
   use hel_bookkeeping_/**/REALKIND, only: helbookkeeping_prop
-  use ol_kinematics_/**/REALKIND, only: get_LC_4,get_mass
+  use ol_kinematics_/**/REALKIND, only: get_LC_5,get_mass
 #ifdef PRECISION_dp
   use ol_prop_interface_/**/QREALKIND, only: loop_A_Q_qp => loop_A_Q
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4, &
+  use ol_kinematics_/**/QREALKIND, only: get_LC_5_qp=>get_LC_5, &
                                          get_mass_qp=>get_mass
 #endif
   implicit none
@@ -64,14 +64,14 @@ subroutine Hloop_A_Q(ntry, G_Q, momid, M, Gout_Q, n)
 
   Gout_Q%j=0
   do h = 1, n  ! recursion step
-    call loop_A_Q(G_Q%j(:,:,:,h),get_LC_4(momid),get_mass(M),Gout_Q%j(:,:,:,h))
+    call loop_A_Q(G_Q%j(:,:,:,h),get_LC_5(momid),get_mass(M),Gout_Q%j(:,:,:,h))
   end do
 
 #ifdef PRECISION_dp
   if (req_qp_cmp(G_Q)) then
     Gout_Q%j_qp = 0
     do h = 1, n  ! recursion step
-      call loop_A_Q_qp(G_Q%j_qp(:,:,:,h),get_LC_4_qp(momid),get_mass_qp(M), &
+      call loop_A_Q_qp(G_Q%j_qp(:,:,:,h),get_LC_5_qp(momid),get_mass_qp(M), &
                        Gout_Q%j_qp(:,:,:,h))
     end do
   end if
@@ -96,10 +96,10 @@ subroutine Hloop_Q_A(ntry, G_Q, momid, M, Gout_Q, n)
   use ol_data_types_/**/REALKIND, only: hol
   use ol_prop_interface_/**/REALKIND, only: loop_Q_A
   use hel_bookkeeping_/**/REALKIND, only: helbookkeeping_prop
-  use ol_kinematics_/**/REALKIND, only: get_LC_4,get_mass
+  use ol_kinematics_/**/REALKIND, only: get_LC_5,get_mass
 #ifdef PRECISION_dp
   use ol_prop_interface_/**/QREALKIND, only: loop_Q_A_qp => loop_Q_A
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4, &
+  use ol_kinematics_/**/QREALKIND, only: get_LC_5_qp=>get_LC_5, &
                                          get_mass_qp=>get_mass
 #endif
   implicit none
@@ -117,14 +117,14 @@ subroutine Hloop_Q_A(ntry, G_Q, momid, M, Gout_Q, n)
 
   Gout_Q%j=0
   do h = 1, n  ! recursion step
-    call loop_Q_A(G_Q%j(:,:,:,h),get_LC_4(momid),get_mass(M),Gout_Q%j(:,:,:,h))
+    call loop_Q_A(G_Q%j(:,:,:,h),get_LC_5(momid),get_mass(M),Gout_Q%j(:,:,:,h))
   end do
 
 #ifdef PRECISION_dp
   if (req_qp_cmp(G_Q)) then
     Gout_Q%j_qp = 0
     do h = 1, n  ! recursion step
-      call loop_Q_A_qp(G_Q%j_qp(:,:,:,h),get_LC_4_qp(momid),get_mass_qp(M), &
+      call loop_Q_A_qp(G_Q%j_qp(:,:,:,h),get_LC_5_qp(momid),get_mass_qp(M), &
                        Gout_Q%j_qp(:,:,:,h))
     end do
   end if

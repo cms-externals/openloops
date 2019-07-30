@@ -77,7 +77,7 @@ module openloops_blha
     real(DREALKIND) :: m2l0, m2l1(0:2)
     rval = 0
     acc = 0
-    call set_parameter("mu", mu)
+    call set_parameter("muren", mu)
     select case (amplitudetype(id))
       case (1) ! Tree
         call evaluate_tree(id, psp, rval(1))
@@ -557,14 +557,14 @@ module openloops_blha
               flags%AmplitudeType = 1
             case ("cctree")
               lineout = trim(line) // "      | OK"
-              flags%AmplitudeType = 2
+              flags%AmplitudeType = 11
             case ("sctree")
               lineout = trim(line) // "      | Error: not implemented; use sctree_polvect instead"
               flags%AmplitudeType = 3
               ierr = 0
             case ("sctree_polvect")
               lineout = trim(line) // "      | OK"
-              flags%AmplitudeType = 4
+              flags%AmplitudeType = 11
             case ("loop")
               lineout = trim(line) // "      | OK"
               flags%AmplitudeType = 11
@@ -582,12 +582,15 @@ module openloops_blha
               ierr = 0
           end select
         case ("ewrenormalisationscheme")  !BLHA1 keyword
-          if (trim(to_lowercase(val)) == "alpha0" ) then
+          if (trim(to_lowercase(val)) == "alpha0") then
             lineout = trim(line) // "      | OK"
             call set_parameter("ew_scheme", 0)
-          else if (trim(to_lowercase(val)) == "gmu" ) then
+          else if (trim(to_lowercase(val)) == "gmu") then
             lineout = trim(line) // "      | OK"
             call set_parameter("ew_scheme", 1)
+          else if (trim(to_lowercase(val)) == "alphamz") then
+            lineout = trim(line) // "      | OK"
+            call set_parameter("ew_scheme", 2)
           else
             lineout = trim(line) // "      | Error: unsupported flag. Currently only 'alpha0' and 'Gmu' supported"
             ierr = 0
@@ -599,6 +602,9 @@ module openloops_blha
           else if (trim(to_lowercase(val)) == "gmu" ) then
             lineout = trim(line) // "      | OK"
             call set_parameter("ew_scheme", 1)
+          else if (trim(to_lowercase(val)) == "alphaMZ" ) then
+            lineout = trim(line) // "      | OK"
+            call set_parameter("ew_scheme", 2)
           else
             lineout = trim(line) // "      | Error: unsupported flag. Currently only 'alpha0' and 'Gmu' supported"
             ierr = 0

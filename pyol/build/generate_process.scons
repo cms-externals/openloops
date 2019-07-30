@@ -22,6 +22,8 @@
 #   PROC=<process> \
 #   LOOPS=<one of OLBaseConfig.loops_specifications, default 't'>
 
+from __future__ import print_function
+
 import os
 import sys
 import subprocess
@@ -35,7 +37,13 @@ commandline_options = [arg for arg in ARGLIST
                        if arg[0] not in ['PROC', 'LOOPS']]
 config = OLBaseConfig.get_config(commandline_options)
 
-scons_cmd = sys.argv[0]
+if config['print_python_version']:
+    print('generate_process.scons uses Python', sys.version)
+
+scons_cmd = [sys.argv[0]]
+olpython = os.environ.get('OLPYTHON', None)
+if olpython:
+    scons_cmd = [olpython] + scons_cmd
 
 AddOption('--log', dest='save_log', action='store_true', default=False,
           help='Write generator output to a log file.')
@@ -52,7 +60,7 @@ if processlib == '':
     Exit(1)
 
 # run the process definition scons script
-if subprocess.call([scons_cmd, '-Q', '-f',
+if subprocess.call(scons_cmd + ['-Q', '-f',
                     config['definition_processor_script'],
                     'PROC=' + processlib] +
                    ['='.join(arg) for arg in commandline_options]) != 0:

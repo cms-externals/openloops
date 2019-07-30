@@ -36,7 +36,7 @@ subroutine ew_renormalisation
   use ol_generic, only: to_string
   use ol_parameters_decl_/**/REALKIND
 #ifndef PRECISION_dp
-  use ol_parameters_decl_/**/DREALKIND, only: LeadingColour, ew_renorm_scheme, cms_on, model, delta_alphamz_dimreg
+  use ol_parameters_decl_/**/DREALKIND, only: LeadingColour, ew_renorm_scheme, cms_on, delta_alphamz_dimreg
 #endif
   use ol_loop_parameters_decl_/**/REALKIND
   use ol_self_energy_integrals_/**/REALKIND
@@ -62,6 +62,7 @@ subroutine ew_renormalisation
   complex(REALKIND), save      ::   SiZZ   = 0
   complex(REALKIND), save      ::   dSiZZ  = 0
   complex(REALKIND), save      ::   SiAZZ  = 0
+  complex(REALKIND), save      ::   dSiAZZ  = 0
   complex(REALKIND), save      ::   SiAZ0  = 0
   complex(REALKIND), save      ::   dSiAAheavy0  = 0
   complex(REALKIND), save      ::   dSiAA0  = 0
@@ -226,6 +227,7 @@ subroutine ew_renormalisation
 
   complex(REALKIND), save      ::   cTW = 0
   complex(REALKIND), save      ::   cTZ = 0
+  complex(REALKIND), save      ::   cTAZ = 0
   complex(REALKIND), save      ::   cTH = 0
   complex(REALKIND), save      ::   cTT = 0
   complex(REALKIND), save      ::   cTB = 0
@@ -279,6 +281,7 @@ subroutine ew_renormalisation
   SiZZ   = 0.
   dSiZZ  = 0.
   SiAZZ  = 0.
+  dSiAZZ  = 0.
   SiAZ0  = 0.
   dSiAAheavy0  = 0.
   dSiAA0 = 0.
@@ -332,6 +335,7 @@ subroutine ew_renormalisation
 
 
   ! calculate one- and two-point functions
+  call init_ol_self_energy_integrals(.true.)
   A0W = calcA0(MW2)
   A0Z = calcA0(MZ2)
   A0H = calcA0(MH2)
@@ -344,61 +348,53 @@ subroutine ew_renormalisation
   dB00WW  = calcdB0(ZERO,MW2,MW2)
   B00W0   = calcB0(ZERO,MW2,ZERO)
   dB00W0  = calcdB0(ZERO,MW2,ZERO)
-  B0WW0   = calcB0(MW2,MW2,ZERO)
-  dB0WW0  = calcdB0(MW2,MW2,ZERO)
-  B0ZWW   = calcB0(MZ2,MW2,MW2)
-  dB0ZWW  = calcdB0(MZ2,MW2,MW2)
   B00HH   = calcB0(ZERO,MH2,MH2)
   B00ZZ   = calcB0(ZERO,MZ2,MZ2)
-  B0ZZH   = calcB0(MZ2,MZ2,MH2)
-  dB0ZZH  = calcdB0(MZ2,MZ2,MH2)
   B00ZH   = calcB0(ZERO,MZ2,MH2)
   B00WH   = calcB0(ZERO,MW2,MH2)
   dB00WH  = calcdB0(ZERO,MW2,MH2)
-  B0WWH   = calcB0(MW2,MW2,MH2)
-  dB0WWH  = calcdB0(MW2,MW2,MH2)
   B00WZ   = calcB0(ZERO,MW2,MZ2)
   dB00WZ  = calcdB0(ZERO,MW2,MZ2)
+  B00TT   = calcB0(ZERO,MT2,MT2)
+  dB00TT  = calcdB0(ZERO,MT2,MT2)
+  B00BB   = calcB0(ZERO,MB2,MB2)
+  dB00BB  = calcdB0(ZERO,MB2,MB2)
+  B00TB   = calcB0(ZERO,MT2,MB2)
+  dB00TB  = calcdB0(ZERO,MT2,MB2)
+  B100W   = calcB1(ZERO,ZERO,MW2)
+  B1000   = calcB1(ZERO,ZERO,ZERO)
+  B100Z   = calcB1(ZERO,ZERO,MZ2)
+  B10LW   = calcB1(ZERO,ML2,MW2)
+  dB10LW  = calcdB1(ZERO,ML2,MW2)
+  B000L   = calcB0(ZERO,ZERO,ML2)
+  dB000L  = calcdB0(ZERO,ZERO,ML2)
+  B00LL   = calcB0(ZERO,ML2,ML2)
+  dB00LL  = calcdB0(ZERO,ML2,ML2)
+
+  B0WW0   = calcB0(MW2,MW2,ZERO)
+  dB0WW0  = calcdB0(MW2,MW2,ZERO)
+  B0ZZH   = calcB0(MZ2,MZ2,MH2)
+  dB0ZZH  = calcdB0(MZ2,MZ2,MH2)
+  B0WWH   = calcB0(MW2,MW2,MH2)
+  dB0WWH  = calcdB0(MW2,MW2,MH2)
   B0WWZ   = calcB0(MW2,MW2,MZ2)
   dB0WWZ  = calcdB0(MW2,MW2,MZ2)
   B0HHH   = calcB0(MH2,MH2,MH2)
   dB0HHH  = calcdB0(MH2,MH2,MH2)
-  B0HWW   = calcB0(MH2,MW2,MW2)
-  dB0HWW  = calcdB0(MH2,MW2,MW2)
-  B0HZZ   = calcB0(MH2,MZ2,MZ2)
-  dB0HZZ  = calcdB0(MH2,MZ2,MZ2)
-  B0BTW   = calcB0(MB2,MT2,MW2)
-  dB0BTW  = calcdB0(MB2,MT2,MW2)
-  B0TBW   = calcB0(MT2,MB2,MW2)
-  dB0TBW  = calcdB0(MT2,MB2,MW2)
-  B0WTB   = calcB0(MW2,MT2,MB2)
-  dB0WTB  = calcdB0(MW2,MT2,MB2)
-  B1TBW   = calcB1(MT2,MB2,MW2)
-  dB1TBW  = calcdB1(MT2,MB2,MW2)
-  B1BTW   = calcB1(MB2,MT2,MW2)
-  dB1BTW  = calcdB1(MB2,MT2,MW2)
   B0TT0   = calcB0(MT2,MT2,ZERO)
   dB0TT0  = calcdB0(MT2,MT2,ZERO)
-  B00TT   = calcB0(ZERO,MT2,MT2)
-  dB00TT  = calcdB0(ZERO,MT2,MT2)
   B1TT0   = calcB1(MT2,MT2,ZERO)
   dB1TT0  = calcdB1(MT2,MT2,ZERO)
   B0TTZ   = calcB0(MT2,MT2,MZ2)
   dB0TTZ  = calcdB0(MT2,MT2,MZ2)
   B1TTZ   = calcB1(MT2,MT2,MZ2)
   dB1TTZ  = calcdB1(MT2,MT2,MZ2)
-  B0ZTT   = calcB0(MZ2,MT2,MT2)
-  dB0ZTT  = calcdB0(MZ2,MT2,MT2)
   B0TTH   = calcB0(MT2,MT2,MH2)
   dB0TTH  = calcdB0(MT2,MT2,MH2)
-  B0HTT   = calcB0(MH2,MT2,MT2)
-  dB0HTT  = calcdB0(MH2,MT2,MT2)
   B1TTH   = calcB1(MT2,MT2,MH2)
   dB1TTH  = calcdB1(MT2,MT2,MH2)
   B0BB0   = calcB0(MB2,MB2,ZERO)
   dB0BB0  = calcdB0(MB2,MB2,ZERO)
-  B00BB   = calcB0(ZERO,MB2,MB2)
-  dB00BB  = calcdB0(ZERO,MB2,MB2)
   B1BB0   = calcB1(MB2,MB2,ZERO)
   dB1BB0  = calcdB1(MB2,MB2,ZERO)
   B0BBZ   = calcB0(MB2,MB2,MZ2)
@@ -407,35 +403,10 @@ subroutine ew_renormalisation
   dB1BBZ  = calcdB1(MB2,MB2,MZ2)
   B0BBH   = calcB0(MB2,MB2,MH2)
   dB0BBH  = calcdB0(MB2,MB2,MH2)
-  B0HBB   = calcB0(MH2,MB2,MB2)
-  dB0HBB  = calcdB0(MH2,MB2,MB2)
   B1BBH   = calcB1(MB2,MB2,MH2)
   dB1BBH  = calcdB1(MB2,MB2,MH2)
-  B00TB   = calcB0(ZERO,MT2,MB2)
-  dB00TB  = calcdB0(ZERO,MT2,MB2)
-  B100W   = calcB1(ZERO,ZERO,MW2)
-  B1000   = calcB1(ZERO,ZERO,ZERO)
-  B100Z   = calcB1(ZERO,ZERO,MZ2)
-  B0Z00   = calcB0(MZ2,ZERO,ZERO)
-  dB0Z00  = calcdB0(MZ2,ZERO,ZERO)
-  B0W00   = calcB0(MW2,ZERO,ZERO)
-  dB0W00  = calcdB0(MW2,ZERO,ZERO)
-  B0ZBB   = calcB0(MZ2,MB2,MB2)
-  dB0ZBB  = calcdB0(MZ2,MB2,MB2)
-
-
-  B0L0W   = calcB0(ML2,ZERO,MW2)
-  dB0L0W  = calcdB0(ML2,ZERO,MW2)
-  B0W0L   = calcB0(MW2,ZERO,ML2)
-  dB0W0L  = calcdB0(MW2,ZERO,ML2)
-  B10LW   = calcB1(ZERO,ML2,MW2)
-  dB10LW  = calcdB1(ZERO,ML2,MW2)
-  B1L0W   = calcB1(ML2,ZERO,MW2)
-  dB1L0W  = calcdB1(ML2,ZERO,MW2)
   B0LL0   = calcB0(ML2,ML2,ZERO)
   dB0LL0  = calcdB0(ML2,ML2,ZERO)
-  B00LL   = calcB0(ZERO,ML2,ML2)
-  dB00LL  = calcdB0(ZERO,ML2,ML2)
   B1LL0   = calcB1(ML2,ML2,ZERO)
   dB1LL0  = calcdB1(ML2,ML2,ZERO)
   B0LLZ   = calcB0(ML2,ML2,MZ2)
@@ -444,14 +415,48 @@ subroutine ew_renormalisation
   dB1LLZ  = calcdB1(ML2,ML2,MZ2)
   B0LLH   = calcB0(ML2,ML2,MH2)
   dB0LLH  = calcdB0(ML2,ML2,MH2)
-  B0HLL   = calcB0(MH2,ML2,ML2)
-  dB0HLL  = calcdB0(MH2,ML2,ML2)
   B1LLH   = calcB1(ML2,ML2,MH2)
   dB1LLH  = calcdB1(ML2,ML2,MH2)
-  B000L   = calcB0(ZERO,ZERO,ML2)
-  dB000L  = calcdB0(ZERO,ZERO,ML2)
-  B0ZLL   = calcB0(MZ2,ML2,ML2)
-  dB0ZLL  = calcdB0(MZ2,ML2,ML2)
+
+  B0ZWW   = calcRB0(MZ2,MW2,MW2)
+  dB0ZWW  = calcRdB0(MZ2,MW2,MW2)
+  B0HWW   = calcRB0(MH2,MW2,MW2)
+  dB0HWW  = calcRdB0(MH2,MW2,MW2)
+  B0HZZ   = calcRB0(MH2,MZ2,MZ2)
+  dB0HZZ  = calcRdB0(MH2,MZ2,MZ2)
+  B0BTW   = calcRB0(MB2,MT2,MW2)
+  dB0BTW  = calcRdB0(MB2,MT2,MW2)
+  B0TBW   = calcRB0(MT2,MB2,MW2)
+  dB0TBW  = calcRdB0(MT2,MB2,MW2)
+  B0WTB   = calcRB0(MW2,MT2,MB2)
+  dB0WTB  = calcRdB0(MW2,MT2,MB2)
+  B1TBW   = calcRB1(MT2,MB2,MW2)
+  dB1TBW  = calcRdB1(MT2,MB2,MW2)
+  B1BTW   = calcRB1(MB2,MT2,MW2)
+  dB1BTW  = calcRdB1(MB2,MT2,MW2)
+  B0ZTT   = calcRB0(MZ2,MT2,MT2)
+  dB0ZTT  = calcRdB0(MZ2,MT2,MT2)
+  B0HTT   = calcRB0(MH2,MT2,MT2)
+  dB0HTT  = calcRdB0(MH2,MT2,MT2)
+  B0HBB   = calcRB0(MH2,MB2,MB2)
+  dB0HBB  = calcRdB0(MH2,MB2,MB2)
+  B0Z00   = calcRB0(MZ2,ZERO,ZERO)
+  dB0Z00  = calcRdB0(MZ2,ZERO,ZERO)
+  B0W00   = calcRB0(MW2,ZERO,ZERO)
+  dB0W00  = calcRdB0(MW2,ZERO,ZERO)
+  B0ZBB   = calcRB0(MZ2,MB2,MB2)
+  dB0ZBB  = calcRdB0(MZ2,MB2,MB2)
+  B0L0W   = calcRB0(ML2,ZERO,MW2)
+  dB0L0W  = calcRdB0(ML2,ZERO,MW2)
+  B0W0L   = calcRB0(MW2,ZERO,ML2)
+  dB0W0L  = calcRdB0(MW2,ZERO,ML2)
+  B1L0W   = calcRB1(ML2,ZERO,MW2)
+  dB1L0W  = calcRdB1(ML2,ZERO,MW2)
+  B0HLL   = calcRB0(MH2,ML2,ML2)
+  dB0HLL  = calcRdB0(MH2,ML2,ML2)
+  B0ZLL   = calcRB0(MZ2,ML2,ML2)
+  dB0ZLL  = calcRdB0(MZ2,ML2,ML2)
+  call init_ol_self_energy_integrals(.false.)
 
 
   ! calculate renormalisation constants
@@ -462,7 +467,7 @@ subroutine ew_renormalisation
     Tadpole   = 0.75*MH2/MW2/sw*A0H                   &
               + (0.5*MH2/MW2/sw+3./sw)*A0W            &
               + (0.25*MH2/MW2/sw + 1.5/sw/cw2)*A0Z    &
-              - (2*MW2)/sw - (MZ**2)/(cw2*sw) ! rational contribution
+              - (2*MW2)/sw - MZ2/(cw2*sw) ! rational contribution
 
     !This is the bosonic part of page 105-107 from Denner92 evaluated in selfenergies.nb
 
@@ -476,6 +481,9 @@ subroutine ew_renormalisation
 
     SiAZZ=SiAZZ+(rMZ2/3. - (-2 + 12*cw2)*MW2*B00WW &
         + ((4 + 12*cw2)*MW2 + (0.5 + 9*cw2)*rMZ2)*B0ZWW)/(3.*cw*sw)
+
+    dSiAZZ=dSiAZZ+(2 + (3 + 54*cw2)*B0ZWW  &
+        +  3*(8*MW2 + 24*cw2*MW2 + rMZ2 + 18*cw2*rMZ2)*dB0ZWW)/(18.*cw*sw)
 
     SiZZ=SiZZ-(((-1 + 4*cw2)*rMZ2)/3. - (2 - 8*cw2 + 24*cw4)*MW2*B00WW  &
         + ((-10 + 16*cw2 + 24*cw4)*MW2 + (-0.5 + 2*cw2 + 18*cw4)*rMZ2)*B0ZWW)/(6.*cw2*sw2) &
@@ -543,27 +551,27 @@ subroutine ew_renormalisation
           - (1 + 2*B1BBZ)*gZd(2)**2 &                     ! Z
           - (1 + (2 + MT2/MW2)*B1BTW)/(2.*sw2) &          ! W
           - (MB2*(B1BBH + B1BBZ))/(4.*MW2*sw2)            ! H & X
-    else
-      SibL=SibL+(-1 - IRrational - 2*B1BB0)/9. &          ! Photon
-          - (1 + 2*B1BBZ)*gZd(2)**2 &                     ! Z
-          - (1 + (2 + MT2/MW2)*B1BTW)/(2.*sw2)            ! W
-    end if
 
-    if (MB /= 0._/**/REALKIND) then
       SibR=SibR+(-1 - 2*B1BB0)/9. &           ! Photon
           - (1 + 2*B1BBZ)*gZd(1)**2 &                     ! Z
           - (MB2*B1BTW)/(2.*MW2*sw2) &                    ! W
           - (MB2*(B1BBH + B1BBZ))/(4.*MW2*sw2)            ! H & X
+
+      SibS=SibS+(2 - 4*B0BB0)/9. & ! Photon
+          - (MB2*(-B0BBH + B0BBZ))/(4.*MW2*sw2) & ! H & X
+          - (MT2*B0BTW)/(2.*MW2*sw2) & ! W
+          - (-2 + 4*B0BBZ)*gZd(1)*gZd(2) ! Z
+
     else
+      SibL=SibL+(-1 - IRrational - 2*B1BB0)/9. &          ! Photon
+          - (1 + 2*B1BBZ)*gZd(2)**2 &                     ! Z
+          - (1 + (2 + MT2/MW2)*B1BTW)/(2.*sw2)            ! W
+
       SibR=SibR+(-1 - IRrational - 2*B1BB0)/9. &          ! Photon
           - (1 + 2*B1BBZ)*gZd(1)**2 &                     ! Z
           - (MB2*B1BTW)/(2.*MW2*sw2)                      ! W
-    end if
 
-    SibS=SibS+(2 - 4*B0BB0)/9. & ! Photon
-        - (MB2*(-B0BBH + B0BBZ))/(4.*MW2*sw2) & ! H & X
-        - (MT2*B0BTW)/(2.*MW2*sw2) & ! W
-        - (-2 + 4*B0BBZ)*gZd(1)*gZd(2) ! Z
+    end if
 
     dSibL=dSibL+(-2*dB1BB0)/9. & ! Photon
         - (MB2*(dB1BBH + dB1BBZ))/(4.*MW2*sw2) & ! H & X
@@ -618,7 +626,7 @@ subroutine ew_renormalisation
 
       SilS=SilS+(2. - 4.*B0LL0) & ! Photon
           - (ML2*(-B0LLH + B0LLZ))/(4.*MW2*sw2)  & ! H & X
-          - (-2. + 4*B0LLZ)*gZl(1)*gZl(2) ! W
+          - (-2. + 4*B0LLZ)*gZl(1)*gZl(2) ! Z
 
       dSilL=dSilL-2.*dB1LL0 & ! Photon
           - (ML2*(dB1LLH + dB1LLZ))/(4.*MW2*sw2) & ! H & X
@@ -672,7 +680,6 @@ subroutine ew_renormalisation
          -    16.*nc*(1._/**/REALKIND/3.-B0ZTT-(2.*MT2+rMZ2)*dB0ZTT)/27.   ! t-quark
 
     ! contribution from heavy + light fermions (in dimreg)
-
     dSiAA0=dSiAA0+4._/**/REALKIND/3.*( &
                                  (  2.*B0000) & ! light-leptons
           +                      (     B00LL) & ! tau-lepton
@@ -692,6 +699,15 @@ subroutine ew_renormalisation
         +   nc*(rMZ2/3. + 2*MB2*B00BB + (-2*MB2 - rMZ2)*B0ZBB)*(gZd(1) + gZd(2))/3. &     ! b-quark
         -   nc*(rMZ2/3. + 2*MT2*B00TT + (-2*MT2 - rMZ2)*B0ZTT)*(gZu(1) + gZu(2))*2._/**/REALKIND/3. &  ! top-quark
         )
+
+    dSiAZZ=dSiAZZ-2._/**/REALKIND/9.*( &
+        -    2.*(-1 + 3*B0Z00 + 3*rMZ2*dB0Z00)*(gZl(1) + gZl(2)) & ! light-lepton
+        -       (-1 + 3*B0ZLL + 3*(2*ML2 + rMZ2)*dB0ZLL)*(gZl(1) + gZl(2)) & ! tau-lepton
+        - 2.*nc*(-1 + 3*B0Z00 + 3*rMZ2*dB0Z00)*(gZd(1) + gZd(2))/3. & ! down-quark
+        + 2.*nc*(-1 + 3*B0Z00 + 3*rMZ2*dB0Z00)*(gZu(1) + gZu(2))*2._/**/REALKIND/3. & ! up-quark
+        -    nc*(-1 + 3*B0ZBB + 3*(2*MB2 + rMZ2)*dB0ZBB)*(gZd(1) + gZd(2))/3. & ! b-quark
+        +    nc*(-1 + 3*B0ZTT + 3*(2*MT2 + rMZ2)*dB0ZTT)*(gZu(1) + gZu(2))*2._/**/REALKIND/3. & ! top-quark
+       )
 
     SiZZ=SiZZ-2._/**/REALKIND/3.*( &
         -      3*rMZ2*(-1 + 3*B0Z00)*(gZn(1)**2 + gZn(2)**2)/3. &  ! neutrinos
@@ -741,6 +757,7 @@ subroutine ew_renormalisation
        -(MB2*nc*(2*A0B + (4*MB2 - rMH2)*B0HBB))/(2.*MW2*sw2) &  ! b-quark
        -(MT2*nc*(2*A0T + (4*MT2 - rMH2)*B0HTT))/(2.*MW2*sw2)    ! t-quark
 
+
     dSiH=dSiH &
        -   (ML2*(-B0HLL + (4*ML2 - rMH2)*dB0HLL))/(2.*MW2*sw2) & ! tau
        -(MB2*nc*(-B0HBB + (4*MB2 - rMH2)*dB0HBB))/(2.*MW2*sw2) & ! b-quark
@@ -762,117 +779,95 @@ subroutine ew_renormalisation
     dZAAEW = dZAAEWnreg
   end if
 
-  if (imag(MW2) == 0) then
-    dZWEW   = -real(dSiW)
+  dZWEW   = -(dSiW)
+  if (cms_on == 0) then
     dZMW2EW = real(SiW)
-  else if (imag(MW2) /= 0 .and. cms_on > 0) then !CMS
+  else if (imag(MW2) /= 0 .and. cms_on > 0) then ! CMS
     cTW     = (MW2-rMW2)*dSiW+4.*(rMW2-MW2)  ! 1st order expansion & C^w term
     dZMW2EW = SiW + cTW
-    if (cms_on == 1) then ! CMS-I
-      dZWEW   = -real(dSiW)
-    else if (cms_on == 2) then ! CMS-II
-      dZWEW   = -(dSiW)
-    end if
-  else
-    call ol_fatal('on-shell EW renormalization with finite width not supported!')
+  else if (imag(MW2) == 0  .and. cms_on > 0) then ! CMS I & II
+    dZMW2EW = SiW
   end if
 
   dZZAEW  = 2.*SiAZ0/MZ2
-  if (imag(MZ2) == 0 .or. (cms_on == 0 .and. trim(model) == "sm_vaux")) then
-    dZAZEW  = -2.*real(SiAZZ/MZ2)
-    dZZAEW  = real(dZZAEW)
-    dZZZEW  = -real(dSiZZ)
+  dZAZEW  = -2.*(SiAZZ/rMZ2)
+  dZZZEW  = -dSiZZ
+  if (cms_on == 0) then ! on-shell
+    dZZAEW = real(dZZAEW)
+    dZAZEW = real(dZAZEW)
     dZMZ2EW = real(SiZZ)
-  else if (imag(MZ2) /= 0 .and. cms_on > 0) then !CMS
+  else if (imag(MZ2) /= 0 .and. cms_on > 0) then ! CMS
     cTZ = -(rMZ2-MZ2)*dSiZZ ! 1st order expansion
     dZMZ2EW = SiZZ + cTZ
-    if (cms_on == 1) then ! CMS-I
-      dZAZEW  = real(-2.*SiAZZ+(MZ2-rMZ2)*dZZAEW)/rMZ2
-      dZZAEW  = real(dZZAEW)
-      dZZZEW  = -real(dSiZZ)
-    else if (cms_on == 2) then ! CMS-II
-      dZAZEW  = (-2.*SiAZZ+(MZ2-rMZ2)*dZZAEW)/rMZ2
-      dZZAEW  = dZZAEW
-      dZZZEW  = -dSiZZ
-    end if
-  else
-    call ol_fatal('on-shell EW renormalization with finite width not supported!')
+    cTAZ = -2.*(MZ2-rMZ2)/rMZ2*dSiAZZ ! 1st order expansion
+    dZAZEW = dZAZEW + cTAZ
+  else if (imag(MZ2) == 0  .and. cms_on > 0) then ! CMS-I & CMS-II
+    dZMZ2EW = SiZZ
   end if
+
 
 !Higgs
   dtEW    = -Tadpole
-  if (imag(MH2) == 0) then
-    dZHEW   = -real(dSiH)
+  dZHEW   = -(dSiH)
+  if (imag(MH2) == 0 .and. cms_on == 0) then ! on-shell
     dZMH2EW = real(SiH)
-  else if (imag(MH) /= 0 .and. cms_on > 0) then !CMS
+  else if (imag(MH) /= 0 .and. cms_on > 0) then ! CMS
     cTH = -(rMH2-MH2)*dSiH ! 1st order expansion
     dZMH2EW = SiH + cTH
-    if (cms_on == 1) then ! CMS-I
-      dZHEW   = -real(dSiH)
-    else if (cms_on == 2) then ! CMS-II
-      dZHEW   = -(dSiH)
-    end if
+  else if (imag(MH2) == 0 .and. cms_on > 0) then ! CMS-I & CMS-II
+    dZMH2EW = SiH
   else
     call ol_fatal('on-shell EW renormalization with finite width not supported!')
   end if
 
-
 !Fermions
   !light leptons
-  dZeLEW = -real(SieL)
-  dZeREW = -real(SieR)
-  dZnLEW = -real(SinL)
-  dZnlLEW = -real(SinlL)
+  dZeLEW = -SieL
+  dZeREW = -SieR
+  dZnLEW = -SinL
+  dZnlLEW = -SinlL
 
   !tau
   if (ML /= 0._/**/REALKIND) then
     dSilLRS = dSilL+dSilR+2.*dSilS
-    if (imag(ML2) == 0) then ! on-shell
-      dZlLEW = -real(SilL+rML2*dSilLRS)
-      dZlREW = -real(SilR+rML2*dSilLRS)
-      dZMLEW  = 0.5*ML*real(SilL+SilR+2.*SilS) !on-shell
-    else if (imag(ML) /= 0 .and. cms_on > 0) then !CMS
-      cTL     = -0.5*(rML2-ML2)*dSilLRS+(rML2-ML2)/rML2 ! 1st order expansion & C^b term
-      dZMlEW  = ML*(0.5*(SilL+SilR+2.*SilS) + cTL)
-      if (cms_on == 1) then ! CMS-I
-        dZlLEW = -real(SilL+rML2*dSilLRS)
-        dZlREW = -real(SilR+rML2*dSilLRS)
-      else if (cms_on == 2) then ! CMS-II
-        dZlLEW = -(SilL+rML2*dSilLRS)
-        dZlREW = -(SilR+rML2*dSilLRS)
-      end if
+    dZlLEW = -(SilL+rML2*dSilLRS)
+    dZlREW = -(SilR+rML2*dSilLRS)
+    if (cms_on == 0) then ! on-shell
+      dZlLEW = -real(dZlLEW)
+      dZlREW = -real(dZlREW)
+      dZMLEW  = real(dZMLEW)
+    else if (imag(ML2) /= 0 .and. cms_on > 0) then ! CMS
+      cTL     = -(rML2-ML2)*dSilLRS+(rML2-ML2)/rML2*1.*4. ! 1st order expansion & C^l term
+      dZMlEW  = ML*0.5*(SilL+SilR+2.*SilS + cTL)
+    else if (imag(ML2) == 0 .and. cms_on > 0) then ! CMS-I & CMS-II
+      dZMlEW = ML*0.5*(SilL+SilR+2.*SilS)
     else
       call ol_fatal('on-shell EW renormalization with finite width not supported!')
     end if
   else
     dZMLEW = 0.
-    dZlLEW = -real(SilL)
-    dZlREW = -real(SilR)
+    dZlLEW = -SilL
+    dZlREW = -SilR
+    if (cms_on /= 2) then ! CMS-I / on-shell
+      dZlLEW = real(dZlLEW)
+      dZlREW = real(dZlREW)
+    end if
   end if
-
-  !light quarks
-  dZuLEW = -real(SiuL)
-  dZuREW = -real(SiuR)
-  dZdLEW = -real(SidL)
-  dZdREW = -real(SidR)
 
   !heavy quarks
   !Top
   dSitLRS = dSitL+dSitR+2.*dSitS
-  if (imag(MT2) == 0) then
-    dZtLEW = -real(SitL+rMT2*dSitLRS)
-    dZtREW = -real(SitR+rMT2*dSitLRS)
-    dZMTEW  = 0.5*MT*real(SitL+SitR+2.*SitS) ! on-shell
-  else if (imag(MT) /= 0 .and. cms_on > 0) then !CMS
-    cTT     = -0.5*(rMT2-MT2)*dSitLRS+(rMT2-MT2)/rMT2*16._/**/REALKIND/9. ! 1st order expansion & C^t term
-    dZMTEW  = MT*(0.5*(SitL+SitR+2.*SitS) + cTT)
-    if (cms_on == 1) then ! CMS-I
-      dZtLEW = -real(SitL+rMT2*dSitLRS)
-      dZtREW = -real(SitR+rMT2*dSitLRS)
-    else if (cms_on == 2) then ! CMS-II
-      dZtLEW = -(SitL+rMT2*dSitLRS)
-      dZtREW = -(SitR+rMT2*dSitLRS)
-    end if
+  dZtLEW = -(SitL+rMT2*dSitLRS)
+  dZtREW = -(SitR+rMT2*dSitLRS)
+  if (cms_on == 0) then ! on-shell
+    dZtLEW = real(dZtLEW)
+    dZtREW = real(dZtREW)
+    dZMTEW = real(MT*0.5*(SitL+SitR+2.*SitS))
+  else if (imag(MT2) /= 0 .and. cms_on > 0) then ! CMS
+    cTT    = -(rMT2-MT2)*dSitLRS+(rMT2-MT2)/rMT2*4._/**/REALKIND/9.*4. ! 1st order expansion & C^t term
+    dZMTEW = MT*0.5*(SitL+SitR+2.*SitS + cTT)
+  else if (imag(MT2) == 0 .and. cms_on > 0) then ! CMS-I & CMS-II
+    dZMTEW = MT*0.5*(SitL+SitR+2.*SitS)
   else
     call ol_fatal('on-shell EW renormalization with finite width not supported!')
   end if
@@ -880,43 +875,36 @@ subroutine ew_renormalisation
   !Bottom
   if (MB /= 0._/**/REALKIND) then
     dSibLRS = dSibL+dSibR+2.*dSibS
-    if (imag(MB2) == 0) then ! on-shell
-      dZbLEW = -real(SibL+rMB2*dSibLRS)
-      dZbREW = -real(SibR+rMB2*dSibLRS)
-      dZMBEW  = 0.5*MB*real(SibL+SibR+2.*SibS) !on-shell
-    else if (imag(MB) /= 0 .and. cms_on > 0) then !CMS
-      cTB     = -0.5*(rMB2-MB2)*dSibLRS+(rMB2-MB2)/rMB2*4._/**/REALKIND/9. ! 1st order expansion & C^b term
-      dZMBEW  = MB*(0.5*(SibL+SibR+2.*SibS) + cTB)
-      if (cms_on == 1) then ! CMS-I
-        dZbLEW = -real(SibL+rMB2*dSibLRS)
-        dZbREW = -real(SibR+rMB2*dSibLRS)
-      else if (cms_on == 2) then ! CMS-II
-        dZbLEW = -(SibL+rMB2*dSibLRS)
-        dZbREW = -(SibR+rMB2*dSibLRS)
-      end if
+    dZbLEW = -(SibL+rMB2*dSibLRS)
+    dZbREW = -(SibR+rMB2*dSibLRS)
+    if (cms_on == 0) then ! on-shell
+      dZbLEW = real(dZbLEW)
+      dZbREW = real(dZbREW)
+      dZMBEW  = real(MB*0.5*(SibL+SibR+2.*SibS))
+    else if (imag(MB2) /= 0 .and. cms_on > 0) then ! CMS
+      cTB     = -(rMB2-MB2)*dSibLRS+(rMB2-MB2)/rMB2*1._/**/REALKIND/9.*4 ! 1st order expansion & C^b term
+      dZMBEW  = MB*0.5*(SibL+SibR+2.*SibS + cTB)
+    else if (imag(MB2) == 0 .and. cms_on > 0) then ! CMS-I & CMS-II
+      dZMBEW  = MB*0.5*(SibL+SibR+2.*SibS)
     else
       call ol_fatal('on-shell EW renormalization with finite width not supported!')
     end if
   else
     dZMBEW = 0.
-    dZbLEW = -real(SibL)
-    dZbREW = -real(SibR)
+    dZbLEW = -SibL
+    dZbREW = -SibR
+    if (cms_on /= 2) then ! CMS-I / on-shell
+      dZbLEW = real(dZbLEW)
+      dZbREW = real(dZbREW)
+    end if
   end if
 
-  dZtLEWcc = dZtLEW
-  dZtREWcc = dZtREW
-  dZbLEWcc = dZbLEW
-  dZbREWcc = dZbREW
-  dZuLEWcc = dZuLEW
-  dZuREWcc = dZuREW
-  dZdLEWcc = dZdLEW
-  dZdREWcc = dZdREW
-  dZeLEWcc = dZeLEW
-  dZeREWcc = dZeREW
-  dZlLEWcc = dZlLEW
-  dZlREWcc = dZlREW
-  dZnLEWcc = dZnLEW
-  dZnlLEWcc = dZnlLEW
+  !light quarks
+  dZuLEW = -SiuL
+  dZuREW = -SiuR
+  dZdLEW = -SidL
+  dZdREW = -SidR
+
 
 ! weak mixing angle
   dcwEW     = cw/2.*(dZMW2EW/MW2-dZMZ2EW/MZ2)
@@ -935,11 +923,11 @@ subroutine ew_renormalisation
   ! a(MZ)
   dZeZQEDEW = -0.5*(dZAAEWnreg+dAlphaQED_MZ) - sw/cw*SiAZ0/MZ2   !NB: dAlphaQED_MZ drops out -> reg independent
 
-  if (ew_renorm_scheme == 0 ) then ! on-shell scheme = alpha(0) scheme
+  if (ew_renorm_scheme == 0) then ! on-shell scheme = alpha(0) scheme
     if (delta_alphamz_dimreg) then
-      dZeQEDEW = dZe0QEDEWdreg
+      dZeQEDEW = dZe0QEDEWdreg ! dim-reg
     else
-      dZeQEDEW = dZe0QEDEWnreg
+      dZeQEDEW = dZe0QEDEWnreg ! n-reg
     end if
   else if (ew_renorm_scheme == 1) then ! Gmu scheme
     dZeQEDEW = dZeGmuQEDEW
@@ -951,21 +939,46 @@ subroutine ew_renormalisation
   end if
 
 
-  if (cms_on == 2) then !CMS-II
-    dZAAEW = dZAAEW
-    dZAAEWdreg = dZAAEWdreg
-    dZeQEDEW = dZeQEDEW
-    dZe0QEDEWnreg = dZe0QEDEWnreg
-    dZeGmuQEDEW =dZeGmuQEDEW
-    dZeZQEDEW = dZeZQEDEW
-  else
-    dZAAEW = real(dZAAEW)
-    dZAAEWdreg = real(dZAAEWdreg)
-    dZeQEDEW = real(dZeQEDEW)
-    dZe0QEDEWnreg = real(dZe0QEDEWnreg)
-    dZeGmuQEDEW = real(dZeGmuQEDEW)
-    dZeZQEDEW = real(dZeZQEDEW)
+
+  if (cms_on /= 2) then ! CMS-I / on-shell: truncate imaginary parts
+   ! light fermions
+   dZeLEW = real(dZeLEW)
+   dZeREW = real(dZeREW)
+   dZnLEW = real(dZnLEW)
+   dZnlLEW = real(dZnlLEW)
+   dZuLEW = real(dZuLEW)
+   dZuREW = real(dZuREW)
+   dZdLEW = real(dZdLEW)
+   dZdREW = real(dZdREW)
+   ! diagonal WFRCs
+   dZAAEW = real(dZAAEW)
+   dZAAEWdreg = real(dZAAEWdreg)
+   dZZZEW  = real(dZZZEW)
+   dZWEW = real(dZWEW)
+   dZHEW  = real(dZHEW)
+   ! charge renormalisation
+   dZeQEDEW = real(dZeQEDEW)
+   dZe0QEDEWnreg = real(dZe0QEDEWnreg)
+   dZeGmuQEDEW = real(dZeGmuQEDEW)
+   dZeZQEDEW = real(dZeZQEDEW)
   end if
+
+
+  dZtLEWcc = dZtLEW
+  dZtREWcc = dZtREW
+  dZbLEWcc = dZbLEW
+  dZbREWcc = dZbREW
+  dZuLEWcc = dZuLEW
+  dZuREWcc = dZuREW
+  dZdLEWcc = dZdLEW
+  dZdREWcc = dZdREW
+  dZeLEWcc = dZeLEW
+  dZeREWcc = dZeREW
+  dZlLEWcc = dZlLEW
+  dZlREWcc = dZlREW
+  dZnLEWcc = dZnLEW
+  dZnlLEWcc = dZnlLEW
+
 
 
 !pure pole contributions for debugging
@@ -1310,7 +1323,7 @@ subroutine ew_renormalisation
     EWctAXH = -0.25*CI/cw/sw*dZZAEW
     EWctZXH = -0.5*CI/cw/sw* ( dZeQEDEW + (sw2-cw2)/cw2*dswEW/sw + 0.5*dZHEW + 0.5*dZZZEW )
     EWctAPP = -1.*( dZeQEDEW + 0.5*dZAAEW + 0.25*(sw2-cw2)/sw/cw*dZZAEW )
-    EWctZPP = -0.25*(sw2-cw2)/sw/cw*( dZeQEDEW + dswEW/sw/cw2/(sw2-cw2) + 0.5*dZZZEW) - 0.5*dZAZEW
+    EWctZPP = -0.5*(sw2-cw2)/sw/cw*( dZeQEDEW + dswEW/sw/cw2/(sw2-cw2) + 0.5*dZZZEW) - 0.5*dZAZEW
     EWctWPH = -0.5/sw*( dZeQEDEW - dswEW/sw + 0.5*dZWEW + 0.5*dZHEW )
     EWctWPX = -0.5*CI/sw*( dZeQEDEW - dswEW/sw + 0.5*dZWEW )
 
@@ -1379,9 +1392,6 @@ subroutine ew_renormalisation
 
     EWctVln  = dZeQEDEW-dswEW/sw+0.5*dZWEW+0.5*(dZlLEW + dZnlLEWcc)
     EWctVnl  = dZeQEDEW-dswEW/sw+0.5*dZWEW+0.5*(dZlLEWcc + dZnlLEW)
-
-!    print*, "EWctVln/EWctVen", EWctVln/EWctVen
-!    print*, "EWctVbt/EWctVdu", EWctVbt/EWctVdu
 
     !SFF
     EWctHtt = -0.5/sw*( dZeQEDEW - dswEW/sw + dZMTEW/MT - 0.5*dZMW2EW/MW2 + 0.5*dZHEW) &
@@ -1783,10 +1793,10 @@ subroutine ew_renormalisation
                (3*sw)/cw3 - (nc*sw)/cw3 + (4*cw)/(3.*sw3) - 1._/**/REALKIND/(4.*cw3*sw3) - &
                nc/(4.*cw3*sw3) + (4*sw3)/cw3 + (68*nc*sw3)/(81.*cw3)
 
-        EWctR2ZZZZ=-4._/**/REALKIND/3. + 3._/**/REALKIND/cw4 + (5*nc)/(3.*cw4) + &
-               8._/**/REALKIND/(3.*sw2) - 1._/**/REALKIND/(cw4*sw2) - nc/(cw4*sw2) &
-               - (4*sw2)/cw4 - (4*nc*sw2)/(3.*cw4) - 4._/**/REALKIND/(3.*sw4) + &
-               1._/**/REALKIND/(6.*cw4*sw4) + (4*sw4)/cw4 + (68*nc*sw4)/(81.*cw4)
+        EWctR2ZZZZ=-4._/**/REALKIND/3. + 3/cw4 + (5*nc)/(3.*cw4) + 8/(3.*sw2) - &
+                   1/(cw4*sw2) - nc/(cw4*sw2) - (4*sw2)/cw4 - &
+                   (4*nc*sw2)/(3.*cw4) - 4/(3.*sw4) + 1/(4.*cw4*sw4) + &
+                   nc/(4.*cw4*sw4) + (4*sw4)/cw4 + (68*nc*sw4)/(81.*cw4)
 
         EWctWWAA=EWctWWAA+[23/(3*sw2) + (25*nc)/(9*sw2), &
                -4/sw2 - 11*nc/(9*sw2)]
@@ -1801,8 +1811,8 @@ subroutine ew_renormalisation
                            -1/cw2 - 11*nc/(9*cw2) - 3/(sw4) - 5*(1+nc)/(4*cw2*sw4) &
                            + 3/sw2 + 5*(1+nc)/(2*cw2*sw2)]
 
-        EWctWWWW=EWctWWWW+[19/(6.*sw4) + (3*nc)/(2.*sw4), &
-                          -17/(2.*sw4) - (5*nc)/(2.*sw4)]
+        EWctWWWW=EWctWWWW+[-17/(2.*sw4) - (5*nc)/(2.*sw4), &
+                            19/(6.*sw4) + (3*nc)/(2.*sw4)]
 
   end if
 
@@ -1904,7 +1914,7 @@ subroutine photon_factors(photonid, ew_renorm, bornfactor, loopfactor)
   use ol_parameters_decl_/**/REALKIND, only: alpha_QED, alpha_QED_0, alpha_QED_Gmu, pi
   use ol_loop_parameters_decl_/**/REALKIND, only: countertermnorm, &
                                               & dZeQEDEW, dZe0QEDEWnreg, dZe0QEDEWdreg, dZeGmuQEDEW, &
-                                              & dZAAEW, dZAAEWdreg, dZAAEWnreg
+                                              & dZAAEW, dZAAEWdreg
   implicit none
   integer, intent(in) :: photonid(:)
   integer, intent(in) :: ew_renorm
@@ -1912,7 +1922,7 @@ subroutine photon_factors(photonid, ew_renorm, bornfactor, loopfactor)
   real(REALKIND),  intent(out), optional :: loopfactor
   integer :: n_gamma=0, n_onshell_gamma=0, n_offshell_gamma=0
 
-  n_gamma=sum(photonid/photonid,photonid.ne.0)
+  !n_gamma=sum(photonid/photonid,photonid.ne.0)
   n_onshell_gamma=sum(photonid/photonid,photonid.gt.0)
   n_offshell_gamma=sum(photonid/photonid,photonid.lt.0)
 
@@ -1921,12 +1931,8 @@ subroutine photon_factors(photonid, ew_renorm, bornfactor, loopfactor)
     bornfactor=(alpha_QED_0/alpha_QED)**n_onshell_gamma
   end if
 
-  if (ew_scheme == 0) then
-      if (delta_alphamz_dimreg) then
-          bornfactor=(alpha_QED_Gmu/alpha_QED_0)**n_gamma
-      else if (offshell_photons_lsz) then
-          bornfactor=(alpha_QED_Gmu/alpha_QED_0)**n_offshell_gamma
-      end if
+  if (ew_scheme == 0 .and. offshell_photons_lsz) then
+    bornfactor=(alpha_QED_Gmu/alpha_QED_0)**n_offshell_gamma
   end if
 
 
@@ -1935,18 +1941,17 @@ subroutine photon_factors(photonid, ew_renorm, bornfactor, loopfactor)
 
     ! on-shell photons: dZe(Gmu/MZ) -> dZe(0)
     if (onshell_photons_lsz .and. (ew_renorm_scheme > 0)) then
-      loopfactor=(dZe0QEDEWnreg-dZeQEDEW)*alpha_QED*countertermnorm*4.*pi*n_onshell_gamma  ! #on-shell photons: dZe(Gmu/MZ) -> dZe(0)
+      loopfactor=(dZe0QEDEWnreg-dZeQEDEW)*alpha_QED*countertermnorm*4.*pi*n_onshell_gamma
     end if
 
-    if (delta_alphamz_dimreg) then
-      if (ew_renorm_scheme == 0) then
-        loopfactor=loopfactor+(dZeGmuQEDEW-dZeQEDEW)*alpha_QED*countertermnorm*4.*pi*n_gamma  ! #all photons: dZe(0,dimreg) -> dZe(Gmu)
-      end if
-    else if (offshell_photons_lsz) then
-      loopfactor=loopfactor+(dZAAEWdreg-dZAAEW)*alpha_QED*countertermnorm*2*pi*n_offshell_gamma  ! #off-shell photons: dZAA(n-reg) -> dZAA(dimreg)
-      if (ew_renorm_scheme == 0) then
-        loopfactor=loopfactor+(dZeGmuQEDEW-dZeQEDEW)*alpha_QED*countertermnorm*4.*pi*n_offshell_gamma ! #off-photons: dZe(0,n-reg) -> dZe(Gmu)
-      end if
+    ! off-photons: dZe(0,n-reg) -> dZe(Gmu)
+    if (offshell_photons_lsz .and. ew_renorm_scheme == 0) then
+        loopfactor=loopfactor+(dZeGmuQEDEW-dZeQEDEW)*alpha_QED*countertermnorm*4.*pi*n_offshell_gamma
+    end if
+
+    ! #off-shell photons: dZAA(n-reg) -> dZAA(dimreg)
+    if (.not. delta_alphamz_dimreg .and. offshell_photons_lsz) then
+      loopfactor=loopfactor+(dZAAEWdreg-dZAAEW)*alpha_QED*countertermnorm*2*pi*n_offshell_gamma
     end if
 
   end if

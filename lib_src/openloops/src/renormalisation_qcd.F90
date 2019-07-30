@@ -27,7 +27,7 @@ subroutine qcd_renormalisation
 ! **********************************************************************
 ! QCD renormalisation constants (in physical GeV units);
 ! conventions for UV/IR div. see subroutine loop_parameters_init.
-! This subroutine is automatically called by loop_parameters_init.
+! This subroutine is automatically called by qcd_parameters_init.
 ! **********************************************************************
 ! dZMC  = charm-quark mass RC        : MC_bare = MC*(1+dZMC)
 ! dZMB  = bottom-quark mass RC       : MB_bare = MB*(1+dZMB)
@@ -115,26 +115,49 @@ subroutine qcd_renormalisation
     dZt   = dZq
     if (MC /= 0) then
       dZc  = -cf * (deC_UV + 2*deC_IR + 4) ! massive charm-quark
-      dZMC = -cf * (4 + 3*(de1_UV+log(mu2_UV/MC2)))
+      if (LambdaMC2 == 0) then
+        dZMC = -cf * (4 + 3*(de1_UV+log(mu2_UV/MC2))) ! on-shell
+      else
+        dZMC = -cf * 3*(de1_UV+log(mu2_UV/LambdaMC2)) ! MSbar
+      end if
     end if
     if (YC /=0) then
-      dZYC = -cf * (4 + 3*(de1_UV+log(mu2_UV/muyc2)))
+      if (LambdaYC2 == 0) then
+        dZYC = -cf * (4 + 3*(de1_UV+log(mu2_UV/YC2))) ! on-shell
+      else
+        dZYC = -cf * 3*(de1_UV+log(mu2_UV/LambdaYC2)) ! MSbar
+      end if
     end if
     if (MB /= 0) then
       dZb  = -cf * (deB_UV + 2*deB_IR + 4) ! massive bottom-quark
-      dZMB = -cf * (4 + 3*(de1_UV+log(mu2_UV/MB2)))
+      if (LambdaMB2 == 0) then
+        dZMB = -cf * (4 + 3*(de1_UV+log(mu2_UV/MB2))) ! on-shell
+      else
+        dZMB = -cf * 3*(de1_UV+log(mu2_UV/LambdaMB2)) ! MSbar
+      end if
     end if
     if (YB /=0) then
-      dZYB = -cf * (4 + 3*(de1_UV+log(mu2_UV/muyb2)))
+      if (LambdaYB2 == 0) then
+        dZYB = -cf * (4 + 3*(de1_UV+log(mu2_UV/YB2))) ! on-shell
+      else
+        dZYB = -cf * 3*(de1_UV+log(mu2_UV/LambdaYB2)) ! MSbar
+      end if
     end if
-    ! On-shell top-mass renormalisation at complex pole p^2 = MT^2
-    ! dMT = MT * (-cf * (4 + 3*(de1_UV+log(mu2_UV/MT2))) + dZt)
+    ! top-mass renormalisation
+    ! on-shell at complex pole p^2 = MT^2: dMT = MT * (-cf * (4 + 3*(de1_UV+log(mu2_UV/MT2))) + dZt)
+    ! MSbar:                               dMT = MT * (-cf * (3*(de1_UV+log(mu2_UV/LambdaMT2))) + dZt)
     if (MT /= 0) then
       dZt   = -cf * (deT_UV + 2*deT_IR + 4) ! massive top-quark
-      dZMT = -cf * (4 + 3*(de1_UV+log(mu2_UV/MT2)))
+      if (LambdaMT2 == 0) then
+        dZMT = -cf * (4 + 3*(de1_UV+log(mu2_UV/MT2))) ! on-shell
+      else
+        dZMT = -cf * 3*(de1_UV+log(mu2_UV/LambdaMT2)) ! MSbar
+      end if
     end if
-    if (YT /=0) then
-      dZYT = -cf * (4 + 3*(de1_UV+log(mu2_UV/muyt2)))
+    if (LambdaYT2 == 0) then
+      dZYT = -cf * (4 + 3*(de1_UV+log(mu2_UV/YT2))) ! on-shell
+    else
+      dZYT = -cf * 3*(de1_UV+log(mu2_UV/LambdaYT2)) ! MSbar
     end if
     ! MS-bar renormalization constant for gQCD, YM-contribution
     dgQCD = -(11*ca)/6 * (de1_UV + log(mu2_UV/muren2))
@@ -487,7 +510,6 @@ subroutine qcd_renormalisation
     end if
 
   end if
-
 end subroutine qcd_renormalisation
 
 end module ol_qcd_renormalisation_/**/REALKIND
@@ -530,10 +552,11 @@ function gluon_ofsse(p2,pid)
   nlf = real(N_lf,kind=REALKIND)
   ! gs**2/(16*pi**2) stripped, assert(Nf == 6)
 
+  call init_ol_self_energy_integrals(.true.)
   B01 = calcB0(p2,ZERO,ZERO)
   cc1 = +(5*ncc-2*nlf)*(B01)/real(3,kind=REALKIND)
 
-  do i = N_lf, 5
+  do i = N_lf, nf-1
     select case (i)
     case (5)
       B02 = calcB0(ZERO,MT2,MT2)
@@ -554,6 +577,8 @@ function gluon_ofsse(p2,pid)
       call ol_fatal('Flavor scheme N_lf=' // trim(to_string(N_lf)) // ' not implemented for bubble_vertex.')
   end select
   end do
+  call init_ol_self_energy_integrals(.false.)
+
 
   if (CT_is_on .eq. 0) then
     dZ = 0
@@ -562,7 +587,7 @@ function gluon_ofsse(p2,pid)
   end if
 
   ! only R1
-  cc1R1 = (12 + ncc)/real(9,kind=REALKIND)
+  cc1R1 = (nf*2 + ncc)/real(9,kind=REALKIND)
   gluon_ofsse(1) =  (dZ - cc1 - cc1R1)  ! w^\mu_out = p^2 w^\mu_in
   gluon_ofsse(2) =  0                   ! w^\mu_out = w^\mu_in
   gluon_ofsse(3) = -(-cc1 + cc1R1)      ! w^\mu_out = (w_in.p) p^\mu
@@ -634,8 +659,11 @@ function quark_ofsse(p2,pid)
     dM = 0
   end if
 
+  call init_ol_self_energy_integrals(.true.)
   B0_1 = calcB0(p2,ZERO,M2)
   A0_1 = calcA0(M2)
+  call init_ol_self_energy_integrals(.false.)
+
   fac = rONE*cf
   quark_ofsse(1) = dZ + fac*((M2+p2) * B0_1 - A0_1 -p2)/p2  ! w^i_out = pslash^{ij} w^j_in
   quark_ofsse(2) = M*(dM + dZ) + fac*(4*M*B0_1-2*M)         ! w^i_out = w^i_in

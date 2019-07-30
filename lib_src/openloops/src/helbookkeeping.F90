@@ -251,7 +251,6 @@ subroutine helbookkeeping_prop(ntry, N_in, N_out, n)
 !******************************************************************************
   use KIND_TYPES, only: intkind1, intkind2
   use ol_data_types_/**/REALKIND, only: wfun, hol
-  use ol_debug, only: ol_fatal, ol_msg
   use ind_bookkeeping_/**/REALKIND, only : ProjHind
   implicit none
   integer(intkind1), intent(in)    :: ntry
@@ -261,12 +260,8 @@ subroutine helbookkeeping_prop(ntry, N_in, N_out, n)
   integer(intkind2) :: nhel
   integer :: h
 
-  if (ntry/=1) then
-    if (ntry <= 3) call ol_msg(5, "Warning: helicity bookkeeping for propagator called for N_PSP > 1")
-  end if
-
   nhel = 0
-  do h = 1, n
+  do h = 1, size(N_in%hf)
     if (N_in%hf(h) /= -1_intkind2) nhel = nhel + 1
   end do
   n = nhel
@@ -285,8 +280,6 @@ subroutine helbookkeeping_last_prop(ntry, N_in, n)
 !******************************************************************************
   use KIND_TYPES, only: intkind1, intkind2
   use ol_data_types_/**/REALKIND, only: wfun, hol
-  use ol_debug, only: ol_fatal, ol_msg
-  use ind_bookkeeping_/**/REALKIND, only : ProjHind
   implicit none
   integer(intkind1), intent(in)    :: ntry
   integer(intkind2), intent(inout) :: n
@@ -294,12 +287,8 @@ subroutine helbookkeeping_last_prop(ntry, N_in, n)
   integer(intkind2) :: nhel
   integer :: h
 
-  if (ntry/=1) then
-    if (ntry <= 3) call ol_msg(5, "Warning: helicity bookkeeping for last propagator called for N_PSP > 1")
-  end if
-
   nhel = 0
-  do h = 1, n
+  do h = 1, size(N_in%hf)
     if (N_in%hf(h) /= -1_intkind2) nhel = nhel + 1
   end do
   n = nhel
@@ -320,7 +309,7 @@ subroutine helbookkeeping_ol_vert3(ntry, W, N_in, N_out, n, t)
 !******************************************************************************
   use KIND_TYPES, only: intkind1, intkind2
   use ol_data_types_/**/REALKIND, only: wfun, hol
-  use ol_debug, only: ol_fatal, ol_msg
+  use ol_debug, only: ol_msg
   use ind_bookkeeping_/**/REALKIND, only : ProjHind
   implicit none
   integer(intkind1), intent(in)    :: ntry
@@ -333,13 +322,9 @@ subroutine helbookkeeping_ol_vert3(ntry, W, N_in, N_out, n, t)
   integer(intkind2)  :: h1, h2, h3, k3
   integer(intkind2)  :: nhel_wf, nhel_in
   integer  :: s(3), n2_hel, k
-  integer(intkind2)  :: hel3, hel2(n(3)), hel1, subset, helaux
-  logical  :: nintest1(n(1)),nintest3(n(3))
+  integer(intkind2)  :: hel3, hel2(size(N_in%hf)), hel1, subset, helaux
+  logical  :: nintest1(size(W)),nintest3(size(N_in%hf))
   integer(intkind2) :: hf_min, hf_aux, i, imin, iq, taux!, taux(2)
-
-  if (ntry/=1) then
-    if (ntry <= 3) call ol_msg(5, "Warning: helicity bookkeeping for 3-point vertex called for N_PSP > 1")
-  end if
 
   s(1)=size(W)
   s(3)=size(N_in%hf)
@@ -347,12 +332,12 @@ subroutine helbookkeeping_ol_vert3(ntry, W, N_in, N_out, n, t)
 
   n_expart = W(1)%n_part
 
-  if (s(1)<n(1)) then
-    call ol_msg(5, "In helicity bookkeeping for 3-point vertex: inconsistent size of input wavefunction")
+  if (s(1)>n(1)) then
+    call ol_msg(5, "Helicity bookkeeping, 3-pt vertex: inconsistent size of input WF")
   end if
 
-  if (s(3)<n(3)) then
-    call ol_msg(5, "In helicity bookkeeping for 3-point vertex: inconsistent size of input open-loop")
+  if (s(3)>n(3)) then
+    call ol_msg(5, "Helicity bookkeeping, 3-pt vertex: inconsistent size of input OL")
   end if
 
   subset = W(1)%t
@@ -360,7 +345,7 @@ subroutine helbookkeeping_ol_vert3(ntry, W, N_in, N_out, n, t)
   !! Setting n(1) equal to the number of non-vanishing helicity configurations
   !! of the external wavefunction
   nhel_wf = 0
-  do h1 = 1, n(1)
+  do h1 = 1, s(1)
     if (W(h1)%hf /= -1_intkind2) nhel_wf = nhel_wf + 1
   end do
   n(1) = nhel_wf
@@ -368,7 +353,7 @@ subroutine helbookkeeping_ol_vert3(ntry, W, N_in, N_out, n, t)
   !! Setting n(3) equal to the number of non-vanishing helicity configurations
   !! of the input open-loop
   nhel_in = 0
-  do h3 = 1, n(3)
+  do h3 = 1, s(3)
     if (N_in%hf(h3) /= -1_intkind2) nhel_in = nhel_in + 1
   end do
   n(3) = nhel_in
@@ -398,15 +383,14 @@ subroutine helbookkeeping_ol_vert3(ntry, W, N_in, N_out, n, t)
 
   do h1=1,n(1)
     if (nintest1(h1)) then
-      call ol_msg(5,"In helicity bookkeeping for 3-point vertex: irrelevant helicities in external WF")
+      call ol_msg(5,"Helicity bookkeeping, 3-pt vertex: irrelevant helicities in external WF")
     end if
     exit
   end do
 
   do h3=1,n(3)
     if (nintest3(h3)) then
-      call ol_msg("In helicity bookkeeping for 3-point vertex: type 1 inconsistency of helicity mappings")
-      call ol_fatal()
+      call ol_msg(5,"Helicity bookkeeping, 3-pt vertex: type 1 inconsistency of helicity mappings")
     end if
   end do
 
@@ -417,13 +401,13 @@ subroutine helbookkeeping_ol_vert3(ntry, W, N_in, N_out, n, t)
 
   do h3=1,n(3)
     if (nintest3(h3)) then
-        h2=h2+1
-        do k3=h3,n(3)
-          if (hel2(k3)==hel2(h3)) then
-            t(2,k3)=h2
-            nintest3(k3)=.false.
-          end if
-        end do
+      h2=h2+1
+      do k3=h3,n(3)
+        if (hel2(k3)==hel2(h3)) then
+          t(2,k3)=h2
+          nintest3(k3)=.false.
+        end if
+      end do
     end if
   end do
 
@@ -469,8 +453,7 @@ subroutine helbookkeeping_ol_vert3(ntry, W, N_in, N_out, n, t)
 
   do h3=1,n(3)
     if (nintest3(h3)) then
-      call ol_msg("In helicity bookkeeping for 3-point vertex: type 2 inconsistency of helicity mappings")
-      call ol_fatal()
+      call ol_msg(5,"In helicity bookkeeping for 3-point vertex: type 2 inconsistency of helicity mappings")
     end if
   end do
 
@@ -492,7 +475,7 @@ subroutine helbookkeeping_ol_vert4(ntry, W1, W2, N_in, N_out, n, t)
 !******************************************************************************
   use KIND_TYPES, only: intkind1, intkind2
   use ol_data_types_/**/REALKIND, only: wfun, hol
-  use ol_debug, only: ol_fatal, ol_msg
+  use ol_debug, only: ol_msg
   use ind_bookkeeping_/**/REALKIND, only : ProjHind
   implicit none
   integer(intkind1), intent(in)    :: ntry
@@ -510,28 +493,24 @@ subroutine helbookkeeping_ol_vert4(ntry, W1, W2, N_in, N_out, n, t)
   logical  :: nintest1(n(1)), nintest2(n(2)), nintest4(n(4))
   integer(intkind2) :: hf_min, hf_aux, i, imin, iq, taux
 
-  if (ntry/=1) then
-    if (ntry <= 3) call ol_msg(5, "Warning: helicity bookkeeping for 4-point vertex called for N_PSP > 1")
-  end if
-
   s(1)=size(W1)
   s(2)=size(W2)
   s(4)=size(N_in%hf)
   s(3)=size(N_out%hf)
 
-  if (s(1)<n(1)) then
+  if (s(1)>n(1)) then
     call ol_msg(5, "In helicity bookkeeping for 4-point vertex: inconsistent size of 1st input wavefunction")
   end if
 
-  if (s(2)<n(2)) then
+  if (s(2)>n(2)) then
     call ol_msg(5, "In helicity bookkeeping for 4-point vertex: inconsistent size of 2nd input wavefunction")
   end if
 
-  if (s(3)<n(3)) then
+  if (s(3)>n(3)) then
     call ol_msg(5, "In helicity bookkeeping for 4-point vertex: inconsistent size of output open-loop")
   end if
 
-  if (s(4)<n(4)) then
+  if (s(4)>n(4)) then
     call ol_msg(5, "In helicity bookkeeping for 4-point vertex: inconsistent size of input open-loop")
   end if
 
@@ -544,7 +523,7 @@ subroutine helbookkeeping_ol_vert4(ntry, W1, W2, N_in, N_out, n, t)
   !! Setting n(1) equal to the number of non-vanishing helicity configurations
   !! of the first external wavefunction
   nhel_wf1 = 0
-  do h1 = 1, n(1)
+  do h1 = 1, s(1)
     if (W1(h1)%hf /= -1_intkind2) nhel_wf1 = nhel_wf1 + 1
   end do
   n(1) = nhel_wf1
@@ -552,7 +531,7 @@ subroutine helbookkeeping_ol_vert4(ntry, W1, W2, N_in, N_out, n, t)
   !! Setting n(2) equal to the number of non-vanishing helicity configurations
   !! of the second external wavefunction
   nhel_wf2 = 0
-  do h2 = 1, n(2)
+  do h2 = 1, s(2)
     if (W2(h2)%hf /= -1_intkind2) nhel_wf2 = nhel_wf2 + 1
   end do
   n(2) = nhel_wf2
@@ -560,7 +539,7 @@ subroutine helbookkeeping_ol_vert4(ntry, W1, W2, N_in, N_out, n, t)
   !! Setting n(4) equal to the number of non-vanishing helicity configurations
   !! of the input openloop
   nhel_in = 0
-  do h4 = 1, n(4)
+  do h4 = 1, s(4)
     if (N_in%hf(h4) /= -1_intkind2) nhel_in = nhel_in + 1
   end do
   n(4) = nhel_in
@@ -594,8 +573,7 @@ subroutine helbookkeeping_ol_vert4(ntry, W1, W2, N_in, N_out, n, t)
 
   do h4=1,n(4)
     if (nintest4(h4)) then
-      call ol_msg("In helicity bookkeeping for 4-point vertex: type 1.1 inconsistency of helicity mappings")
-      call ol_fatal()
+      call ol_msg(5,"In helicity bookkeeping for 4-point vertex: type 1.1 inconsistency of helicity mappings")
     end if
   end do
 
@@ -626,8 +604,7 @@ subroutine helbookkeeping_ol_vert4(ntry, W1, W2, N_in, N_out, n, t)
 
   do h4=1,n(4)
     if (nintest4(h4)) then
-      call ol_msg("In helicity bookkeeping for 4-point vertex: type 1.2 inconsistency of helicity mappings")
-      call ol_fatal()
+      call ol_msg(5,"In helicity bookkeeping for 4-point vertex: type 1.2 inconsistency of helicity mappings")
     end if
   end do
 
@@ -685,8 +662,7 @@ subroutine helbookkeeping_ol_vert4(ntry, W1, W2, N_in, N_out, n, t)
 
   do h4=1,n(4)
     if (nintest4(h4)) then
-      call ol_msg("In helicity bookkeeping for 4-point vertex: type 2 inconsistency of helicity mappings")
-      call ol_fatal()
+      call ol_msg(5,"In helicity bookkeeping for 4-point vertex: type 2 inconsistency of helicity mappings")
     end if
   end do
 
@@ -707,7 +683,7 @@ subroutine helbookkeeping_ol_last_vert3(ntry, W, N_in, n, t)
 ! **********************************************************************
   use KIND_TYPES, only: intkind1, intkind2
   use ol_data_types_/**/REALKIND, only: wfun, hol
-  use ol_debug, only: ol_fatal, ol_msg
+  use ol_debug, only: ol_msg
   use ind_bookkeeping_/**/REALKIND, only : ProjHind
   implicit none
   integer(intkind1), intent(in)    :: ntry
@@ -719,12 +695,8 @@ subroutine helbookkeeping_ol_last_vert3(ntry, W, N_in, n, t)
   integer(intkind2)  :: h1, h3
   integer(intkind2)  :: nhel_wf, nhel_in
   integer  :: s(3)
-  integer(intkind2)  :: hel3, hel2(n(3)), hel1, subset
-  logical  :: nintest1(n(1)),nintest3(n(3))
-
-  if (ntry/=1) then
-    if (ntry <= 3) call ol_msg(5, "Helicity bookkeeping for last-step 3-point vertex called for N_PSP > 1")
-  end if
+  integer(intkind2)  :: hel3, hel2(size(N_in%hf)), hel1, subset
+  logical  :: nintest1(size(W)),nintest3(size(N_in%hf))
 
   s(1)=size(W)
   s(3)=size(N_in%hf)
@@ -732,17 +704,16 @@ subroutine helbookkeeping_ol_last_vert3(ntry, W, N_in, n, t)
 
   n_expart = W(1)%n_part
 
-  if (s(1)<n(1)) then
+  if (s(1)>n(1)) then
      call ol_msg(5,"Helicity bookkeeping for last-step 3-point vertex: inconsistent size of input wavefunction")
   end if
 
-  if (s(3)<n(3)) then
+  if (s(3)>n(3)) then
      call ol_msg(5,"Helicity bookkeeping for last-step 3-point vertex: inconsistent size of input open-loop")
   end if
 
   if (s(1)/=s(3)) then
-     call ol_msg("Helicity bookkeeping for last-step 3-point vertex: invalid number of helicity states")
-     call ol_fatal()
+     call ol_msg(5,"Helicity bookkeeping for last-step 3-point vertex: invalid number of helicity states")
   end if
 
   subset = W(1)%t
@@ -750,7 +721,7 @@ subroutine helbookkeeping_ol_last_vert3(ntry, W, N_in, n, t)
   !! Setting n(1) equal to the number of the non-vanishing helicity configurations
   !! of the external wavefunction
   nhel_wf = 0
-  do h1 = 1, n(1)
+  do h1 = 1, s(1)
     if (W(h1)%hf /= -1_intkind2) nhel_wf = nhel_wf + 1
   end do
   n(1) = nhel_wf
@@ -758,7 +729,7 @@ subroutine helbookkeeping_ol_last_vert3(ntry, W, N_in, n, t)
   !! Setting n(3) equal to the number of the non-vanishing helicity configurations
   !! of the input openloop
   nhel_in = 0
-  do h3 = 1, n(3)
+  do h3 = 1, s(3)
     if (N_in%hf(h3) /= -1_intkind2) nhel_in = nhel_in + 1
   end do
   n(3) = nhel_in
@@ -790,8 +761,7 @@ subroutine helbookkeeping_ol_last_vert3(ntry, W, N_in, n, t)
 
   do h3=1,n(3)
     if (nintest3(h3)) then
-      call ol_msg("In helicity bookkeeping for 3-point vertex - last step: type 1 inconsistency of helicity mappings")
-      call ol_fatal()
+      call ol_msg(5,"In helicity bookkeeping for 3-point vertex - last step: type 1 inconsistency of helicity mappings")
     end if
   end do
 
@@ -802,8 +772,7 @@ subroutine helbookkeeping_ol_last_vert3(ntry, W, N_in, n, t)
   do h3 = 1, n(3)
     h1 = t(1,h3)
     if( N_in%hf(h3) - W(h1)%hf /= 0) then
-      call ol_msg("In helicity bookkeeping for 3-point vertex - last step: non-zero helicity of the last tensor integral")
-      call ol_fatal()
+      call ol_msg(5,"In helicity bookkeeping for 3-point vertex - last step: non-zero helicity of the last tensor integral")
     end if
   end do
 
@@ -813,8 +782,7 @@ subroutine helbookkeeping_ol_last_vert3(ntry, W, N_in, n, t)
 
   do h3=1,n(3)
     if (nintest3(h3)) then
-      call ol_msg("In helicity bookkeeping for 3-point vertex - last step: type 2 inconsistency of helicity mappings")
-      call ol_fatal()
+      call ol_msg(5,"In helicity bookkeeping for 3-point vertex - last step: type 2 inconsistency of helicity mappings")
     end if
   end do
 
@@ -833,7 +801,7 @@ subroutine helbookkeeping_ol_last_vert4(ntry, W1, W2, N_in, n, t)
 ! **********************************************************************
   use KIND_TYPES, only: intkind1, intkind2
   use ol_data_types_/**/REALKIND, only: wfun, hol
-  use ol_debug, only: ol_fatal, ol_msg
+  use ol_debug, only: ol_msg
   use ind_bookkeeping_/**/REALKIND, only : ProjHind
   implicit none
   integer(intkind1), intent(in)    :: ntry
@@ -860,21 +828,20 @@ subroutine helbookkeeping_ol_last_vert4(ntry, W1, W2, N_in, n, t)
   n_part1 = W1(1)%n_part
   n_part2 = W2(1)%n_part
 
-  if (s(1)<n(1)) then
-     call ol_msg(5,"Helicity bookkeeping for last-step 4-point vertex: inconsistent size of 1st input wavefunction")
+  if (s(1)>n(1)) then
+     call ol_msg(5,"Helicity bookkeeping last-step 4-pt vertex: inconsistent size of 1st input wavefunction")
   end if
 
-  if (s(2)<n(2)) then
-     call ol_msg(5,"Helicity bookkeeping for last-step 4-point vertex: inconsistent size of 2nd input wavefunction")
+  if (s(2)>n(2)) then
+     call ol_msg(5,"Helicity bookkeeping last-step 4-pt vertex: inconsistent size of 2nd input wavefunction")
   end if
 
-  if (s(3)<n(3)) then
-     call ol_msg(5,"Helicity bookkeeping for last-step 4-point vertex: inconsistent size of input open-loop")
+  if (s(3)>n(3)) then
+     call ol_msg(5,"Helicity bookkeeping last-step 4-pt vertex: inconsistent size of input open-loop")
   end if
 
-  if (s(4) /= n(4)) then
-     call ol_msg("Helicity bookkeeping for last-step 4-point vertex: invalid number of helicity states")
-     call ol_fatal()
+  if (s(4)>n(4)) then
+     call ol_msg(5,"Helicity bookkeeping last-step 4-pt vertex: invalid number of helicity states")
   end if
 
   subset1 = W1(1)%t
@@ -883,7 +850,7 @@ subroutine helbookkeeping_ol_last_vert4(ntry, W1, W2, N_in, n, t)
   !! Setting n(1) equal to the number of non-vanishing helicity configurations
   !! of the first external wavefunction
   nhel_wf1 = 0
-  do h1 = 1, n(1)
+  do h1 = 1, s(1)
     if (W1(h1)%hf /= -1_intkind2) nhel_wf1 = nhel_wf1 + 1
   end do
   n(1) = nhel_wf1
@@ -891,7 +858,7 @@ subroutine helbookkeeping_ol_last_vert4(ntry, W1, W2, N_in, n, t)
   ! Setting n(2) equal to the number of non-vanishing helicity configurations
   ! of the second external wavefunction
   nhel_wf2 = 0
-  do h2 = 1, n(2)
+  do h2 = 1, s(2)
     if (W2(h2)%hf /= -1_intkind2) nhel_wf2 = nhel_wf2 + 1
   end do
   n(2) = nhel_wf2
@@ -899,7 +866,7 @@ subroutine helbookkeeping_ol_last_vert4(ntry, W1, W2, N_in, n, t)
   !! Setting n(4) equal to the number of non-vanishing helicity configurations
   !! of the input openloop
   nhel_in = 0
-  do h4 = 1, n(4)
+  do h4 = 1, s(4)
     if (N_in%hf(h4) /= -1_intkind2) nhel_in = nhel_in + 1
   end do
   n(4) = nhel_in
@@ -931,8 +898,7 @@ subroutine helbookkeeping_ol_last_vert4(ntry, W1, W2, N_in, n, t)
 
   do h4=1,n(4)
     if (nintest4(h4)) then
-      call ol_msg("Helicity bookkeeping for last-step 4-point vertex: type 1.1 inconsistency of helicity mappings")
-      call ol_fatal()
+      call ol_msg(5,"Helicity bookkeeping for last-step 4-point vertex: type 1.1 inconsistency of helicity mappings")
     end if
   end do
 
@@ -961,8 +927,7 @@ subroutine helbookkeeping_ol_last_vert4(ntry, W1, W2, N_in, n, t)
 
   do h4=1,n(4)
     if (nintest4(h4)) then
-      call ol_msg("Helicity bookkeeping for last-step 4-point vertex: type 1.2 inconsistency of helicity mappings")
-      call ol_fatal()
+      call ol_msg(5,"Helicity bookkeeping for last-step 4-point vertex: type 1.2 inconsistency of helicity mappings")
     end if
   end do
 
@@ -975,8 +940,7 @@ subroutine helbookkeeping_ol_last_vert4(ntry, W1, W2, N_in, n, t)
     h2=t(2,h4)
     h1=t(1,h4)
     if(N_in%hf(h4) - W1(h1)%hf - W2(h2)%hf /= 0) then
-      call ol_msg("Helicity bookkeeping for last-step 4-point vertex: non-zero helicity of the last tensor integral")
-      call ol_fatal()
+      call ol_msg(5,"Helicity bookkeeping for last-step 4-point vertex: non-zero helicity of the last tensor integral")
     end if
   end do
 
@@ -1219,7 +1183,7 @@ subroutine ol_merge_2(ntry, mergestep, merge_mism, merge_tables, merge_hels, Gin
 #ifdef PRECISION_qp
   use ol_merging_/**/DREALKIND, only: helicity_matching_check
 #else
-  use ol_loop_handling_/**/REALKIND, only: upgrade_qp,req_qp_cmp,         &
+  use ol_loop_handling_/**/REALKIND, only: upgrade_qp,req_qp_cmp,   &
                                            hp_switch,hp_alloc_mode, &
                                            hol_alloc_hybrid
 #endif
@@ -1430,7 +1394,7 @@ subroutine ol_merge_tensor2(tout,tin)
   use KIND_TYPES, only: REALKIND, QREALKIND
   use ol_data_types_/**/REALKIND, only: hcl
 #ifdef PRECISION_dp
-  use ol_loop_handling_/**/REALKIND, only: upgrade_qp,req_qp_cmp, &
+  use ol_loop_handling_/**/REALKIND, only: upgrade_qp,req_qp_cmp,   &
                                            hp_switch,hp_alloc_mode, &
                                            hcl_alloc_hybrid, &
                                            hybrid_zero_mode

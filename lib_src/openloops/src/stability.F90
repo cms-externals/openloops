@@ -23,6 +23,7 @@ module ol_stability
   use ol_debug, only: ol_error, ol_msg, ol_fatal, verbose
   implicit none
   real(DREALKIND), save :: last_relative_deviation = -1, last_vme2 = -1, last_vme2_scaled = -1
+  logical, save :: last_from_cache = .false.
   contains
 
 
@@ -696,6 +697,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
 
   current_processname = processname
   last_relative_deviation = -1
+  last_from_cache = .false.
   last_vme2 = -1
   last_vme2_scaled = -1
 
@@ -717,6 +719,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
       M2L2 = cache%me(8:12)
       IRL2 = cache%me(13:17)
       last_relative_deviation = cache%me(18)
+      last_from_cache = .true.
       if (write_psp >= 2) then
         call write_point(processname // "_cached", psp=P_scatt, mu=mureg_unscaled, alphas=alpha_qcd, &
                        & perm=extperm, me=[M2L0, M2L1(0), M2L1(1), M2L1(2), M2L2(0)])
@@ -733,6 +736,7 @@ subroutine vamp2generic(vamp2dp, vamp2qp, processname, P_scatt, M2L0, M2L1, IRL1
 
   if (stability_mode == 11) then
     ! double precision with a single library
+    call ol_msg(3,"stability system (mode 11): evaluate dp.")
     call vamp2_dp(vamp2dp, P_scatt, M2L0, M2L1, IRL1, M2L2, IRL2)
 
 

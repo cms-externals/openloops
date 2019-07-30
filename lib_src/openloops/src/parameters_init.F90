@@ -77,24 +77,31 @@ subroutine parameters_init()
   rME = scalefactor * rME_unscaled
   wME = scalefactor * wME_unscaled
   rYE = scalefactor * rYE_unscaled
+  wYE = scalefactor * wYE_unscaled
   rMM = scalefactor * rMM_unscaled
   wMM = scalefactor * wMM_unscaled
   rYM = scalefactor * rYM_unscaled
+  wYM = scalefactor * wYM_unscaled
   rML = scalefactor * rML_unscaled
   wML = scalefactor * wML_unscaled
   rYL = scalefactor * rYL_unscaled
+  wYL = scalefactor * wYL_unscaled
   rMU = scalefactor * rMU_unscaled
   wMU = scalefactor * wMU_unscaled
   rYU = scalefactor * rYU_unscaled
+  wYU = scalefactor * wYU_unscaled
   rMD = scalefactor * rMD_unscaled
   wMD = scalefactor * wMD_unscaled
   rYD = scalefactor * rYD_unscaled
+  wYD = scalefactor * wYD_unscaled
   rMS = scalefactor * rMS_unscaled
   wMS = scalefactor * wMS_unscaled
   rYS = scalefactor * rYS_unscaled
+  wYS = scalefactor * wYS_unscaled
   rMC = scalefactor * rMC_unscaled
   wMC = scalefactor * wMC_unscaled
   rYC = scalefactor * rYC_unscaled
+  wYC = scalefactor * wYC_unscaled
   rMB = scalefactor * rMB_unscaled
   wMB = scalefactor * wMB_unscaled
   rYB = scalefactor * rYB_unscaled
@@ -142,24 +149,31 @@ subroutine parameters_init()
     rME_unscaled_dp => rME_unscaled, &
     wME_unscaled_dp => wME_unscaled, &
     rYE_unscaled_dp => rYE_unscaled, &
+    wYE_unscaled_dp => wYE_unscaled, &
     rMM_unscaled_dp => rMM_unscaled, &
     wMM_unscaled_dp => wMM_unscaled, &
     rYM_unscaled_dp => rYM_unscaled, &
+    wYM_unscaled_dp => wYM_unscaled, &
     rML_unscaled_dp => rML_unscaled, &
     wML_unscaled_dp => wML_unscaled, &
     rYL_unscaled_dp => rYL_unscaled, &
+    wYL_unscaled_dp => wYL_unscaled, &
     rMU_unscaled_dp => rMU_unscaled, &
     wMU_unscaled_dp => wMU_unscaled, &
     rYU_unscaled_dp => rYU_unscaled, &
+    wYU_unscaled_dp => wYU_unscaled, &
     rMD_unscaled_dp => rMD_unscaled, &
     wMD_unscaled_dp => wMD_unscaled, &
     rYD_unscaled_dp => rYD_unscaled, &
+    wYD_unscaled_dp => wYD_unscaled, &
     rMS_unscaled_dp => rMS_unscaled, &
     wMS_unscaled_dp => wMS_unscaled, &
     rYS_unscaled_dp => rYS_unscaled, &
+    wYS_unscaled_dp => wYS_unscaled, &
     rMC_unscaled_dp => rMC_unscaled, &
     wMC_unscaled_dp => wMC_unscaled, &
     rYC_unscaled_dp => rYC_unscaled, &
+    wYC_unscaled_dp => wYC_unscaled, &
     rMB_unscaled_dp => rMB_unscaled, &
     wMB_unscaled_dp => wMB_unscaled, &
     rYB_unscaled_dp => rYB_unscaled, &
@@ -203,24 +217,31 @@ subroutine parameters_init()
   rME = scalefactor * rME_unscaled_dp
   wME = scalefactor * wME_unscaled_dp
   rYE = scalefactor * rYE_unscaled_dp
+  wYE = scalefactor * wYE_unscaled_dp
   rMM = scalefactor * rMM_unscaled_dp
   wMM = scalefactor * wMM_unscaled_dp
   rYM = scalefactor * rYM_unscaled_dp
+  wYM = scalefactor * wYM_unscaled_dp
   rML = scalefactor * rML_unscaled_dp
   wML = scalefactor * wML_unscaled_dp
   rYL = scalefactor * rYL_unscaled_dp
+  wYL = scalefactor * wYL_unscaled_dp
   rMU = scalefactor * rMU_unscaled_dp
   wMU = scalefactor * wMU_unscaled_dp
   rYU = scalefactor * rYU_unscaled_dp
+  wYU = scalefactor * wYU_unscaled_dp
   rMD = scalefactor * rMD_unscaled_dp
   wMD = scalefactor * wMD_unscaled_dp
   rYD = scalefactor * rYD_unscaled_dp
+  wYD = scalefactor * wYD_unscaled_dp
   rMS = scalefactor * rMS_unscaled_dp
   wMS = scalefactor * wMS_unscaled_dp
   rYS = scalefactor * rYS_unscaled_dp
+  wYS = scalefactor * wYS_unscaled_dp
   rMC = scalefactor * rMC_unscaled_dp
   wMC = scalefactor * wMC_unscaled_dp
   rYC = scalefactor * rYC_unscaled_dp
+  wYC = scalefactor * wYC_unscaled_dp
   rMB = scalefactor * rMB_unscaled_dp
   wMB = scalefactor * wMB_unscaled_dp
   rYB = scalefactor * rYB_unscaled_dp
@@ -297,10 +318,6 @@ subroutine parameters_init()
 
   ! Dependent couplings
 
-  !QCD
-  G2_QCD = 4*pi*alpha_QCD
-  gQCD   = sqrt(G2_QCD)
-
   !EW
   if ( cms_on == 0 ) then
     cw   = rMW/rMZ
@@ -325,13 +342,31 @@ subroutine parameters_init()
   end if
 
   if (ew_scheme == 0) then ! alpha(0) OS scheme
-    alpha_QED = alpha_QED_0
+    if (alpha_QED_input /= 0) then
+      alpha_QED = alpha_QED_input
+      alpha_QED_0 = alpha_QED_input
+    else
+     alpha_QED = alpha_QED_0
+    end if
   else if (ew_scheme == 1) then ! Gmu scheme
-    alpha_QED = alpha_QED_Gmu
+    alpha_qed = alpha_qed_gmu
   else if (ew_scheme == 2) then ! alpha(MZ) scheme
-    alpha_QED = alpha_QED_MZ
+    if (alpha_QED_input /= 0) then
+      alpha_QED = alpha_QED_input
+      alpha_QED_MZ = alpha_QED_input
+    else
+     alpha_QED = alpha_QED_MZ
+    end if
+  else if (ew_scheme == -1) then ! Gmu scheme with alpha(Gmu) as input
+    if (alpha_QED_input /= 0) then
+      alpha_QED = alpha_QED_input
+      alpha_QED_Gmu = alpha_QED_input
+    else
+     alpha_QED = alpha_QED_Gmu
+    end if
   end if
 
+  !EW
   E2_QED = 4*pi*alpha_QED
   eQED   = sqrt(E2_QED)
 
@@ -381,7 +416,7 @@ subroutine parameters_init()
     call parameters_write()
   end if
 
-   call ol_msg(4, "Parameters initialized")
+   call ol_msg(4, "Tree parameters initialized")
 end subroutine parameters_init
 
 
@@ -525,6 +560,7 @@ subroutine ensure_mp_init()
     & parameters_status_dp => parameters_status
   implicit none
   if (parameters_status_dp /= parameters_status) call parameters_init()
+  call qcd_parameters_init(.false.)
 #endif
 end subroutine ensure_mp_init
 
@@ -577,7 +613,7 @@ end subroutine channel_off
 
 subroutine init_kin_arrays(Npart)
   use ol_momenta_decl_/**/REALKIND, only: Q, L, QInvariantsMatrix
-  use ol_external_decl_/**/REALKIND, only: P_ex, binom2, crossing, inverse_crossing, gf_array, Ward_array
+  use ol_external_decl_/**/REALKIND, only: P_ex, M_ex, binom2, crossing, inverse_crossing, gf_array, Ward_array
   use ol_external_decl_/**/REALKIND, only: allocatedNpart
   implicit none
   integer, intent(in) :: Npart
@@ -597,6 +633,7 @@ subroutine init_kin_arrays(Npart)
     binom2 = [((n_*(n_-1))/2, n_=1, size(binom2))]
 
     allocate(P_ex(0:3,Npart))  ! uncleaned external 2->n-2 momenta, set by conv_mom_scatt2in
+    allocate(M_ex(Npart))  ! external 2->n-2 mass ids, set by conv_mom_scatt2in
     allocate(crossing(Npart))
     crossing = 0        ! only used if a reduction error occurs
     allocate(inverse_crossing(Npart))
@@ -653,7 +690,7 @@ end subroutine init_kin_arrays_quad
 subroutine clean_kin_arrays
   use ol_external_decl_/**/REALKIND, only: allocatedNpart
   use ol_momenta_decl_/**/REALKIND, only: Q, L, QInvariantsMatrix, Q_qp, QInvariantsMatrix_qp, L_qp
-  use ol_external_decl_/**/REALKIND, only: P_ex, binom2, crossing, inverse_crossing, gf_array, Ward_array
+  use ol_external_decl_/**/REALKIND, only: P_ex, M_ex, binom2, crossing, inverse_crossing, gf_array, Ward_array
   implicit none
   if (allocated(Q)) deallocate(Q)
   if (allocated(L)) deallocate(L)
@@ -663,6 +700,7 @@ subroutine clean_kin_arrays
   if (allocated(QInvariantsMatrix_qp)) deallocate(QInvariantsMatrix_qp)
   if (allocated(binom2)) deallocate(binom2)
   if (allocated(P_ex)) deallocate(P_ex)
+  if (allocated(M_ex)) deallocate(M_ex)
   if (allocated(crossing)) deallocate(crossing)
   if (allocated(inverse_crossing)) deallocate(inverse_crossing)
   if (allocated(gf_array)) deallocate(gf_array)
@@ -775,10 +813,12 @@ subroutine loop_parameters_init(pole1_UV, pole1_IR, pole2_IR, CT_on, IR_on)
 
   opprootsvalue = scalefactor * opprootsvalue_unscaled
   mureg = scalefactor * mureg_unscaled
-  muren = scalefactor * muren_unscaled
-  muyc = scalefactor * muyc_unscaled
-  muyb = scalefactor * muyb_unscaled
-  muyt = scalefactor * muyt_unscaled
+  LambdaMC2 = scalefactor**2 * LambdaMC2_unscaled
+  LambdaMB2 = scalefactor**2 * LambdaMB2_unscaled
+  LambdaMT2 = scalefactor**2 * LambdaMT2_unscaled
+  LambdaYC2 = scalefactor**2 * LambdaYC2_unscaled
+  LambdaYB2 = scalefactor**2 * LambdaYB2_unscaled
+  LambdaYT2 = scalefactor**2 * LambdaYT2_unscaled
 
   ! convention for dim-reg Poles K_i(eps)/eps^N
   if (norm_swi == 0) then ! Les-Houches Accord normalisation (default)
@@ -808,9 +848,10 @@ subroutine loop_parameters_init
   use ol_loop_parameters_decl_/**/DREALKIND, only: reset_mureg, reset_olo
   use ol_loop_parameters_decl_/**/DREALKIND, only: &
     & loop_parameters_status_dp => loop_parameters_status, norm_swi, a_switch, a_switch_rescue, redlib_qp, &
-    & dd_qp_not_init, tensorlib_qp_not_init, mureg_dp => mureg, muren_dp => muren, fact_UV_dp => x_UV, fact_IR_dp => x_IR, &
+    & dd_qp_not_init, tensorlib_qp_not_init, mureg_dp => mureg, fact_UV_dp => x_UV, fact_IR_dp => x_IR, &
     & pole1_UV_dp => de1_UV, pole1_IR_dp => de1_IR, pole2_IR_dp => de2_i_IR, do_ew_renorm, do_qcd_renorm, maxrank, &
-    & mureg_unscaled, muren_unscaled, muyc_unscaled, muyb_unscaled, muyt_unscaled
+    & mureg_unscaled, LambdaMC2_unscaled, LambdaMB2_unscaled, LambdaMT2_unscaled, &
+    & LambdaYC2_unscaled, LambdaYB2_unscaled, LambdaYT2_unscaled
   use ol_qcd_renormalisation_/**/REALKIND, only: qcd_renormalisation
   use ol_ew_renormalisation_/**/REALKIND, only: ew_renormalisation
   use ol_loop_parameters_decl_/**/DREALKIND, only: opprootsvalue, opprootsvalue_unscaled
@@ -833,10 +874,12 @@ subroutine loop_parameters_init
 
   opprootsvalue = scalefactor * opprootsvalue_unscaled
   mureg = scalefactor * mureg_unscaled
-  muren = scalefactor * muren_unscaled
-  muyc = scalefactor * muyc_unscaled
-  muyb = scalefactor * muyb_unscaled
-  muyt = scalefactor * muyt_unscaled
+  LambdaMC2 = scalefactor**2 * LambdaMC2_unscaled
+  LambdaMB2 = scalefactor**2 * LambdaMB2_unscaled
+  LambdaMT2 = scalefactor**2 * LambdaMT2_unscaled
+  LambdaYC2 = scalefactor**2 * LambdaYC2_unscaled
+  LambdaYB2 = scalefactor**2 * LambdaYB2_unscaled
+  LambdaYT2 = scalefactor**2 * LambdaYT2_unscaled
 
   x_UV     = fact_UV_dp
   x_IR     = fact_IR_dp
@@ -853,23 +896,6 @@ subroutine loop_parameters_init
   de2_1_IR = de2_i_IR - de2_i_shift + pi2_6 ! COLI-norm double pole
   ! renormalisation & regularization scale
   mureg2 = mureg**2
-  muren2 = muren**2
-
-  if (muyc /= 0) then
-    muyc2 = muyc**2
-  else
-    muyc2 = YC2
-  end if
-  if (muyb /= 0) then
-    muyb2 = muyb**2
-  else
-    muyb2 = YB2
-  end if
-  if (muyt /= 0) then
-    muyt2 = muyt**2
-  else
-    muyt2 = YT2
-  end if
 
   ! dim reg scale in UV-div loops
   mu2_UV = (x_UV**2)*mureg2
@@ -971,9 +997,7 @@ subroutine loop_parameters_init
 ! ifdef PRECISION_dp
 #endif
 
-  if (do_qcd_renorm /= 0) then
-    call qcd_renormalisation
-  end if
+  call qcd_parameters_init(.true.)
   if (do_ew_renorm /= 0) then
     call ew_renormalisation
   end if
@@ -987,9 +1011,42 @@ subroutine loop_parameters_init
 
   call ol_msg(4, "Loop parameters initialized")
 
-
 end subroutine loop_parameters_init
 
+
+subroutine qcd_parameters_init(is_loop_in)
+  use ol_parameters_decl_/**/REALKIND, only: alpha_QCD, G2_QCD, gQCD, pi
+#ifndef PRECISION_dp
+  use ol_parameters_decl_/**/DREALKIND, only: alpha_QCD_dp => alpha_QCD
+#endif
+  use ol_loop_parameters_decl_/**/DREALKIND, only: muren_unscaled, do_qcd_renorm
+  use ol_loop_parameters_decl_/**/REALKIND, only: muren, muren2, scalefactor
+  use ol_qcd_renormalisation_/**/REALKIND, only: qcd_renormalisation
+  implicit none
+  logical, optional :: is_loop_in
+  logical :: is_loop
+
+  is_loop =.false.
+  if (present(is_loop_in)) is_loop = is_loop_in
+
+  if (is_loop) then
+    muren = scalefactor * muren_unscaled
+    muren2 = muren**2
+
+    if (do_qcd_renorm /= 0) then
+      call qcd_renormalisation
+    end if
+    call ol_msg(4, "QCD loop parameters initialized")
+  else
+#ifndef PRECISION_dp
+    alpha_QCD     = alpha_QCD_dp
+#endif
+    !QCD
+    G2_QCD = 4*pi*alpha_QCD
+    gQCD   = sqrt(G2_QCD)
+    call ol_msg(4, "QCD parameters initialized")
+  end if
+end subroutine qcd_parameters_init
 
 
 subroutine ensure_mp_loop_init()
@@ -1008,12 +1065,14 @@ subroutine ensure_mp_loop_init()
     & call parameters_init()
   if (loop_parameters_status_dp /= loop_parameters_status) &
     & call loop_parameters_init()
+  call qcd_parameters_init(.true.)
 #else
   use ol_parameters_decl_/**/DREALKIND, only: hp_switch
   use ol_parameters_decl_/**/QREALKIND, only: parameters_status
   use ol_parameters_init_/**/QREALKIND, only: &
     parameters_init_qp=>parameters_init, &
-    loop_parameters_init_qp=>loop_parameters_init
+    & loop_parameters_init_qp=>loop_parameters_init, &
+    & qcd_parameters_init_qp=>qcd_parameters_init
   use ol_loop_parameters_decl_/**/QREALKIND, only: loop_parameters_status
   use ol_parameters_decl_/**/DREALKIND, only: &
     & parameters_status_dp => parameters_status
@@ -1028,6 +1087,7 @@ subroutine ensure_mp_loop_init()
       & call parameters_init_qp()
     if (loop_parameters_status_dp /= loop_parameters_status) &
       & call loop_parameters_init_qp()
+    call qcd_parameters_init_qp(.true.)
   end if
 
 #endif
@@ -1166,12 +1226,13 @@ subroutine parameters_write(filename)
   write(outid,*) 'check_Ward_tree    =', Ward_tree
   write(outid,*) 'check_Ward_loop    =', Ward_loop
   write(outid,*) 'out_symmetry       =', out_symmetry_on
+  write(outid,*) 'psp_tolerance      =', psp_tolerance
   write(outid,*) 'hp_mode            =', hp_mode
   if (hp_switch .eq. 1) then
   write(outid,*) 'hp_loopacc         =', hp_loopacc
   write(outid,*) 'hp_step_thres      =', hp_step_thres
   write(outid,*) 'hp_alloc_mode      =', hp_alloc_mode
-  write(outid,*) 'use_qp_invariants  =', use_qp_invariants
+  write(outid,*) 'sync_qp_kinematics =', sync_qp_kinematics
   end if
   write(outid,*) 'stability_mode         =', stability_mode
   write(outid,*) 'deviation_mode         =', deviation_mode

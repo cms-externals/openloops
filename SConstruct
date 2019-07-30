@@ -1,4 +1,6 @@
 
+from __future__ import print_function
+
 help_message = """
 OpenLoops build system
 
@@ -102,7 +104,11 @@ if '--help' in sys.argv or '-h' in sys.argv:
     print(help_message)
     Exit(0)
 
-scons_cmd = sys.argv[0]
+scons_cmd = [sys.argv[0]]
+olpython = os.environ.get('OLPYTHON', None)
+if olpython:
+    scons_cmd = [olpython] + scons_cmd
+
 
 process_arguments = list(filter(lambda el: el[0] in
                                 OLBaseConfig.loops_specifications, ARGLIST))
@@ -110,6 +116,9 @@ commandline_options = list(filter(lambda el: el[0] not in
                                   OLBaseConfig.loops_specifications, ARGLIST))
 
 config = OLBaseConfig.get_config(commandline_options)
+
+if config['print_python_version']:
+    print('SConstruct uses Python', sys.version)
 
 SetOption('num_jobs', config['num_jobs'])
 
@@ -123,7 +132,7 @@ else:
     force_download_flag = []
 
 if config['release']:
-    release_version = 'version ' +config['release']
+    release_version = config['release']
 else:
     release_version = ''
 
@@ -500,6 +509,21 @@ def split_processlist(loops, procs):
                 coll_repo = repo
                 break
         process_coll = []
+        if coll == 'all.coll' or coll == 'public.coll':
+            print('WARNING: you are about to download the entire process ',
+                  'collection ', coll, '.', sep='')
+            print('This is strongly discouraged.',
+                  '>~15 GB disk space will be used.')
+            print('Please consider installing a more specific collection or define your own')
+            print('(list one processes per line in a .coll file).')
+            if sys.stdout.isatty():
+                if sys.version_info[0] == 2:
+                    proceed = raw_input('Do you really want to proceed? (y/N) ')
+                else:
+                    proceed = input('Do you really want to proceed? (y/N) ')
+                if proceed.lower().strip() != 'y':
+                    print('Aborted.')
+                    sys.exit(0)
         if coll == 'all.coll':
             for repo in config['process_repositories']:
                 process_db = OLToolbox.ProcessDB(db=(version_db_url % repo))
@@ -568,7 +592,6 @@ def find_process_src(generate = True):
         process_directories = os.listdir(config['process_src_dir'])
     else:
         return process_list
-    print("huhu!")
 
     for procdir in process_directories:
         version_info = OLToolbox.import_dictionary(
@@ -612,17 +635,10 @@ def revoke_processes():
 
 def download_processes(processes):
     """Download processes"""
-    try:
-        err = subprocess.call(
-            ['python2', config['process_download_script']] +
-            force_download_flag + processes +
-            ['='.join(arg) for arg in commandline_options])
-    except OSError:
-        # try again with 'python' instead of 'python2'
-        err = subprocess.call(
-            ['python', config['process_download_script']] +
-            force_download_flag + processes +
-            ['='.join(arg) for arg in commandline_options])
+    err = subprocess.call(
+        [sys.executable, config['process_download_script']] +
+        force_download_flag + processes +
+        ['='.join(arg) for arg in commandline_options])
     if err:
         print('ERROR: process downloader failed.')
         Exit(1)
@@ -631,7 +647,7 @@ def download_processes(processes):
 def generate_process(loops, processlib):
     """Generate a process library"""
     if subprocess.call(
-          [scons_cmd, '-Q'] + generator_options +
+          scons_cmd + ['-Q'] + generator_options +
           ['-f', config['code_generator_script'],
            'PROC=' + processlib, 'LOOPS=' + loops] +
           ['='.join(arg) for arg in commandline_options]) != 0:

@@ -23,6 +23,11 @@ import subprocess
 import OLBaseConfig
 import re
 
+try:
+    strtype = basestring
+except NameError:
+    strtype = str
+
 config = OLBaseConfig.get_config()
 
 class CPPContainer:
@@ -32,7 +37,7 @@ class CPPContainer:
 
     def __init__(self, mp_src = [], dp_src = [], version_src = [], mp = ['dp'],
                  version = 'none', process_api = -1, revision = 'none',
-                 cpp_defs = [], scons_cmd = 'scons', version_macro = 'VERSION',
+                 cpp_defs = [], scons_cmd = ['scons'], version_macro = 'VERSION',
                  process_api_macro = 'PROCESSAPI', revision_macro = 'REVISION',
                  kind_parameter = 'REALKIND', target = 'cpp',
                  target_prefix = ''):
@@ -43,7 +48,8 @@ class CPPContainer:
         self.version = version
         self.process_api = process_api
         self.revision = revision
-        self.cpp_defs = [(cppdef,) if isinstance(cppdef, str) else cppdef for cppdef in cpp_defs]
+        self.cpp_defs = [(cppdef,) if isinstance(cppdef, strtype) else cppdef
+                         for cppdef in cpp_defs]
         self.scons_cmd = scons_cmd
         self.version_macro = version_macro
         self.process_api_macro = process_api_macro
@@ -92,7 +98,7 @@ class CPPContainer:
         if clean:
             scons_flags.append('-c')
 
-        success = subprocess.call([self.scons_cmd] + scons_flags + ['-f', self.cpp_script,
+        success = subprocess.call(self.scons_cmd + scons_flags + ['-f', self.cpp_script,
             'version=' + self.version,
             'process_api=' + str(self.process_api),
             'revision=' + self.revision,
@@ -154,9 +160,9 @@ class OLLibrary:
         """
         f_path = env.get('FORTRANPATH', [])
         f90_path = env.get('F90PATH', [])
-        if isinstance(f_path, str):
+        if isinstance(f_path, strtype):
             f_path = [f_path]
-        if isinstance(f90_path, str):
+        if isinstance(f90_path, strtype):
             f90_path = [f90_path]
         f_path = f_path + [os.path.join(config['lib_src_dir'], dep, 'mod')
                            for dep in self.mod_dependencies] + [self.mod_dir]

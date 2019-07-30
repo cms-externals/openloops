@@ -24,7 +24,8 @@ module ol_i_operator_/**/REALKIND
   contains
 
 ! **********************************************************************
-subroutine intdip(mode, M2LO, M2CC, M2CC_EW, extflav, extcharges, Npart, extmass2, sarr, vdip, c_dip, olm_in, photonid_in)
+subroutine intdip(mode, M2LO, M2CC, M2CC_EW, extflav, extcharges, Npart, &
+                  extmass2, sarr, vdip, c_dip, olm_in, photonid_in)
 ! **********************************************************************
 ! I-Operator contribution to integrated Dipoles <=> Eqs. (6.66), (6.52), (6.16)
 ! in hep-ph/0201036 (Catani, Dittmaier, Seymour, Trocsanyi)
@@ -81,7 +82,7 @@ subroutine intdip(mode, M2LO, M2CC, M2CC_EW, extflav, extcharges, Npart, extmass
   integer, optional, intent(in)  :: olm_in, photonid_in(:)
   real(REALKIND),    intent(out) :: vdip, c_dip(0:2)
   real(REALKIND) :: Q2_aux, Fjk(0:2), Gj(0:2), norm_qcd, norm_qed, QQ
-  integer        :: olm, photonid(Npart), i, j, k
+  integer        :: olm, photonid(Npart), i, j, k, mid
 
   Q2_aux = mureg2  ! arbitrary auxiliary scale
   c_dip = 0
@@ -98,10 +99,8 @@ subroutine intdip(mode, M2LO, M2CC, M2CC_EW, extflav, extcharges, Npart, extmass
     photonid = 0
   end if
 
-
-
   !NLO QCD contribution
-  if (mode == 1 .or. mode == 3) then
+  if (mode == 1 .or. mode == 0) then
     norm_qcd = alpha_QCD/(4*pi) ! normalization in intermediate formulae
 
     do j = 1, Npart
@@ -109,7 +108,12 @@ subroutine intdip(mode, M2LO, M2CC, M2CC_EW, extflav, extcharges, Npart, extmass
       call intdip_Gj(j,extflav(j),extmass2(j),Q2_aux,Gj)
       do k = 1, Npart
         if (extflav(k) >= 3 .or. extflav(k) < 1 .or. k == j) cycle ! spectator k = QCD singlet
-        call intdip_Fjk(j,k,real(sarr(j,k)),extflav(j),extmass2(j),extmass2(k),Q2_aux,Fjk)
+        if (olm > 0) then
+          mid = 2**(j-1)+2**(k-1)
+          call intdip_Fjk(j,k,real(L(5,mid)+L(6,mid)),extflav(j),extmass2(j),extmass2(k),Q2_aux,Fjk)
+        else
+          call intdip_Fjk(j,k,real(sarr(j,k)),extflav(j),extmass2(j),extmass2(k),Q2_aux,Fjk)
+        end if
         c_dip = c_dip - 2*norm_qcd*M2CC(j,k) * (Fjk + Gj)
       end do
     end do
@@ -118,7 +122,7 @@ subroutine intdip(mode, M2LO, M2CC, M2CC_EW, extflav, extcharges, Npart, extmass
 
 
   !NLO QED contribution
-  if (mode == 2 .or. mode == 3) then
+  if (mode == 2 .or. mode == 0) then
     norm_qed = alpha_QED/(4*pi) ! normalization in intermediate formulae
 
     do j = 1, Npart
@@ -126,7 +130,12 @@ subroutine intdip(mode, M2LO, M2CC, M2CC_EW, extflav, extcharges, Npart, extmass
       call intdip_Gj(j,extflav(j),extmass2(j),Q2_aux,Gj)
       do k = 1, Npart
         if (extflav(k) == 1 .or. extcharges(k) == 0. .or. k == j) cycle ! spectator k = EW singlet
-        call intdip_Fjk(j,k,real(sarr(j,k)),extflav(j),extmass2(j),extmass2(k),Q2_aux,Fjk)
+        if (olm > 0) then
+          mid = 2**(j-1)+2**(k-1)
+          call intdip_Fjk(j,k,real(L(5,mid)+L(6,mid)),extflav(j),extmass2(j),extmass2(k),Q2_aux,Fjk)
+        else
+          call intdip_Fjk(j,k,real(sarr(j,k)),extflav(j),extmass2(j),extmass2(k),Q2_aux,Fjk)
+        end if
         c_dip = c_dip - 2*norm_qed*M2CC_EW*extcharges(j)*extcharges(k)*(Fjk + Gj)
       end do
     end do
@@ -160,7 +169,12 @@ subroutine intdip(mode, M2LO, M2CC, M2CC_EW, extflav, extcharges, Npart, extmass
               cycle
             end if
           end if
-          call intdip_Fjk(j,k,real(sarr(j,k)),extflav(j),extmass2(j),extmass2(k),Q2_aux,Fjk)
+          if (olm > 0) then
+            mid = 2**(j-1)+2**(k-1)
+            call intdip_Fjk(j,k,real(L(5,mid)+L(6,mid)),extflav(j),extmass2(j),extmass2(k),Q2_aux,Fjk)
+          else
+            call intdip_Fjk(j,k,real(sarr(j,k)),extflav(j),extmass2(j),extmass2(k),Q2_aux,Fjk)
+          end if
           c_dip = c_dip - 2*norm_qed*M2CC_EW*QQ*(Fjk + Gj)
         end do
       end do

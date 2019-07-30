@@ -112,6 +112,27 @@ function get_LC_5(mom) result(P)
 
 end function get_LC_5
 
+#ifdef PRECISION_dp
+function get_LC_5_qp(mom) result(P)
+  use KIND_TYPES, only: QREALKIND
+  use ol_momenta_decl_/**/QREALKIND, only: L_qp=>L
+  use ol_external_decl_/**/REALKIND, only: init_qp
+  implicit none
+  integer, intent(in) :: mom
+  complex(QREALKIND) :: P(1:5)
+  if (.not. init_qp) call init_qp_kinematics
+  if (mom .gt. 0) then
+    P(1:4) = L_qp(1:4,mom)
+    P(5) = L_qp(5,mom) + L_qp(6,mom)
+  else
+    P(1:4) = -L_qp(1:4,-mom)
+    P(5) = L_qp(5,-mom) + L_qp(6,-mom)
+  end if
+
+end function get_LC_5_qp
+#endif
+
+
 
 ! **********************************************************************
 function get_LC_4(mom) result(P)
@@ -130,6 +151,24 @@ function get_LC_4(mom) result(P)
   end if
 
 end function get_LC_4
+
+#ifdef PRECISION_dp
+function get_LC_4_qp(mom) result(P)
+  use KIND_TYPES, only: QREALKIND
+  use ol_momenta_decl_/**/QREALKIND, only: L_qp=>L
+  use ol_external_decl_/**/REALKIND, only: init_qp
+  implicit none
+  integer, intent(in) :: mom
+  complex(QREALKIND) :: P(1:4)
+  if (.not. init_qp) call init_qp_kinematics
+  if (mom .gt. 0) then
+    P(1:4) = L_qp(1:4,mom)
+  else
+    P(1:4) = -L_qp(1:4,-mom)
+  end if
+
+end function get_LC_4_qp
+#endif
 
 
 ! **********************************************************************
@@ -910,12 +949,19 @@ end subroutine dirty_mom
 #endif
 
 subroutine init_kinematics_mexpl(P_scatt, m_ext2, P_in_clean, perm_inv, n)
+  use ol_external_decl_/**/DREALKIND, only: init_qp
   integer,           intent(in)  :: n
   real(DREALKIND),   intent(in)  :: P_scatt(0:3,n)
   real(REALKIND),    intent(in)  :: m_ext2(n)
   real(REALKIND),    intent(out) :: P_in_clean(0:3,n)
   integer,           intent(in)  :: perm_inv(n)
   real(REALKIND) :: P(0:3,n)
+
+#ifdef PRECISION_dp
+  init_qp = .false.
+#else
+  init_qp = .true.
+#endif
 
   call conv_mom_scatt2in(P_scatt, m_ext2, P, perm_inv, n)
   call internal_momenta(P, n)
@@ -924,10 +970,12 @@ end subroutine init_kinematics_mexpl
 
 subroutine init_kinematics_mids(P_scatt, m_ext2, P_in_clean, perm_inv, n, qp_kinematics)
 #ifdef PRECISION_dp
-  use ol_parameters_decl_/**/REALKIND, only: hp_switch, hp_nsi, hp_nsi_qp, hp_ndrs, hp_ndrs_qp, &
-    & hp_nred, hp_nred_qp, hp_max_err
+  use ol_parameters_decl_/**/REALKIND, only: hp_switch,hp_qp_kinematics_init_mode,&
+                                             hp_nsi,hp_nsi_qp,hp_ndrs,hp_ndrs_qp, &
+                                             hp_nred,hp_nred_qp,hp_max_err
   use ol_kinematics_/**/QREALKIND, only: init_kinematics_mids_qp=>init_kinematics_mids
 #endif
+  use ol_external_decl_/**/DREALKIND, only: init_qp
   integer,         intent(in)  :: n
   real(DREALKIND), intent(in)  :: P_scatt(0:3,n)
   integer,         intent(in)  :: m_ext2(n)
@@ -937,12 +985,15 @@ subroutine init_kinematics_mids(P_scatt, m_ext2, P_in_clean, perm_inv, n, qp_kin
 #ifdef PRECISION_dp
   real(QREALKIND) :: P_qp(0:3,n)
   integer :: i1
+
+  init_qp = .false.
+#else
+  init_qp = .true.
 #endif
 
   call conv_mom_scatt2in_mids(P_scatt, m_ext2, P_in_clean, perm_inv, n)
 #ifdef PRECISION_dp
-  ! initialize qp kinematics for hybrid mode
-  if (qp_kinematics .and. (hp_switch .eq. 1)) then
+  if (hp_switch .eq. 1) then
     hp_nsi = 0
     hp_nsi_qp = 0
     hp_ndrs = 0
@@ -950,12 +1001,35 @@ subroutine init_kinematics_mids(P_scatt, m_ext2, P_in_clean, perm_inv, n, qp_kin
     hp_nred = 0
     hp_nred_qp = 0
     hp_max_err = 0._/**/REALKIND
-    call init_kinematics_mids_qp(P_scatt, m_ext2, P_qp, perm_inv, n, qp_kinematics)
   end if
+  ! initialize qp kinematics for hybrid mode
+  if ((hp_qp_kinematics_init_mode .eq. 0 .and. qp_kinematics) .and. &
+      (hp_switch .eq. 1)) then
+    call init_kinematics_mids_qp(P_scatt, m_ext2, P_qp, perm_inv, n, &
+      (hp_qp_kinematics_init_mode .eq. 0 .and. qp_kinematics))
+  end if
+  call internal_momenta_six(P_in_clean, n, m_ext2, &
+       (hp_qp_kinematics_init_mode .eq. 0 .and. qp_kinematics))
+#else
+  call internal_momenta_six(P_in_clean, n, m_ext2, .false.)
 #endif
-  call internal_momenta_six(P_in_clean, n, m_ext2, qp_kinematics)
 
 end subroutine init_kinematics_mids
+
+#ifdef PRECISION_dp
+subroutine init_qp_kinematics()
+  use ol_external_decl_/**/REALKIND, only: nParticles,M_ex,init_qp
+  use KIND_TYPES, only: QREALKIND
+  use ol_kinematics_/**/QREALKIND, only: conv_mom_scatt2in_cache, &
+    internal_momenta_six_qp=>internal_momenta_six
+  real(QREALKIND) :: P_in_clean_qp(0:3,nParticles)
+  real(QREALKIND) :: P_qp(0:3,nParticles)
+  call conv_mom_scatt2in_cache(P_in_clean_qp, nParticles)
+  call internal_momenta_six_qp(P_in_clean_qp, nParticles, M_ex, .false.)
+  init_qp = .true.
+  call internal_momenta_six(real(P_in_clean_qp,kind=REALKIND), nParticles, M_ex, .true.)
+end subroutine init_qp_kinematics
+#endif
 
 ! **********************************************************************
 subroutine conv_mom_scatt2in_mexpl(P_scatt, m_ext2, P_in_clean, perm_inv, n)
@@ -1002,9 +1076,9 @@ subroutine conv_mom_scatt2in_mexpl(P_scatt, m_ext2, P_in_clean, perm_inv, n)
   end do
 end subroutine conv_mom_scatt2in_mexpl
 
-subroutine conv_mom_scatt2in_mids(P_scatt, m_ext2, P_in_clean, perm_inv, n)
+subroutine conv_mom_scatt2in_mids(P_scatt, m_ext, P_in_clean, perm_inv, n)
   use KIND_TYPES, only: REALKIND, DREALKIND
-  use ol_external_decl_/**/REALKIND, only: nParticles, P_ex, inverse_crossing
+  use ol_external_decl_/**/REALKIND, only: M_ex
   use ol_external_decl_/**/DREALKIND, only: n_scatt
   use ol_parameters_decl_/**/REALKIND, only: scalefactor
   use ol_parameters_init_/**/REALKIND, only: init_kin_arrays
@@ -1014,13 +1088,51 @@ subroutine conv_mom_scatt2in_mids(P_scatt, m_ext2, P_in_clean, perm_inv, n)
   implicit none
   integer,           intent(in)  :: n
   real(DREALKIND),   intent(in)  :: P_scatt(0:3,n)
-  integer,           intent(in)  :: m_ext2(n)
+  integer,           intent(in)  :: m_ext(n)
   real(REALKIND),    intent(out) :: P_in_clean(0:3,n)
   integer,           intent(in)  :: perm_inv(n)
 
-  call conv_mom_scatt2in_mexpl(P_scatt,get_rmass2(m_ext2),P_in_clean,perm_inv,n)
+  call conv_mom_scatt2in_mexpl(P_scatt,get_rmass2(m_ext),P_in_clean,perm_inv,n)
+  M_ex(1:n) = m_ext
 end subroutine conv_mom_scatt2in_mids
 
+#ifndef PRECISION_dp
+! **********************************************************************
+subroutine conv_mom_scatt2in_cache(P_in_clean,n)
+! ToDo: Initializes the momenta in QP from the DP cache
+! **********************************************************************
+  use KIND_TYPES, only: REALKIND, DREALKIND
+  use ol_external_decl_/**/DREALKIND, only: nParticles, P_ex_dp=>P_ex, M_ex_dp=>M_ex, inverse_crossing_dp=>inverse_crossing
+  use ol_external_decl_/**/REALKIND, only: P_ex
+  use ol_external_decl_/**/DREALKIND, only: n_scatt
+  use ol_parameters_decl_/**/REALKIND, only: scalefactor
+  use ol_parameters_init_/**/REALKIND, only: init_kin_arrays
+  integer,           intent(in)  :: n
+  real(REALKIND),    intent(out) :: P_in_clean(0:3,n)
+  real(REALKIND) :: P_in(0:3,n)
+  real(REALKIND) :: P_clean(0:3,n), m_ext2_perm(n)
+  integer        :: k
+  call init_kin_arrays(n)
+  P_ex(:,1:n) = P_ex_dp(:,1:n)
+  do k = 1, n
+    m_ext2_perm(inverse_crossing_dp(k)) = get_rmass2(M_ex_dp(k))
+  end do
+  P_in(:,1:n_scatt) =   scalefactor * P_ex(:,1:n_scatt)
+  P_in(:,n_scatt+1:)  = - scalefactor * P_ex(:,n_scatt+1:)
+  if (n_scatt == 2 .and. n > 2) then
+    ! Clean momenta to get full numerical precision.
+    ! Do the cleaning in the original permutation where the first two momenta are incoming.
+    ! Otherwise the beam alignment (zero components) might be spoiled by the cleaning.
+    call clean_mom_in(P_in, m_ext2_perm, P_clean, n)
+  else
+    P_clean = P_in
+  end if
+  do k = 1, n
+    P_in_clean(:,k) = P_clean(:,inverse_crossing_dp(k))
+  end do
+end subroutine conv_mom_scatt2in_cache
+
+#endif
 
 ! **********************************************************************
 subroutine conv_mom_os(P_decay, P_in, n)
@@ -1160,7 +1272,7 @@ end subroutine internal_momenta_std
 
 
 ! **********************************************************************
-subroutine internal_momenta_six(P, Npart, ext_masses, init_qp_kinematics)
+subroutine internal_momenta_six(P, Npart, ext_masses, use_qp_kinematics)
 ! **********************************************************************
 ! P(0:3,Npart)       = external real-valued four-momenta
 !                      (standard-representation)
@@ -1177,10 +1289,9 @@ subroutine internal_momenta_six(P, Npart, ext_masses, init_qp_kinematics)
 !                      from the internal momenta are computed
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND, intkind1
-  use ol_momenta_decl_/**/REALKIND, only: Q, L, QInvariantsMatrix, &
-                                          collconf, softconf
+  use ol_momenta_decl_/**/REALKIND, only: L, collconf, softconf
 #ifdef PRECISION_dp
-  use ol_parameters_decl_/**/REALKIND, only: hp_switch, use_qp_invariants
+  use ol_parameters_decl_/**/REALKIND, only: hp_switch, hp_mode, sync_qp_kinematics
   use ol_momenta_decl_/**/QREALKIND, only: L_qp=>L
 #endif
   implicit none
@@ -1188,7 +1299,7 @@ subroutine internal_momenta_six(P, Npart, ext_masses, init_qp_kinematics)
   integer,        intent(in) :: Npart
   real(REALKIND), intent(in) :: P(0:3,Npart)
   integer,        intent(in) :: ext_masses(Npart)
-  logical,        intent(in) :: init_qp_kinematics
+  logical,        intent(in) :: use_qp_kinematics
   complex(REALKIND) :: zero = 0._/**/REALKIND
   real(REALKIND)    :: maxinv
   integer :: i, j
@@ -1207,7 +1318,7 @@ subroutine internal_momenta_six(P, Npart, ext_masses, init_qp_kinematics)
 
   if (Npart == 2) then
 #ifdef PRECISION_dp
-    if (init_qp_kinematics .and. hp_switch .eq. 1 .and. use_qp_invariants .eq. 1) then
+    if (use_qp_kinematics .and. hp_switch .eq. 1 .and. sync_qp_kinematics .eq. 1) then
       L(1:4,1) = L_qp(1:4,1)
     else
       call Std2LC_Rep(P(:,1),L(1:4,1))
@@ -1220,7 +1331,7 @@ subroutine internal_momenta_six(P, Npart, ext_masses, init_qp_kinematics)
     L(5:6,2) = L(5:6,1)
   else if (Npart == 3) then
 #ifdef PRECISION_dp
-    if (init_qp_kinematics .and. hp_switch .eq. 1 .and. use_qp_invariants .eq. 1) then
+    if (use_qp_kinematics .and. hp_switch .eq. 1 .and. sync_qp_kinematics .eq. 1) then
       L(1:4,1:6) = L_qp(1:4,1:6)
     else
       call Std2LC_Rep(P(:,1),L(1:4,1))
@@ -1245,7 +1356,7 @@ subroutine internal_momenta_six(P, Npart, ext_masses, init_qp_kinematics)
     L(5,3) = get_rmass2(ext_masses(1)) + get_rmass2(ext_masses(2))
 #ifdef PRECISION_dp
     ! overwrite dp invariants by qp ones
-    if (init_qp_kinematics .and. hp_switch .eq. 1 .and. use_qp_invariants .eq. 1) then
+    if (use_qp_kinematics .and. hp_switch .eq. 1 .and. sync_qp_kinematics .eq. 1) then
       L(6,3) = L_qp(6,3)
     else
       L(6,3) = 2*cont_LC_cntrv(L(1:4,1),L(1:4,2))
@@ -1258,24 +1369,24 @@ subroutine internal_momenta_six(P, Npart, ext_masses, init_qp_kinematics)
     L(5:6,6) = L(5:6,1)
   else
     ! compute masses and scalar products
-    call intmom_six(P, Npart, i, get_rmass2(ext_masses), init_qp_kinematics)
+    call intmom_six(P, Npart, i, get_rmass2(ext_masses), use_qp_kinematics)
+
   end if
 
+#ifdef PRECISION_dp
   maxinv = 0
   do i = 1, Npart
     do j = i + 1, Npart
       t1 = 2**(i-1)+2**(j-1)
-      QInvariantsMatrix(i,j) = L(5,t1) + L(6,t1)
-      QInvariantsMatrix(j,i) = QInvariantsMatrix(i,j)
-      maxinv = max(abs(QInvariantsMatrix(i,j)), maxinv)
+      maxinv = max(abs(L(5,t1) + L(6,t1)), maxinv)
     end do
   end do
-
-  if(init_qp_kinematics) then
+  if (hp_mode .ge. 2) then
     do i = 1, Npart
       if (maxval(abs(L(1:4,2**(i-1))))**2/maxinv .lt. softthres) softconf  = 2**(i-1)
     end do
   end if
+#endif
 
 end subroutine internal_momenta_six
 
@@ -1316,7 +1427,7 @@ end subroutine intmom
 
 
 ! **********************************************************************
-subroutine intmom_six(P_ex,Npart,Jmax,ext_masses,init_qp_kinematics)
+subroutine intmom_six(P_ex,Npart,Jmax,ext_masses,use_qp_kinematics)
 ! **********************************************************************
   use KIND_TYPES, only: REALKIND
   use ol_momenta_decl_/**/REALKIND, only: L
@@ -1326,7 +1437,7 @@ subroutine intmom_six(P_ex,Npart,Jmax,ext_masses,init_qp_kinematics)
   integer,        intent(in) :: Npart, Jmax
   real(REALKIND), intent(in) :: ext_masses(Npart)
   real(REALKIND), intent(in) :: P_ex(0:3,Npart)
-  logical, intent(in)        :: init_qp_kinematics
+  logical, intent(in)        :: use_qp_kinematics
   integer :: i1 ! conventional particle numbers
   integer :: l1 ! individual 2^(i-1) particles numbers
 
@@ -1337,7 +1448,7 @@ subroutine intmom_six(P_ex,Npart,Jmax,ext_masses,init_qp_kinematics)
     L(5:6,Jmax + 1 - l1) = L(5:6,l1)
     call Std2LC_Rep(P_ex(0,i1),L(1,l1))
     L(1:4,Jmax + 1 - l1) = -L(1:4,l1)
-    call intmom_rec_six(Npart, Jmax, i1, l1, 1, init_qp_kinematics)
+    call intmom_rec_six(Npart, Jmax, i1, l1, 1, use_qp_kinematics)
     l1 = 2*l1
   end do !i1
 
@@ -1382,17 +1493,17 @@ end subroutine intmom_rec
 
 
 ! **********************************************************************
-recursive subroutine intmom_rec_six(Npart, Jmax, i1, s1, x, init_qp_kinematics)
+recursive subroutine intmom_rec_six(Npart, Jmax, i1, s1, x, use_qp_kinematics)
 ! **********************************************************************
   use ol_momenta_decl_/**/REALKIND, only: L,collconf,softconf
 #ifdef PRECISION_dp
-  use ol_parameters_decl_/**/REALKIND, only: hp_switch, use_qp_invariants
+  use ol_parameters_decl_/**/REALKIND, only: hp_mode, hp_switch, sync_qp_kinematics
   use ol_momenta_decl_/**/QREALKIND, only: L_qp=>L
   use ol_kinematics_/**/QREALKIND, only: cont_LC_cntrv_qp=>cont_LC_cntrv
 #endif
   implicit none
   integer,    intent(in) :: Npart, Jmax, i1, s1, x
-  logical,    intent(in) :: init_qp_kinematics
+  logical,    intent(in) :: use_qp_kinematics
   real(REALKIND) :: sp
   integer :: A
   integer :: ix ! conventional particle numbers
@@ -1413,7 +1524,7 @@ recursive subroutine intmom_rec_six(Npart, Jmax, i1, s1, x, init_qp_kinematics)
     ! avoid double determination for even Npart
 #ifdef PRECISION_dp
       ! overwrite dp invariants by qp ones (not the masses squared terms though)
-      if (init_qp_kinematics .and. hp_switch .eq. 1 .and. use_qp_invariants .eq. 1) then
+      if (use_qp_kinematics .and. hp_switch .eq. 1 .and. sync_qp_kinematics .eq. 1) then
         L(1:5,sx) = L_qp(1:5,sx)
         L(1:4,rx) = L_qp(1:4,rx)
         sp = 2*cont_LC_cntrv_qp(L_qp(1:4,s1),L_qp(1:4,lx))
@@ -1432,15 +1543,17 @@ recursive subroutine intmom_rec_six(Npart, Jmax, i1, s1, x, init_qp_kinematics)
       L(6,sx) = sp + L(6,s1)
 #endif
       L(5:6,rx) = L(5:6,sx)
-      if(init_qp_kinematics) then
+#ifdef PRECISION_dp
+      if(hp_mode .ge. 2) then
         if (abs(sp/(maxval(abs(L(1:4,s1)))*maxval(abs(L(1:4,lx))))) .lt. collthres) then
           collconf = ior(collconf,sx)
         end if
       end if
+#endif
     end if
     lx = 2*lx
     if ( last .eqv. .false. ) then ! recursion
-      call intmom_rec_six(Npart, Jmax, ix, sx, x+1, init_qp_kinematics)
+      call intmom_rec_six(Npart, Jmax, ix, sx, x+1, use_qp_kinematics)
     end if
   end do  !ix
 

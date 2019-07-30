@@ -43,6 +43,10 @@ except ImportError:
 Unless matplotlib is installed, creating plots is not possible.
 Only data accumulation can be performed.""")
 
+try:
+    strtype = basestring
+except NameError:
+    strtype = str
 
 # lower limit of the x axis
 xlimit_lower = -16
@@ -203,7 +207,7 @@ def import_files(filesdirs, libraries=None, channels=None):
     Options:
     libraries -- list of libraries to select; None or empty for all.
     channels -- list of channels to select; None or empty for all."""
-    if isinstance(filesdirs, str):
+    if isinstance(filesdirs, strtype):
         filesdirs = [filesdirs]
     if channels:
         channels = [ch + '_1' if len(ch.split('_')) == 1 else ch

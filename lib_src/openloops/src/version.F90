@@ -31,10 +31,16 @@ module ol_version
   subroutine welcome(outstring)
     implicit none
     character(welcome_length), intent(out) :: outstring
+    character(16) :: print_version
     character, parameter :: LF = char(10)
+    if (len_trim(version) == 0) then
+      print_version=""
+    else
+      print_version="version " // version
+    end if
     outstring = &
       & " #####################################################################" // LF // &
-      & " #        ___                                       " // adjustr(version) // " #" // LF // &
+      & " #        ___                                       " // adjustr(print_version) // " #" // LF // &
       & " #       /   \ ___  ____  _  _  |     __   __  ___   __    ___       #" // LF // &
       & " #       |   | |__| |__   |\ |  |    /  \ /  \ |__| /__    __/       #" // LF // &
       & " #       \___/ |    |___  | \|  |___ \__/ \__/ |    __/   /__        #" // LF // &
@@ -89,6 +95,24 @@ module ol_version
     call welcome(welcome_string)
     call ol_write_msg(trim(welcome_string))
   end subroutine print_welcome
+
+
+  subroutine openloops_version_string(outstring)
+    character(16) :: outstring
+    outstring = trim(version)
+  end subroutine openloops_version_string
+
+  subroutine openloops_version_string_c(outstring) bind(c,name="ol_version_string")
+    use, intrinsic :: iso_c_binding, only: c_char
+    implicit none
+    character(kind=c_char), intent(out) :: outstring(17)
+    character, parameter :: LF = char(10)
+    integer i
+    do i = 1, len(trim(version))
+      outstring(i) = version(i:i)
+    end do
+    outstring(i) = char(0)
+  end subroutine openloops_version_string_c
 
 end module ol_version
 

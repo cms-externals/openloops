@@ -21,6 +21,11 @@
 import sys
 import shlex
 
+try:
+    strtype = basestring
+except NameError:
+    strtype = str
+
 
 class KeywordOptionsError(Exception):
     pass
@@ -30,7 +35,7 @@ class KeywordOption:
 
 
 def is_string_list(ls):
-    return isinstance(ls, (list, tuple, set)) and all(map(lambda el: isinstance(el, str), ls))
+    return isinstance(ls, (list, tuple, set)) and all(map(lambda el: isinstance(el, strtype), ls))
 
 
 class KeywordOptions:
@@ -53,11 +58,11 @@ class KeywordOptions:
                       also a subset of 'key' can be given.
         """
         if group is None:
-            if not isinstance(key, str):
+            if not isinstance(key, strtype):
                 raise ValueError("'key' must be a string, but is " + repr(key))
             if not isinstance(required, bool):
                 raise ValueError("'required must be True or False, but is " + repr(required))
-        elif isinstance(group, str):
+        elif isinstance(group, strtype):
             if default is None:
                 default = {}
             if not is_string_list(key):
@@ -88,7 +93,7 @@ class KeywordOptions:
         if args is None:
             args = sys.argv
 
-        elif isinstance(args, str):
+        elif isinstance(args, strtype):
             args = shlex.split(args)
 
         if not is_string_list(args):
@@ -100,7 +105,7 @@ class KeywordOptions:
 
         for opt in self._options:
 
-            if isinstance(opt.key, str):
+            if isinstance(opt.key, strtype):
                 if opt.key in args.keys():
                     val = args[opt.key]
                     del args[opt.key]

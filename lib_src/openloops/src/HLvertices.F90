@@ -32,7 +32,7 @@ subroutine hol_allocation(alpha,rank,beta,hel_states,ol_coeff,m)
 ! beta       = dimension of the beta-index array
 ! hel_states = number of helicity states
 ! ol_coeff   = type(hol) OpenLoops coefficient to be allocated in memory
-! m          = number of ol_coeff with the same number of hel_stases to
+! m          = number of ol_coeff with the same number of hel_states to
 !              be allocated
 !************************************************************************
   use KIND_TYPES, only: REALKIND
@@ -98,8 +98,8 @@ subroutine hol_deallocation(ol_coeff, m, dmode)
 
   do i = 1, m
     if(dmode == 0) then
-      deallocate(ol_coeff(i)%hf)
-      deallocate(ol_coeff(i)%j)
+      if(allocated(ol_coeff(i)%hf)) deallocate(ol_coeff(i)%hf)
+      if(allocated(ol_coeff(i)%j)) deallocate(ol_coeff(i)%j)
     endif
     ol_coeff(i)%error = 0
 #ifdef PRECISION_dp
@@ -187,7 +187,7 @@ subroutine hcl_deallocation(ol_coeff, m, dmode)
 
   do i = 1, m
     if(dmode == 0) then
-      deallocate(ol_coeff(i)%cmp)
+      if(allocated(ol_coeff(i)%cmp)) deallocate(ol_coeff(i)%cmp)
     endif
     ol_coeff(i)%error = 0
 #ifdef PRECISION_dp
@@ -503,7 +503,7 @@ subroutine G0_hol_initialisation(ntry,G0coeff,ol_coeff,nhel_in,h0t, &
     if (hp_ir_trig .and. ol_coeff%npoint .eq. 3) then
       if (check_collinear_tr() .or. check_soft_tr()) call upgrade_qp(ol_coeff)
     end if
-    if (hp_fake_trig) call upgrade_qp(ol_coeff)
+    if (hp_fake_trig .gt. 0) call upgrade_qp(ol_coeff)
   end if
 #endif
 
@@ -798,7 +798,7 @@ subroutine Hloop_AZ_Q(ntry, G_A, J_Z, Gout_A, ng_RL, n, t)
     Gout_A%j_qp = 0._/**/QREALKIND
     g_RL_qp = get_coupling_qp(ng_RL)
     do h = 1, n(3)  ! recursion step
-      call loop_AZ_Q_qp(G_A%j_qp(:,:,:,h),J_Z(t(1,h))%j_qp,G_add_qp,g_RL_qp)
+      call loop_AZ_Q_qp(G_A%j_qp(:,:,:,h),cmplx(J_Z(t(1,h))%j,kind=qp),G_add_qp,g_RL_qp)
       Gout_A%j_qp(:,:,:,t(2,h)) = Gout_A%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_A)
@@ -852,7 +852,7 @@ subroutine Hloop_AQ_Z(ntry, G_A, J_Q, Gout_Z, ng_RL, n, t)
     Gout_Z%j_qp = 0._/**/QREALKIND
     g_RL_qp = get_coupling_qp(ng_RL)
     do h = 1, n(3)  ! recursion step
-      call loop_AQ_Z_qp(G_A%j_qp(:,:,:,h),J_Q(t(1,h))%j_qp,G_add_qp,g_RL_qp)
+      call loop_AQ_Z_qp(G_A%j_qp(:,:,:,h),cmplx(J_Q(t(1,h))%j,kind=qp),G_add_qp,g_RL_qp)
       Gout_Z%j_qp(:,:,:,t(2,h)) = Gout_Z%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_A)
@@ -906,7 +906,7 @@ subroutine Hloop_ZA_Q(ntry, G_Z, J_A, Gout_A, ng_RL, n, t)
     Gout_A%j_qp = 0._/**/QREALKIND
     g_RL_qp = get_coupling_qp(ng_RL)
     do h = 1, n(3)  ! recursion step
-      call loop_ZA_Q_qp(G_Z%j_qp(:,:,:,h),J_A(t(1,h))%j_qp,G_add_qp,g_RL_qp)
+      call loop_ZA_Q_qp(G_Z%j_qp(:,:,:,h),cmplx(J_A(t(1,h))%j,kind=qp),G_add_qp,g_RL_qp)
       Gout_A%j_qp(:,:,:,t(2,h)) = Gout_A%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_Z)
@@ -960,7 +960,7 @@ subroutine Hloop_QZ_A(ntry, G_Q, J_Z, Gout_Q, ng_RL, n, t)
     Gout_Q%j_qp = 0._/**/QREALKIND
     g_RL_qp = get_coupling_qp(ng_RL)
     do h = 1, n(3)  ! recursion step
-      call loop_QZ_A_qp(G_Q%j_qp(:,:,:,h),J_Z(t(1,h))%j_qp,G_add_qp,g_RL_qp)
+      call loop_QZ_A_qp(G_Q%j_qp(:,:,:,h),cmplx(J_Z(t(1,h))%j,kind=qp),G_add_qp,g_RL_qp)
       Gout_Q%j_qp(:,:,:,t(2,h)) = Gout_Q%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_Q)
@@ -1014,7 +1014,7 @@ subroutine Hloop_QA_Z(ntry, G_Q, J_A, Gout_Z, ng_RL, n, t)
     Gout_Z%j_qp = 0._/**/QREALKIND
     g_RL_qp = get_coupling_qp(ng_RL)
     do h = 1, n(3)  ! recursion step
-      call loop_QA_Z_qp(G_Q%j_qp(:,:,:,h),J_A(t(1,h))%j_qp,G_add_qp,g_RL_qp)
+      call loop_QA_Z_qp(G_Q%j_qp(:,:,:,h),cmplx(J_A(t(1,h))%j,kind=qp),G_add_qp,g_RL_qp)
       Gout_Z%j_qp(:,:,:,t(2,h)) = Gout_Z%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_Q)
@@ -1068,7 +1068,7 @@ subroutine Hloop_ZQ_A(ntry, G_Z, J_Q, Gout_Q, ng_RL, n, t)
     Gout_Q%j_qp = 0._/**/QREALKIND
     g_RL_qp = get_coupling_qp(ng_RL)
     do h = 1, n(3)  ! recursion step
-      call loop_ZQ_A_qp(G_Z%j_qp(:,:,:,h), J_Q(t(1,h))%j_qp,G_add_qp,g_RL_qp)
+      call loop_ZQ_A_qp(G_Z%j_qp(:,:,:,h), cmplx(J_Q(t(1,h))%j,kind=qp),G_add_qp,g_RL_qp)
       Gout_Q%j_qp(:,:,:,t(2,h)) = Gout_Q%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_Z)
@@ -1116,7 +1116,7 @@ subroutine Hloop_AW_Q(ntry, G_A, J_W, Gout_A, n, t)
   if (req_qp_cmp(G_A)) then
     Gout_A%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_AW_Q_qp(G_A%j_qp(:,:,:,h), J_W(t(1,h))%j_qp, G_add_qp)
+      call loop_AW_Q_qp(G_A%j_qp(:,:,:,h), cmplx(J_W(t(1,h))%j,kind=qp), G_add_qp)
       Gout_A%j_qp(:,:,:,t(2,h)) = Gout_A%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_A)
@@ -1164,7 +1164,7 @@ subroutine Hloop_AQ_W(ntry, G_A, J_Q, Gout_W, n, t)
   if (req_qp_cmp(G_A)) then
     Gout_W%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_AQ_W_qp(G_A%j_qp(:,:,:,h), J_Q(t(1,h))%j_qp, G_add_qp)
+      call loop_AQ_W_qp(G_A%j_qp(:,:,:,h), cmplx(J_Q(t(1,h))%j,kind=qp), G_add_qp)
       Gout_W%j_qp(:,:,:,t(2,h)) = Gout_W%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_A)
@@ -1212,7 +1212,7 @@ subroutine Hloop_WA_Q(ntry, G_W, J_A, Gout_A, n, t)
   if (req_qp_cmp(G_W)) then
     Gout_A%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_WA_Q_qp(G_W%j_qp(:,:,:,h), J_A(t(1,h))%j_qp, G_add_qp)
+      call loop_WA_Q_qp(G_W%j_qp(:,:,:,h), cmplx(J_A(t(1,h))%j,kind=qp), G_add_qp)
       Gout_A%j_qp(:,:,:,t(2,h)) = Gout_A%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_W)
@@ -1260,7 +1260,7 @@ subroutine Hloop_QW_A(ntry, G_Q, J_W, Gout_Q, n, t)
   if (req_qp_cmp(G_Q)) then
     Gout_Q%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_QW_A_qp(G_Q%j_qp(:,:,:,h), J_W(t(1,h))%j_qp, G_add_qp)
+      call loop_QW_A_qp(G_Q%j_qp(:,:,:,h), cmplx(J_W(t(1,h))%j,kind=qp), G_add_qp)
       Gout_Q%j_qp(:,:,:,t(2,h)) = Gout_Q%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_Q)
@@ -1308,7 +1308,7 @@ subroutine Hloop_QA_W(ntry, G_Q, J_A, Gout_W, n, t)
   if (req_qp_cmp(G_Q)) then
     Gout_W%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_QA_W_qp(G_Q%j_qp(:,:,:,h), J_A(t(1,h))%j_qp, G_add_qp)
+      call loop_QA_W_qp(G_Q%j_qp(:,:,:,h), cmplx(J_A(t(1,h))%j,kind=qp), G_add_qp)
       Gout_W%j_qp(:,:,:,t(2,h)) = Gout_W%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_Q)
@@ -1356,7 +1356,7 @@ subroutine Hloop_WQ_A(ntry, G_W, J_Q, Gout_Q, n, t)
   if (req_qp_cmp(G_W)) then
     Gout_Q%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_WQ_A_qp(G_W%j_qp(:,:,:,h), J_Q(t(1,h))%j_qp, G_add_qp)
+      call loop_WQ_A_qp(G_W%j_qp(:,:,:,h), cmplx(J_Q(t(1,h))%j,kind=qp), G_add_qp)
       Gout_Q%j_qp(:,:,:,t(2,h)) = Gout_Q%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_W)
@@ -1404,7 +1404,7 @@ subroutine Hloop_AV_Q(ntry, G_A, J_V, Gout_A, n, t)
   if (req_qp_cmp(G_A)) then
     Gout_A%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_AV_Q_qp(G_A%j_qp(:,:,:,h), J_V(t(1,h))%j_qp, G_add_qp)
+      call loop_AV_Q_qp(G_A%j_qp(:,:,:,h), cmplx(J_V(t(1,h))%j,kind=qp), G_add_qp)
       Gout_A%j_qp(:,:,:,t(2,h)) = Gout_A%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_A)
@@ -1451,7 +1451,7 @@ subroutine Hloop_AQ_V(ntry, G_A, J_Q, Gout_V, n, t)
   if (req_qp_cmp(G_A)) then
     Gout_V%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_AQ_V_qp(G_A%j_qp(:,:,:,h), J_Q(t(1,h))%j_qp, G_add_qp)
+      call loop_AQ_V_qp(G_A%j_qp(:,:,:,h), cmplx(J_Q(t(1,h))%j,kind=qp), G_add_qp)
       Gout_V%j_qp(:,:,:,t(2,h)) = Gout_V%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_A)
@@ -1499,7 +1499,7 @@ subroutine Hloop_VA_Q(ntry, G_V, J_A, Gout_A, n, t)
   if (req_qp_cmp(G_V)) then
     Gout_A%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_VA_Q_qp(G_V%j_qp(:,:,:,h), J_A(t(1,h))%j_qp, G_add_qp)
+      call loop_VA_Q_qp(G_V%j_qp(:,:,:,h), cmplx(J_A(t(1,h))%j,kind=qp), G_add_qp)
       Gout_A%j_qp(:,:,:,t(2,h)) = Gout_A%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_V)
@@ -1547,7 +1547,7 @@ subroutine Hloop_QV_A(ntry, G_Q, J_V, Gout_Q, n, t)
   if (req_qp_cmp(G_Q)) then
     Gout_Q%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_QV_A_qp(G_Q%j_qp(:,:,:,h), J_V(t(1,h))%j_qp, G_add_qp)
+      call loop_QV_A_qp(G_Q%j_qp(:,:,:,h), cmplx(J_V(t(1,h))%j,kind=qp), G_add_qp)
       Gout_Q%j_qp(:,:,:,t(2,h)) = Gout_Q%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_Q)
@@ -1595,7 +1595,7 @@ subroutine Hloop_QA_V(ntry, G_Q, J_A, Gout_V, n, t)
   if (req_qp_cmp(G_Q)) then
     Gout_V%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_QA_V_qp(G_Q%j_qp(:,:,:,h), J_A(t(1,h))%j_qp, G_add_qp)
+      call loop_QA_V_qp(G_Q%j_qp(:,:,:,h), cmplx(J_A(t(1,h))%j,kind=qp), G_add_qp)
       Gout_V%j_qp(:,:,:,t(2,h)) = Gout_V%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_Q)
@@ -1643,7 +1643,7 @@ subroutine Hloop_VQ_A(ntry, G_V, J_Q, Gout_A, n, t)
   if (req_qp_cmp(G_V)) then
     Gout_A%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_VQ_A_qp(G_V%j_qp(:,:,:,h), J_Q(t(1,h))%j_qp, G_add_qp)
+      call loop_VQ_A_qp(G_V%j_qp(:,:,:,h), cmplx(J_Q(t(1,h))%j,kind=qp), G_add_qp)
       Gout_A%j_qp(:,:,:,t(2,h)) = Gout_A%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_V)
@@ -1665,7 +1665,7 @@ subroutine Hloop_UV_W(ntry, Gin_V, moml, J_V, momt, Gout_V, n, t)
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
   use ol_vert_interface_/**/QREALKIND, only: loop_UV_W_qp => loop_UV_W
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
   use ol_loop_handling_/**/DREALKIND, only: hol_dealloc_hybrid
 #endif
   implicit none
@@ -1694,7 +1694,8 @@ subroutine Hloop_UV_W(ntry, Gin_V, moml, J_V, momt, Gout_V, n, t)
   if (req_qp_cmp(Gin_V)) then
     Gout_V%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_UV_W_qp(Gin_V%j_qp(:,:,:,h), get_LC_4_qp(moml), J_V(t(1,h))%j_qp, get_LC_4_qp(momt), G_add_qp)
+      call loop_UV_W_qp(Gin_V%j_qp(:,:,:,h), get_LC_4_qp(moml), &
+        cmplx(J_V(t(1,h))%j,kind=qp), get_LC_4_qp(momt), G_add_qp)
       Gout_V%j_qp(:,:,:,t(2,h)) = Gout_V%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_V)
@@ -1716,7 +1717,7 @@ subroutine Hloop_UW_V(ntry, Gin_V, moml, J_V, momt, Gout_V, n, t)
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
   use ol_vert_interface_/**/QREALKIND, only: loop_UW_V_qp => loop_UW_V
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
   use ol_loop_handling_/**/DREALKIND, only: hol_dealloc_hybrid
 #endif
   implicit none
@@ -1745,7 +1746,8 @@ subroutine Hloop_UW_V(ntry, Gin_V, moml, J_V, momt, Gout_V, n, t)
   if (req_qp_cmp(Gin_V)) then
     Gout_V%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_UW_V_qp(Gin_V%j_qp(:,:,:,h), get_LC_4_qp(moml), J_V(t(1,h))%j_qp, get_LC_4_qp(momt), G_add_qp)
+      call loop_UW_V_qp(Gin_V%j_qp(:,:,:,h), get_LC_4_qp(moml), &
+        cmplx(J_V(t(1,h))%j,kind=qp), get_LC_4_qp(momt), G_add_qp)
       Gout_V%j_qp(:,:,:,t(2,h)) = Gout_V%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_V)
@@ -1795,7 +1797,8 @@ subroutine Hloop_EV_V(ntry, Gin_V, J1, J2, Gout_V, n, t)
   if (req_qp_cmp(Gin_V)) then
     Gout_V%j_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! recursion step
-      call loop_EV_V_qp(Gin_V%j_qp(:,:,:,h), J1(t(1,h))%j_qp, J2(t(2,h))%j_qp, G_add_qp)
+      call loop_EV_V_qp(Gin_V%j_qp(:,:,:,h), cmplx(J1(t(1,h))%j,kind=qp), &
+        cmplx(J2(t(2,h))%j,kind=qp), G_add_qp)
       Gout_V%j_qp(:,:,:,t(3,h)) = Gout_V%j_qp(:,:,:,t(3,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_V)
@@ -1844,7 +1847,8 @@ subroutine Hloop_VE_V(ntry, Gin_V, J1, J2, Gout_V, n, t)
   if (req_qp_cmp(Gin_V)) then
     Gout_V%j_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! recursion step
-      call loop_VE_V_qp(Gin_V%j_qp(:,:,:,h), J1(t(1,h))%j_qp, J2(t(2,h))%j_qp, G_add_qp)
+      call loop_VE_V_qp(Gin_V%j_qp(:,:,:,h), cmplx(J1(t(1,h))%j,kind=qp), &
+        cmplx(J2(t(2,h))%j,kind=qp), G_add_qp)
       Gout_V%j_qp(:,:,:,t(3,h)) = Gout_V%j_qp(:,:,:,t(3,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_V)
@@ -1891,7 +1895,8 @@ subroutine Hloop_GGG_G_23(ntry, Gin_V, J1, J2, Gout_V, n, t)
   if (req_qp_cmp(Gin_V)) then
     Gout_V%j_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! recursion step
-      call loop_GGG_G_23_qp(Gin_V%j_qp(:,:,:,h), J1(t(1,h))%j_qp, J2(t(2,h))%j_qp, G_add_qp)
+      call loop_GGG_G_23_qp(Gin_V%j_qp(:,:,:,h), cmplx(J1(t(1,h))%j,kind=qp), &
+      cmplx(J2(t(2,h))%j,kind=qp), G_add_qp)
     Gout_V%j_qp(:,:,:,t(3,h)) = Gout_V%j_qp(:,:,:,t(3,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_V)
@@ -1939,7 +1944,8 @@ subroutine Hloop_GGG_G_12(ntry, Gin_V, J1, J2, Gout_V, n, t)
   if (req_qp_cmp(Gin_V)) then
     Gout_V%j_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! recursion step
-      call loop_GGG_G_12_qp(Gin_V%j_qp(:,:,:,h), J1(t(1,h))%j_qp, J2(t(2,h))%j_qp, G_add_qp)
+      call loop_GGG_G_12_qp(Gin_V%j_qp(:,:,:,h), cmplx(J1(t(1,h))%j,kind=qp), &
+        cmplx(J2(t(2,h))%j,kind=qp), G_add_qp)
       Gout_V%j_qp(:,:,:,t(3,h)) = Gout_V%j_qp(:,:,:,t(3,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_V)
@@ -1962,7 +1968,7 @@ subroutine Hloop_CV_D(ntry, Gin_C, moml, J_V, momt, Gout_C, n, t)
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
   use ol_vert_interface_/**/QREALKIND, only: loop_CV_D_qp => loop_CV_D
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
   use ol_loop_handling_/**/DREALKIND, only: hol_dealloc_hybrid
 #endif
   implicit none
@@ -1991,7 +1997,8 @@ subroutine Hloop_CV_D(ntry, Gin_C, moml, J_V, momt, Gout_C, n, t)
   if (req_qp_cmp(Gin_C)) then
     Gout_C%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_CV_D_qp(Gin_C%j_qp(:,:,:,h), get_LC_4_qp(moml), J_V(t(1,h))%j_qp, get_LC_4_qp(momt), G_add_qp)
+      call loop_CV_D_qp(Gin_C%j_qp(:,:,:,h), get_LC_4_qp(moml), &
+        cmplx(J_V(t(1,h))%j,kind=qp), get_LC_4_qp(momt), G_add_qp)
       Gout_C%j_qp(:,:,:,t(2,h)) = Gout_C%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_C)
@@ -2014,7 +2021,7 @@ subroutine Hloop_DV_C(ntry, Gin_D, moml, J_V, Gout_D, n, t)
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
   use ol_vert_interface_/**/QREALKIND, only: loop_DV_C_qp => loop_DV_C
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
   use ol_loop_handling_/**/DREALKIND, only: hol_dealloc_hybrid
 #endif
   implicit none
@@ -2043,7 +2050,8 @@ subroutine Hloop_DV_C(ntry, Gin_D, moml, J_V, Gout_D, n, t)
   if (req_qp_cmp(Gin_D)) then
     Gout_D%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_DV_C_qp(Gin_D%j_qp(:,:,:,h), get_LC_4_qp(moml), J_V(t(1,h))%j_qp, G_add_qp)
+      call loop_DV_C_qp(Gin_D%j_qp(:,:,:,h), get_LC_4_qp(moml), &
+        cmplx(J_V(t(1,h))%j,kind=qp), G_add_qp)
       Gout_D%j_qp(:,:,:,t(2,h)) = Gout_D%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_D)
@@ -2097,7 +2105,7 @@ subroutine Hloop_AS_Q(ntry, G_A, J_S, Gout_A, ng_RL, n, t)
     Gout_A%j_qp = 0._/**/QREALKIND
     g_RL_qp = get_coupling_qp(ng_RL)
     do h = 1, n(3)  ! recursion step
-      call loop_AS_Q_qp(G_A%j_qp(:,:,:,h),J_S(t(1,h))%j_qp,G_add_qp,g_RL_qp)
+      call loop_AS_Q_qp(G_A%j_qp(:,:,:,h),cmplx(J_S(t(1,h))%j,kind=qp),G_add_qp,g_RL_qp)
       Gout_A%j_qp(:,:,:,t(2,h)) = Gout_A%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_A)
@@ -2151,7 +2159,7 @@ subroutine Hloop_SA_Q(ntry, G_S, J_A, Gout_A, ng_RL, n, t)
     Gout_A%j_qp = 0._/**/QREALKIND
     g_RL_qp = get_coupling_qp(ng_RL)
     do h = 1, n(3)  ! recursion step
-      call loop_SA_Q_qp(G_S%j_qp(:,:,:,h),J_A(t(1,h))%j_qp,G_add_qp,g_RL_qp)
+      call loop_SA_Q_qp(G_S%j_qp(:,:,:,h),cmplx(J_A(t(1,h))%j,kind=qp),G_add_qp,g_RL_qp)
       Gout_A%j_qp(:,:,:,t(2,h)) = Gout_A%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_S)
@@ -2205,7 +2213,7 @@ subroutine Hloop_QS_A(ntry, G_Q, J_S, Gout_Q, ng_RL, n, t)
     Gout_Q%j_qp = 0._/**/QREALKIND
     g_RL_qp = get_coupling_qp(ng_RL)
     do h = 1, n(3)  ! recursion step
-      call loop_QS_A_qp(G_Q%j_qp(:,:,:,h),J_S(t(1,h))%j_qp,G_add_qp,g_RL_qp)
+      call loop_QS_A_qp(G_Q%j_qp(:,:,:,h),cmplx(J_S(t(1,h))%j,kind=qp),G_add_qp,g_RL_qp)
       Gout_Q%j_qp(:,:,:,t(2,h)) = Gout_Q%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_Q)
@@ -2259,7 +2267,7 @@ subroutine Hloop_SQ_A(ntry, G_S, J_Q, Gout_Q, ng_RL, n, t)
     Gout_Q%j_qp = 0._/**/QREALKIND
     g_RL_qp = get_coupling_qp(ng_RL)
     do h = 1, n(3)  ! recursion step
-      call loop_SQ_A_qp(G_S%j_qp(:,:,:,h),J_Q(t(1,h))%j_qp,G_add_qp,g_RL_qp)
+      call loop_SQ_A_qp(G_S%j_qp(:,:,:,h),cmplx(J_Q(t(1,h))%j,kind=qp),G_add_qp,g_RL_qp)
       Gout_Q%j_qp(:,:,:,t(2,h)) = Gout_Q%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_S)
@@ -2313,7 +2321,7 @@ subroutine Hloop_QA_S(ntry, G_Q, J_A, Gout_S, ng_RL, n, t)
     Gout_S%j_qp = 0._/**/QREALKIND
     g_RL_qp = get_coupling_qp(ng_RL)
     do h = 1, n(3)  ! recursion step
-      call loop_QA_S_qp(G_Q%j_qp(:,:,:,h),J_A(t(1,h))%j_qp,G_add_qp,g_RL_qp)
+      call loop_QA_S_qp(G_Q%j_qp(:,:,:,h),cmplx(J_A(t(1,h))%j,kind=qp),G_add_qp,g_RL_qp)
       Gout_S%j_qp(:,:,:,t(2,h)) = Gout_S%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_Q)
@@ -2367,7 +2375,7 @@ subroutine Hloop_AQ_S(ntry, G_A, J_Q, Gout_S, ng_RL, n, t)
     Gout_S%j_qp = 0._/**/QREALKIND
     g_RL_qp = get_coupling_qp(ng_RL)
     do h = 1, n(3)  ! recursion step
-      call loop_AQ_S_qp(G_A%j_qp(:,:,:,h),J_Q(t(1,h))%j_qp,G_add_qp,g_RL_qp)
+      call loop_AQ_S_qp(G_A%j_qp(:,:,:,h),cmplx(J_Q(t(1,h))%j,kind=qp),G_add_qp,g_RL_qp)
       Gout_S%j_qp(:,:,:,t(2,h)) = Gout_S%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_A)
@@ -2414,7 +2422,7 @@ subroutine Hloop_VV_S(ntry, G_V, J_V, Gout_S, n, t)
   if (req_qp_cmp(G_V)) then
     Gout_S%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_VV_S_qp(G_V%j_qp(:,:,:,h), J_V(t(1,h))%j_qp, G_add_qp)
+      call loop_VV_S_qp(G_V%j_qp(:,:,:,h), cmplx(J_V(t(1,h))%j,kind=qp), G_add_qp)
     Gout_S%j_qp(:,:,:,t(2,h)) = Gout_S%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_V)
@@ -2461,7 +2469,7 @@ subroutine Hloop_VS_V(ntry, G_V, J_S, Gout_V, n, t)
   if (req_qp_cmp(G_V)) then
     Gout_V%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_VS_V_qp(G_V%j_qp(:,:,:,h), J_S(t(1,h))%j_qp, G_add_qp)
+      call loop_VS_V_qp(G_V%j_qp(:,:,:,h), cmplx(J_S(t(1,h))%j,kind=qp), G_add_qp)
       Gout_V%j_qp(:,:,:,t(2,h)) = Gout_V%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_V)
@@ -2508,7 +2516,7 @@ subroutine Hloop_SV_V(ntry, G_S, J_V, Gout_V, n, t)
   if (req_qp_cmp(G_S)) then
     Gout_V%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_SV_V_qp(G_S%j_qp(:,:,:,h), J_V(t(1,h))%j_qp, G_add_qp)
+      call loop_SV_V_qp(G_S%j_qp(:,:,:,h), cmplx(J_V(t(1,h))%j,kind=qp), G_add_qp)
       Gout_V%j_qp(:,:,:,t(2,h)) = Gout_V%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_S)
@@ -2532,8 +2540,8 @@ subroutine Hloop_SV_T(ntry, G_S, moml, J_V, momt, Gout_S, n, t)
   use ol_kinematics_/**/REALKIND, only: get_LC_4
   use ol_vert_interface_/**/REALKIND, only: loop_SV_T
 #ifdef PRECISION_dp
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
   use ol_vert_interface_/**/QREALKIND, only: loop_SV_T_qp => loop_SV_T
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
   use ol_loop_handling_/**/DREALKIND, only: hol_dealloc_hybrid
 #endif
   implicit none
@@ -2564,7 +2572,8 @@ subroutine Hloop_SV_T(ntry, G_S, moml, J_V, momt, Gout_S, n, t)
   if (req_qp_cmp(G_S)) then
     Gout_S%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_SV_T_qp(G_S%j_qp(:,:,:,h), get_LC_4_qp(moml), J_V(t(1,h))%j_qp, &
+      call loop_SV_T_qp(G_S%j_qp(:,:,:,h), get_LC_4_qp(moml), &
+        cmplx(J_V(t(1,h))%j,kind=qp), &
                         get_LC_4_qp(momt), G_add_qp)
       Gout_S%j_qp(:,:,:,t(2,h)) = Gout_S%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
@@ -2585,8 +2594,8 @@ subroutine Hloop_TV_S(ntry, G_S, moml, J_V, momt, Gout_S, n, t)
   use ol_vert_interface_/**/REALKIND, only: loop_TV_S
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
   use ol_vert_interface_/**/QREALKIND, only: loop_TV_S_qp => loop_TV_S
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
   use ol_loop_handling_/**/DREALKIND, only: hol_dealloc_hybrid
 #endif
   implicit none
@@ -2616,7 +2625,8 @@ subroutine Hloop_TV_S(ntry, G_S, moml, J_V, momt, Gout_S, n, t)
   if (req_qp_cmp(G_S)) then
     Gout_S%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_TV_S_qp(G_S%j_qp(:,:,:,h), get_LC_4_qp(moml), J_V(t(1,h))%j_qp, get_LC_4_qp(momt), G_add_qp)
+      call loop_TV_S_qp(G_S%j_qp(:,:,:,h), get_LC_4_qp(moml), &
+        cmplx(J_V(t(1,h))%j,kind=qp), get_LC_4_qp(momt), G_add_qp)
       Gout_S%j_qp(:,:,:,t(2,h)) = Gout_S%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_S)
@@ -2637,8 +2647,8 @@ subroutine Hloop_VS_T(ntry, G_V, moml, J_S, momt, Gout_S, n, t)
   use ol_vert_interface_/**/REALKIND, only: loop_VS_T
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
   use ol_vert_interface_/**/QREALKIND, only: loop_VS_T_qp => loop_VS_T
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
   use ol_loop_handling_/**/DREALKIND, only: hol_dealloc_hybrid
 #endif
   implicit none
@@ -2668,7 +2678,8 @@ subroutine Hloop_VS_T(ntry, G_V, moml, J_S, momt, Gout_S, n, t)
   if (req_qp_cmp(G_V)) then
     Gout_S%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_VS_T_qp(G_V%j_qp(:,:,:,h), get_LC_4_qp(moml), J_S(t(1,h))%j_qp, get_LC_4_qp(momt), G_add_qp)
+      call loop_VS_T_qp(G_V%j_qp(:,:,:,h), get_LC_4_qp(moml), &
+        cmplx(J_S(t(1,h))%j,kind=qp), get_LC_4_qp(momt), G_add_qp)
       Gout_S%j_qp(:,:,:,t(2,h)) = Gout_S%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_V)
@@ -2689,8 +2700,8 @@ subroutine Hloop_VT_S(ntry, G_V, moml, J_S, momt, Gout_S, n, t)
   use ol_vert_interface_/**/REALKIND, only: loop_VT_S
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
   use ol_vert_interface_/**/QREALKIND, only: loop_VT_S_qp=>loop_VT_S
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
   use ol_loop_handling_/**/DREALKIND, only: hol_dealloc_hybrid
 #endif
   implicit none
@@ -2720,7 +2731,8 @@ subroutine Hloop_VT_S(ntry, G_V, moml, J_S, momt, Gout_S, n, t)
   if (req_qp_cmp(G_V)) then
     Gout_S%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_VT_S_qp(G_V%j_qp(:,:,:,h), get_LC_4_qp(moml), J_S(t(1,h))%j_qp, get_LC_4_qp(momt), G_add_qp)
+      call loop_VT_S_qp(G_V%j_qp(:,:,:,h), get_LC_4_qp(moml), &
+        cmplx(J_S(t(1,h))%j,kind=qp), get_LC_4_qp(momt), G_add_qp)
       Gout_S%j_qp(:,:,:,t(2,h)) = Gout_S%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_V)
@@ -2741,8 +2753,8 @@ subroutine Hloop_ST_V(ntry, G_S, moml, J_S, momt, Gout_V, n, t)
   use ol_vert_interface_/**/REALKIND, only: loop_ST_V
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
   use ol_vert_interface_/**/QREALKIND, only: loop_ST_V_qp=>loop_ST_V
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
   use ol_loop_handling_/**/DREALKIND, only: hol_dealloc_hybrid
 #endif
   implicit none
@@ -2772,7 +2784,8 @@ subroutine Hloop_ST_V(ntry, G_S, moml, J_S, momt, Gout_V, n, t)
   if (req_qp_cmp(G_S)) then
     Gout_V%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_ST_V_qp(G_S%j_qp(:,:,:,h), get_LC_4_qp(moml), J_S(t(1,h))%j_qp, get_LC_4_qp(momt), G_add_qp)
+      call loop_ST_V_qp(G_S%j_qp(:,:,:,h), get_LC_4_qp(moml), &
+        cmplx(J_S(t(1,h))%j,kind=qp), get_LC_4_qp(momt), G_add_qp)
       Gout_V%j_qp(:,:,:,t(2,h)) = Gout_V%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_S)
@@ -2793,8 +2806,8 @@ subroutine Hloop_TS_V(ntry, G_S, moml, J_S, momt, Gout_V, n, t)
   use ol_vert_interface_/**/REALKIND, only: loop_TS_V
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
   use ol_vert_interface_/**/QREALKIND, only: loop_TS_V_qp=>loop_TS_V
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
   use ol_loop_handling_/**/DREALKIND, only: hol_dealloc_hybrid
 #endif
   implicit none
@@ -2824,7 +2837,8 @@ subroutine Hloop_TS_V(ntry, G_S, moml, J_S, momt, Gout_V, n, t)
   if (req_qp_cmp(G_S)) then
     Gout_V%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_TS_V_qp(G_S%j_qp(:,:,:,h), get_LC_4_qp(moml), J_S(t(1,h))%j_qp, get_LC_4_qp(momt), G_add_qp)
+      call loop_TS_V_qp(G_S%j_qp(:,:,:,h), get_LC_4_qp(moml), &
+        cmplx(J_S(t(1,h))%j,kind=qp), get_LC_4_qp(momt), G_add_qp)
       Gout_V%j_qp(:,:,:,t(2,h)) = Gout_V%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_S)
@@ -2873,7 +2887,7 @@ subroutine Hloop_SS_S(ntry, G_S, J_S, Gout_S, n, t)
   if (req_qp_cmp(G_S)) then
     Gout_S%j_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! recursion step
-      call loop_SS_S_qp(G_S%j_qp(:,:,:,h), J_S(t(1,h))%j_qp, G_add_qp)
+      call loop_SS_S_qp(G_S%j_qp(:,:,:,h), cmplx(J_S(t(1,h))%j,kind=qp), G_add_qp)
       Gout_S%j_qp(:,:,:,t(2,h)) = Gout_S%j_qp(:,:,:,t(2,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(G_S)
@@ -2923,7 +2937,8 @@ subroutine Hloop_SSS_S(ntry, Gin_S, J_S1, J_S2, Gout_S, n, t)
   if (req_qp_cmp(Gin_S)) then
     Gout_S%j_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! recursion step
-      call loop_SSS_S_qp(Gin_S%j_qp(:,:,:,h), J_S1(t(1,h))%j_qp, J_S2(t(2,h))%j_qp, G_add_qp)
+      call loop_SSS_S_qp(Gin_S%j_qp(:,:,:,h), cmplx(J_S1(t(1,h))%j,kind=qp), &
+        cmplx(J_S2(t(2,h))%j,kind=qp), G_add_qp)
       Gout_S%j_qp(:,:,:,t(3,h)) = Gout_S%j_qp(:,:,:,t(3,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_S)
@@ -2975,7 +2990,8 @@ subroutine Hloop_SVV_S(ntry, Gin_S, J_V1, J_V2, Gout_S, n, t)
   if (req_qp_cmp(Gin_S)) then
     Gout_S%j_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! recursion step
-      call loop_SVV_S_qp(Gin_S%j_qp(:,:,:,h), J_V1(t(1,h))%j_qp, J_V2(t(2,h))%j_qp, G_add_qp)
+      call loop_SVV_S_qp(Gin_S%j_qp(:,:,:,h), cmplx(J_V1(t(1,h))%j,kind=qp), &
+        cmplx(J_V2(t(2,h))%j,kind=qp), G_add_qp)
       Gout_S%j_qp(:,:,:,t(3,h)) = Gout_S%j_qp(:,:,:,t(3,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_S)
@@ -3025,7 +3041,8 @@ subroutine Hloop_VSS_V(ntry, Gin_V, J_S1, J_S2, Gout_V, n, t)
   if (req_qp_cmp(Gin_V)) then
     Gout_V%j_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! recursion step
-      call loop_VSS_V_qp(Gin_V%j_qp(:,:,:,h), J_S1(t(1,h))%j_qp, J_S2(t(2,h))%j_qp, G_add_qp)
+      call loop_VSS_V_qp(Gin_V%j_qp(:,:,:,h), cmplx(J_S1(t(1,h))%j,kind=qp), &
+        cmplx(J_S2(t(2,h))%j,kind=qp), G_add_qp)
       Gout_V%j_qp(:,:,:,t(3,h)) = Gout_V%j_qp(:,:,:,t(3,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_V)
@@ -3075,7 +3092,8 @@ subroutine Hloop_VVS_S(ntry, Gin_V, J_V, J_S, Gout_S, n, t)
   if (req_qp_cmp(Gin_V)) then
     Gout_S%j_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! recursion step
-      call loop_VVS_S_qp(Gin_V%j_qp(:,:,:,h), J_V(t(1,h))%j_qp, J_S(t(2,h))%j_qp, G_add_qp)
+      call loop_VVS_S_qp(Gin_V%j_qp(:,:,:,h), cmplx(J_V(t(1,h))%j,kind=qp), &
+        cmplx(J_S(t(2,h))%j,kind=qp), G_add_qp)
       Gout_S%j_qp(:,:,:,t(3,h)) = Gout_S%j_qp(:,:,:,t(3,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_V)
@@ -3125,7 +3143,8 @@ subroutine Hloop_SSV_V(ntry, Gin_S, J_S, J_V, Gout_V, n, t)
   if (req_qp_cmp(Gin_S)) then
     Gout_V%j_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! recursion step
-      call loop_SSV_V_qp(Gin_S%j_qp(:,:,:,h), J_S(t(1,h))%j_qp, J_V(t(2,h))%j_qp, G_add_qp)
+      call loop_SSV_V_qp(Gin_S%j_qp(:,:,:,h), cmplx(J_S(t(1,h))%j,kind=qp), &
+        cmplx(J_V(t(2,h))%j,kind=qp), G_add_qp)
       Gout_V%j_qp(:,:,:,t(3,h)) = Gout_V%j_qp(:,:,:,t(3,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_S)
@@ -3175,7 +3194,8 @@ subroutine Hloop_VWW_V(ntry, Gin_V, J_V1, J_V2, Gout_V, n, t)
   if (req_qp_cmp(Gin_V)) then
     Gout_V%j_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! recursion step
-      call loop_VWW_V_qp(Gin_V%j_qp(:,:,:,h), J_V1(t(1,h))%j_qp, J_V2(t(2,h))%j_qp, G_add_qp)
+      call loop_VWW_V_qp(Gin_V%j_qp(:,:,:,h), cmplx(J_V1(t(1,h))%j,kind=qp), &
+        cmplx(J_V2(t(2,h))%j,kind=qp), G_add_qp)
       Gout_V%j_qp(:,:,:,t(3,h)) = Gout_V%j_qp(:,:,:,t(3,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_V)
@@ -3224,7 +3244,8 @@ subroutine Hloop_WWV_V(ntry, Gin_V, J_V1, J_V2, Gout_V, n, t)
   if (req_qp_cmp(Gin_V)) then
     Gout_V%j_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! recursion step
-      call loop_WWV_V_qp(Gin_V%j_qp(:,:,:,h), J_V1(t(1,h))%j_qp, J_V2(t(2,h))%j_qp, G_add_qp)
+      call loop_WWV_V_qp(Gin_V%j_qp(:,:,:,h), cmplx(J_V1(t(1,h))%j,kind=qp), &
+        cmplx(J_V2(t(2,h))%j,kind=qp), G_add_qp)
       Gout_V%j_qp(:,:,:,t(3,h)) = Gout_V%j_qp(:,:,:,t(3,h)) + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_V)

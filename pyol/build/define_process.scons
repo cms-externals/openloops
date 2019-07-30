@@ -23,6 +23,8 @@
 #     if the definition file is in the default directory process_definition_dir,
 #     or the path to the definition file;
 
+from __future__ import print_function
+
 import os
 import sys
 
@@ -32,6 +34,9 @@ import OLBaseConfig
 
 commandline_options = [arg for arg in ARGLIST if arg[0] not in ['PROC']]
 config = OLBaseConfig.get_config(commandline_options)
+
+if config['print_python_version']:
+    print('define_process.scons uses Python', sys.version)
 
 processlib = ARGUMENTS.get('PROC', '')
 if processlib == '':

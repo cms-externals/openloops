@@ -24,7 +24,7 @@ module ol_debug
                                             stderr=>error_unit
   implicit none
   private
-  public :: set_verbose, get_verbose, get_error, ol_msg, ol_error, ol_fatal
+  public :: set_verbose, get_verbose, get_error, ol_msg, ol_error, ol_fatal, ol_fatal_update
   public :: ol_write_msg
   public :: error, verbose, do_not_stop
   public :: olodebug_unit
@@ -111,6 +111,16 @@ module ol_debug
       stop
     end if
   end subroutine ol_fatal
+
+  subroutine ol_fatal_update(fatal_err)
+    implicit none
+    integer, optional, intent(out) :: fatal_err
+    if (present(fatal_err)) then
+      fatal_err = 1
+    else
+      call ol_fatal("Process library not up-to-date. Please run: ./openloops update --processes")
+    end if
+  end subroutine ol_fatal_update
 
   subroutine ol_write_msg(msg, unit)
     implicit none

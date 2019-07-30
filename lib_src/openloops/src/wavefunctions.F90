@@ -1971,6 +1971,8 @@ subroutine sort_hf_wf(wf)
 end subroutine sort_hf_wf
 
 ! **********************************************************************
+! TODO:  <25-03-19, J.-N. Lang> !
+! deprecated
 subroutine init_hybrid_exwf(ex)
 ! **********************************************************************
   use KIND_TYPES, only: QREALKIND
@@ -1980,16 +1982,18 @@ subroutine init_hybrid_exwf(ex)
   type(wfun), intent(inout) :: ex(:)
 
 #ifdef PRECISION_dp
-  if (hp_switch .eq. 1) then
-    ex(:)%j_qp(1) = cmplx(ex(:)%j(1),kind=qp)
-    ex(:)%j_qp(2) = cmplx(ex(:)%j(2),kind=qp)
-    ex(:)%j_qp(3) = cmplx(ex(:)%j(3),kind=qp)
-    ex(:)%j_qp(4) = cmplx(ex(:)%j(4),kind=qp)
-  end if
+  !if (hp_switch .eq. 1) then
+    !ex(:)%j_qp(1) = cmplx(ex(:)%j(1),kind=qp)
+    !ex(:)%j_qp(2) = cmplx(ex(:)%j(2),kind=qp)
+    !ex(:)%j_qp(3) = cmplx(ex(:)%j(3),kind=qp)
+    !ex(:)%j_qp(4) = cmplx(ex(:)%j(4),kind=qp)
+  !end if
 #endif
 end subroutine init_hybrid_exwf
 
 ! **********************************************************************
+! TODO:  <25-03-19, J.-N. Lang> !
+! deprecated
 subroutine init_hybrid_wf(wf)
 ! **********************************************************************
   use KIND_TYPES, only: QREALKIND
@@ -2000,14 +2004,14 @@ subroutine init_hybrid_wf(wf)
   integer :: swf1,swf2
 
 #ifdef PRECISION_dp
-  if (hp_switch .eq. 1) then
-    swf1 = size(wf,1)
-    swf2 = size(wf,2)
-    wf(:swf1,:swf2)%j_qp(1) = cmplx(wf(:swf1,:swf2)%j(1),kind=qp)
-    wf(:swf1,:swf2)%j_qp(2) = cmplx(wf(:swf1,:swf2)%j(2),kind=qp)
-    wf(:swf1,:swf2)%j_qp(3) = cmplx(wf(:swf1,:swf2)%j(3),kind=qp)
-    wf(:swf1,:swf2)%j_qp(4) = cmplx(wf(:swf1,:swf2)%j(4),kind=qp)
-  end if
+  !if (hp_switch .eq. 1) then
+    !swf1 = size(wf,1)
+    !swf2 = size(wf,2)
+    !wf(:swf1,:swf2)%j_qp(1) = cmplx(wf(:swf1,:swf2)%j(1),kind=qp)
+    !wf(:swf1,:swf2)%j_qp(2) = cmplx(wf(:swf1,:swf2)%j(2),kind=qp)
+    !wf(:swf1,:swf2)%j_qp(3) = cmplx(wf(:swf1,:swf2)%j(3),kind=qp)
+    !wf(:swf1,:swf2)%j_qp(4) = cmplx(wf(:swf1,:swf2)%j(4),kind=qp)
+  !end if
 #endif
 end subroutine init_hybrid_wf
 

@@ -43,6 +43,9 @@ import OLToolbox
 
 config = OLBaseConfig.get_config()
 
+if config['print_python_version']:
+    print('upload_process.py uses Python', sys.version)
+
 backup_old_processes = True
 
 if not config['local_server_path']:

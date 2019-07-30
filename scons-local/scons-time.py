@@ -9,7 +9,7 @@
 #
 
 #
-# Copyright (c) 2001 - 2017 The SCons Foundation
+# Copyright (c) 2001 - 2019 The SCons Foundation
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -31,7 +31,7 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 from __future__ import division, print_function
 
-__revision__ = "src/script/scons-time.py 74b2c53bc42290e911b334a6b44f187da698a668 2017/11/14 13:16:53 bdbaddog"
+__revision__ = "src/script/scons-time.py a56bbd8c09fb219ab8a9673330ffcd55279219d0 2019-03-26 23:16:31 bdeegan"
 
 import getopt
 import glob
@@ -58,12 +58,12 @@ def make_temp_file(**kw):
     return result
 
 def HACK_for_exec(cmd, *args):
-    '''
+    """
     For some reason, Python won't allow an exec() within a function
     that also declares an internal function (including lambda functions).
     This function is a hack that calls exec() in a function with no
     internal functions.
-    '''
+    """
     if not args:          exec(cmd)
     elif len(args) == 1:  exec(cmd, args[0])
     else:                 exec(cmd, args[0], args[1])
@@ -147,7 +147,7 @@ class Gnuplotter(Plotter):
         return line.plot_string()
 
     def vertical_bar(self, x, type, label, comment):
-        if self.get_min_x() <= x and x <= self.get_max_x():
+        if self.get_min_x() <= x <= self.get_max_x():
             points = [(x, 0), (x, self.max_graph_value(self.get_max_y()))]
             self.line(points, type, label, comment)
 
@@ -814,7 +814,9 @@ class SConsTimer(object):
                 self.title = a
 
         if self.config_file:
-            exec(open(self.config_file, 'r').read(), self.__dict__)
+            with open(self.config_file, 'r') as f:
+                config = f.read()
+            exec(config, self.__dict__)
 
         if self.chdir:
             os.chdir(self.chdir)
@@ -933,7 +935,9 @@ class SConsTimer(object):
                 self.title = a
 
         if self.config_file:
-            HACK_for_exec(open(self.config_file, 'r').read(), self.__dict__)
+            with open(self.config_file, 'r') as f:
+                config = f.read()
+            HACK_for_exec(config, self.__dict__)
 
         if self.chdir:
             os.chdir(self.chdir)
@@ -1053,7 +1057,9 @@ class SConsTimer(object):
         object_name = args.pop(0)
 
         if self.config_file:
-            HACK_for_exec(open(self.config_file, 'r').read(), self.__dict__)
+            with open(self.config_file, 'r') as f:
+                config = f.read()
+            HACK_for_exec(config, self.__dict__)
 
         if self.chdir:
             os.chdir(self.chdir)
@@ -1191,7 +1197,9 @@ class SConsTimer(object):
             sys.exit(1)
 
         if self.config_file:
-            exec(open(self.config_file, 'r').read(), self.__dict__)
+            with open(self.config_file, 'r') as f:
+                config = f.read()
+            exec(config, self.__dict__)
 
         if args:
             self.archive_list = args

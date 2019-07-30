@@ -28,10 +28,12 @@ module ol_init
   public :: set_init_error_fatal
   public :: set_parameter, get_parameter, parameters_flush, tree_parameters_flush
   public :: register_cleanup, cleanup
-  public :: set_if_modified
+  public :: set_if_modified, set_if_modified_muren
 
   logical, save :: setparameter_tree_was_called = .true.
   logical, save :: setparameter_loop_was_called = .true.
+  logical, save :: setparameter_muren_was_called = .true.
+  logical, save :: setparameter_alphaQCD_was_called = .true.
   logical, save :: forwarded_init = .false.
   integer, save :: error = 0
   integer, save :: init_error_fatal = 2
@@ -106,6 +108,26 @@ module ol_init
       setparameter_loop_was_called = .true.
     end if
   end subroutine set_if_modified_double
+
+  subroutine set_if_modified_muren(current, new)
+    implicit none
+    real(DREALKIND), intent(inout) :: current
+    real(DREALKIND), intent(in) :: new
+    if (current /= new) then
+      current = new
+      setparameter_muren_was_called = .true.
+    end if
+  end subroutine set_if_modified_muren
+
+  subroutine set_if_modified_alphaQCD(current, new)
+    implicit none
+    real(DREALKIND), intent(inout) :: current
+    real(DREALKIND), intent(in) :: new
+    if (current /= new) then
+      current = new
+      setparameter_alphaQCD_was_called = .true.
+    end if
+  end subroutine set_if_modified_alphaQCD
 
   subroutine set_if_modified_quad(current, new)
     implicit none
@@ -278,9 +300,25 @@ module ol_init
         else
           call ol_msg(0, trim(param) // " ignored. Only available in expert mode.")
         end if
-      case ("use_qp_invariants")
+      case ("sync_qp_kinematics")
         if (expert_mode) then
-          call set_if_modified(use_qp_invariants, val)
+          call set_if_modified(sync_qp_kinematics, val)
+        else
+          call ol_msg(0, trim(param) // " ignored. Only available in expert mode.")
+        end if
+      case ("hp_fake_trig")
+        if (expert_mode) then
+          call set_if_modified(hp_fake_trig, val)
+        else
+          call ol_msg(0, trim(param) // " ignored. Only available in expert mode.")
+        end if
+      case ("hel_mem_opt","hel_mem_opt_switch")
+        if (expert_mode) then
+          if (val == 0) then
+            call set_if_modified(hel_mem_opt_switch, .false.)
+          else
+            call set_if_modified(hel_mem_opt_switch, .true.)
+          end if
         else
           call ol_msg(0, trim(param) // " ignored. Only available in expert mode.")
         end if
@@ -307,15 +345,29 @@ module ol_init
       case ("write_parameters", "parameters_write")
         if (val == 0) write_params_at_start = .false.
         if (val == 1) write_params_at_start = .true.
+      case ("check_poles")
+        if (val == 1) then
+          do_pole_checks = .true.
+        else
+          do_pole_checks = .false.
+        end if
       case ("ti_monitor", "timonitor")
         ti_monitor = val
       case ("nf", "n_quarks")
         call set_if_modified(nf, val)
-      case ("nq_nondecoupled", "minnf_alphasrun")
+      case ("nq_nondecoupled", "minnf_alphasrun", "nf_alphasrun")
         call set_if_modified(nq_nondecoupl, val)
       case ("nc", "ncolours", "ncolors")
         ! affects only renormalisation, r2, and ir-subtraction
         call set_if_modified(nc, val)
+      case ("freeyuk_on")
+        if (val == 0) then
+          yuk_from_mass = .true.
+        else if (val == 1) then
+          yuk_from_mass = .false.
+        else
+          call ol_error("freeyuk_on not available:" // trim(to_string(val)))
+        end if
       case ("coupling_qcd_0", "coupling_qcd_t", "coupling_qcd_tree")
         coupling_qcd(0) = val
       case ("coupling_qcd_1", "coupling_qcd_l", "coupling_qcd_loop")
@@ -327,22 +379,22 @@ module ol_init
         call set_if_modified(do_ew_renorm, 1)
       case ("add_associated_ew")
         add_associated_ew = val
-      case ("order_ew")
+      case ("order_ew", "oew")
         coupling_ew(0) = val
         coupling_ew(1) = 0
         coupling_qcd(0) = -1
         coupling_qcd(1) = -1
-      case ("order_qcd")
+      case ("order_qcd", "oqcd")
         coupling_ew(0) = -1
         coupling_ew(1) = -1
         coupling_qcd(0) = val
         coupling_qcd(1) = 0
         call set_if_modified(do_ew_renorm, 1)
-      case ("loop_order_ew")
+      case ("loop_order_ew", "loew")
         coupling_ew = -1
         coupling_qcd = -1
         loop_order_ew = val
-      case ("loop_order_qcd")
+      case ("loop_order_qcd", "loqcd")
         coupling_ew = -1
         coupling_qcd = -1
         loop_order_qcd = val
@@ -352,6 +404,12 @@ module ol_init
         call set_if_modified(ct_is_on, val)
       case ("r2_on")
         call set_if_modified(r2_is_on, val)
+      case ("iop_on")
+        if (val==1) then
+          call set_if_modified(ir_is_on, 2)
+        else
+          call set_if_modified(ir_is_on, 1)
+        end if
       case ("ir_on")
         call set_if_modified(ir_is_on, val)
       case ("tp_on")
@@ -366,7 +424,7 @@ module ol_init
         end if
       case ("ioperator_mode")
         call set_if_modified(ioperator_mode, val)
-      case ("polecheck")
+      case ("polecheck","truepoles","truepoles_on")
         if (val == 1) then
           call set_if_modified(coli_cache_use, 0)
           call set_if_modified(polecheck_is, val)
@@ -417,12 +475,12 @@ module ol_init
         call set_if_modified(do_qcd_renorm, val)
       case ("se_integral_switch")
         call set_if_modified(se_integral_switch, val)
-      case ("ew_scheme")
-        if (val /= 0 .and. val /= 1 .and. val /= 2) then
+      case ("ew_scheme", "ewscheme")
+        if (val /= 0 .and. val /= 1 .and. val /= -1 .and. val /= 2) then
           call ol_error(1,"unrecognised ew_scheme:" // to_string(val))
         else
           call set_if_modified(ew_scheme, val)
-          call set_if_modified(ew_renorm_scheme, val)
+          call set_if_modified(ew_renorm_scheme, abs(val))
         end if
       case ("ew_renorm_scheme")
         if (val /= 0 .and. val /= 1 .and. val /= 2) then
@@ -454,8 +512,12 @@ module ol_init
         else
           call ol_error(1,"unrecognised " // trim(param) // "=" // to_string(val))
         end if
-      case ("complex_mass_scheme", "use_cms")
-        call set_if_modified(cms_on, val)
+      case ("complex_mass_scheme", "use_cms", "cms")
+        if (val == 0 .or. val == 1 .or. val == 2) then
+          call set_if_modified(cms_on, val)
+        else
+          call ol_error(1,"unrecognised " // trim(param) // "=" // to_string(val))
+        end if
       case ("cll_tenred")
         call set_if_modified(cll_tenred, val)
       case ("cll_channels")
@@ -637,7 +699,7 @@ module ol_init
         val = scaling_mode
       case ("nf", "n_quarks")
         val = nf
-      case ("nq_nondecoupled", "minnf_alphasrun")
+      case ("nq_nondecoupled", "minnf_alphasrun", "nf_alphasrun")
         val = nq_nondecoupl
       case ("nc", "ncolours", "ncolors")
         val = nc
@@ -665,7 +727,7 @@ module ol_init
         val = CKMORDER
       case ("ioperator_mode")
         val = ioperator_mode
-      case ("polecheck")
+      case ("polecheck","truepoles","truepoles_on")
         val = polecheck_is
       case ("fermion_loops")
         val = swf
@@ -701,7 +763,7 @@ module ol_init
         val = ew_scheme
       case ("ew_renorm_scheme")
         val = ew_renorm_scheme
-      case ("complex_mass_scheme", "use_cms")
+      case ("complex_mass_scheme", "use_cms", "cms")
         val = cms_on
       case ("cll_tenred")
         val = cll_tenred
@@ -723,8 +785,10 @@ module ol_init
         val = hp_switch
       case ("bubble_vertex")
         val = bubble_vertex
-      case ("use_qp_invariants")
-        val = use_qp_invariants
+      case ("sync_qp_kinematics")
+        val = sync_qp_kinematics
+      case ("hp_fake_trig")
+        val = hp_fake_trig
       case ("verbose")
         call get_verbose(val)
       case("do_not_stop")
@@ -782,17 +846,17 @@ module ol_init
         call set_if_modified(mureg_unscaled, val)
         call set_if_modified(muren_unscaled, val)
       case ("muren")
-        call set_if_modified(muren_unscaled, val)
+        call set_if_modified_muren(muren_unscaled, val)
       case ("mureg")
         if (mureg /= val) reset_mureg = .true.
         call set_if_modified(mureg_unscaled, val)
       case ("alphas", "alpha_s", "alpha_qcd")
-        call set_if_modified(alpha_QCD, val)
+        call set_if_modified_alphaQCD(alpha_QCD, val)
       case ("alpha", "alpha_qed")
-        if (ew_scheme == 0) then
-          call set_if_modified(alpha_QED_0, val)
+        if (ew_scheme == 0 .or. ew_scheme == 2 .or. ew_scheme == -1) then
+          call set_if_modified(alpha_QED_input, val)
         else
-          call set_if_modified(alpha_QED_MZ, val)
+           call ol_msg("WARNING: " // trim(param) // " ignored in ew_scheme=" // trim(to_string(ew_scheme)) // ".")
         end if
       case ("alpha_qed_mz")
         call set_if_modified(alpha_QED_MZ, val)
@@ -812,75 +876,86 @@ module ol_init
         call set_if_modified(rescalefactor, val)
       case ("mass(1)", "d_mass", "rmd")
         call set_if_modified(rMD_unscaled, val)
-        call set_if_modified(rYD_unscaled, val)
+        if (yuk_from_mass) call set_if_modified(rYD_unscaled, val)
       case ("width(1)", "d_width", "wmd")
         call set_if_modified(wMD_unscaled, val)
-      case ("yuk(1)", "d_yuk")
+      case ("yuk(1)", "d_yuk", "yukmass(1)")
         call set_if_modified(rYD_unscaled, val)
       case ("mass(2)", "u_mass", "rmu")
         call set_if_modified(rMU_unscaled, val)
-        call set_if_modified(rYU_unscaled, val)
+        if (yuk_from_mass) call set_if_modified(rYU_unscaled, val)
       case ("width(2)", "u_width", "wmu")
         call set_if_modified(wMU_unscaled, val)
-      case ("yuk(2)", "u_yuk")
+      case ("yuk(2)", "u_yuk", "yukmass(2)")
         call set_if_modified(rYU_unscaled, val)
       case ("mass(3)", "s_mass", "rms")
         call set_if_modified(rMS_unscaled, val)
-        call set_if_modified(rYS_unscaled, val)
+        if (yuk_from_mass) call set_if_modified(rYS_unscaled, val)
       case ("width(3)", "s_width", "wms")
         call set_if_modified(wMS_unscaled, val)
-      case ("yuk(3)", "s_yuk")
+      case ("yuk(3)", "s_yuk", "yukmass(3)")
         call set_if_modified(rYS_unscaled, val)
       case ("mass(4)", "c_mass", "rmc")
         call set_if_modified(rMC_unscaled, val)
-        call set_if_modified(rYC_unscaled, val)
+        if (yuk_from_mass) call set_if_modified(rYC_unscaled, val)
       case ("width(4)", "c_width", "wmc")
         call set_if_modified(wMC_unscaled, val)
-      case ("yuk(4)", "c_yuk")
+      case ("lambdam(4)", "c_lambdam")
+        call set_if_modified(LambdaMC2_unscaled, val**2)
+        if (yuk_from_mass) call set_if_modified(LambdaYC2_unscaled, val**2)
+      case ("yuk(4)", "c_yuk", "yukmass(4)")
         call set_if_modified(rYC_unscaled, val)
-      case ("muy(4)", "c_muy")
-        call set_if_modified(muyc_unscaled, val)
+      case ("yukw(4)", "c_yukw", "yukwidth(4)")
+        call set_if_modified(wYC_unscaled, val)
+      case ("lambday(4)", "c_lambday")
+        call set_if_modified(LambdaYC2_unscaled, val**2)
       case ("mass(5)", "b_mass", "rmb", "mb")
         call set_if_modified(rMB_unscaled, val)
-        call set_if_modified(rYB_unscaled, val)
+        if (yuk_from_mass) call set_if_modified(rYB_unscaled, val)
       case ("width(5)", "b_width", "wmb")
         call set_if_modified(wMB_unscaled, val)
-        call set_if_modified(wYB_unscaled, val)
-      case ("yuk(5)", "b_yuk", "yb")
+        if (yuk_from_mass) call set_if_modified(wYB_unscaled, val)
+      case ("lambdam(5)", "b_lambdam")
+        call set_if_modified(LambdaMB2_unscaled, val**2)
+        if (yuk_from_mass) call set_if_modified(LambdaYB2_unscaled, val**2)
+      case ("yuk(5)", "b_yuk", "yb", "yukmass(5)")
         call set_if_modified(rYB_unscaled, val)
-      case ("yukw(5)", "b_yukw")
+      case ("yukw(5)", "b_yukw", "yukwidth(5)")
         call set_if_modified(wYB_unscaled, val)
-      case ("muy(5)", "b_muy")
-        call set_if_modified(muyb_unscaled, val)
+      case ("lambday(5)", "b_lambday")
+        call set_if_modified(LambdaYB2_unscaled, val**2)
       case ("mass(6)", "t_mass", "rmt", "mt")
         call set_if_modified(rMT_unscaled, val)
-        call set_if_modified(rYT_unscaled, val)
+        if (yuk_from_mass) call set_if_modified(rYT_unscaled, val)
       case ("width(6)", "t_width", "wmt")
         call set_if_modified(wMT_unscaled, val)
-        call set_if_modified(wYT_unscaled, val)
-      case ("yuk(6)", "t_yuk", "yt")
+        if (yuk_from_mass) call set_if_modified(wYT_unscaled, val)
+      case ("lambdam(6)", "t_lambdam")
+        call set_if_modified(LambdaMT2_unscaled, val**2)
+        if (yuk_from_mass) call set_if_modified(LambdaYT2_unscaled, val**2)
+      case ("yuk(6)", "t_yuk", "yt", "yukmass(6)")
         call set_if_modified(rYT_unscaled, val)
-      case ("yukw(6)", "t_yukw")
+      case ("yukw(6)", "t_yukw", "yukwidth(6)")
         call set_if_modified(wYT_unscaled, val)
-      case ("muy(6)", "t_muy")
-        call set_if_modified(muyt_unscaled, val)
+      case ("lambday(6)", "t_lambday")
+        call set_if_modified(LambdaYT2_unscaled, val**2)
       case ("mass(11)", "e_mass", "rme")
         call set_if_modified(rME_unscaled, val)
-        call set_if_modified(rYE_unscaled, val)
+        if (yuk_from_mass) call set_if_modified(rYE_unscaled, val)
       case ("width(11)", "e_width", "wme")
         call set_if_modified(wME_unscaled, val)
       case ("yuk(11)", "e_yuk")
         call set_if_modified(rYE_unscaled, val)
       case ("mass(13)", "mu_mass", "rmm")
         call set_if_modified(rMM_unscaled, val)
-        call set_if_modified(rYM_unscaled, val)
+        if (yuk_from_mass) call set_if_modified(rYM_unscaled, val)
       case ("width(13)", "mu_width", "wmm")
         call set_if_modified(wMM_unscaled, val)
       case ("yuk(13)", "m_yuk", "mu_yuk")
         call set_if_modified(rYM_unscaled, val)
       case ("mass(15)", "tau_mass", "rml")
         call set_if_modified(rML_unscaled, val)
-        call set_if_modified(rYL_unscaled, val)
+        if (yuk_from_mass) call set_if_modified(rYL_unscaled, val)
       case ("width(15)", "tau_width", "wml")
         call set_if_modified(wML_unscaled, val)
       case ("yuk(15)", "l_yuk", "tau_yuk")
@@ -1132,7 +1207,7 @@ module ol_init
         call set_if_modified(x_uv, 1/val)
       case ("fact_ir")
         call set_if_modified(x_ir, 1/val)
-      case ("pole_uv")
+      case ("pole_uv", "pole_uv1")
         call set_if_modified(de1_uv, val)
       case ("pole_ir1")
         call set_if_modified(de1_ir, val)
@@ -1176,13 +1251,13 @@ module ol_init
       case("psp_tolerance")
         psp_tolerance = val
 
-      case ("lambda_hhh")
+      case ("lambda_hhh", "kappa_hhh")
         call set_if_modified(lambdaHHH, val)
-      case ("lambda_hhhh")
+      case ("lambda_hhhh", "kappa_hhhh")
         call set_if_modified(lambdaHHHH, val)
-      case ("lambda_hww")
+      case ("lambda_hww", "kappa_hww")
         call set_if_modified(lambdaHWW, val)
-      case ("lambda_hzz")
+      case ("lambda_hzz", "kappa_hzz")
         call set_if_modified(lambdaHZZ, val)
 
       ! Hybrid precision mode thresholds
@@ -1355,7 +1430,7 @@ module ol_init
         val = 1/x_uv
       case ("fact_ir")
         val = 1/x_ir
-      case ("pole_uv")
+      case ("pole_uv","pole_uv1")
         val = de1_uv
       case ("pole_ir1")
         val = de1_ir
@@ -1552,12 +1627,21 @@ module ol_init
     use ol_parameters_init_/**/DREALKIND, only: parameters_init, loop_parameters_init
     use ol_parameters_init_/**/QREALKIND, only: parameters_init_qp=>parameters_init, &
                                                 loop_parameters_init_qp=>loop_parameters_init
+    use ol_parameters_init_/**/REALKIND, only: qcd_parameters_init
     implicit none
     if (setparameter_tree_was_called .or. setparameter_loop_was_called) then
       call parameters_init()
       call loop_parameters_init()
       setparameter_tree_was_called = .false.
       setparameter_loop_was_called = .false.
+    end if
+    if (setparameter_alphaQCD_was_called) then
+      call qcd_parameters_init()
+      setparameter_alphaQCD_was_called = .false.
+    end if
+    if (setparameter_muren_was_called) then
+      call qcd_parameters_init(.true.)
+      setparameter_muren_was_called = .false.
     end if
   end subroutine parameters_flush
 

@@ -119,7 +119,8 @@ subroutine Hcheck_last_QA_V(ntry, switch, G_Q, J_A, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp   = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
-      call check_last_QA_V_qp(switch, G_Q%j_qp(:,:,:,h),J_A(t(1,h))%j_qp, G_add_qp)
+      call check_last_QA_V_qp(switch, G_Q%j_qp(:,:,:,h), &
+        cmplx(J_A(t(1,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_Q)
@@ -179,7 +180,8 @@ subroutine Hcheck_last_AQ_Z(ntry, switch, G_A, J_Q, Gtensor, ng_RL, n, t)
     G_add_qp   = 0._/**/QREALKIND
     g_RL_qp = get_coupling_qp(ng_RL)
     do h = 1, n(3)  ! helicity summation
-      call check_last_AQ_Z_qp(switch, G_A%j_qp(:,:,:,h), J_Q(t(1,h))%j_qp, G_add_qp, g_RL_qp)
+      call check_last_AQ_Z_qp(switch, G_A%j_qp(:,:,:,h), &
+        cmplx(J_Q(t(1,h))%j,kind=qp), G_add_qp, g_RL_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_A)
@@ -237,7 +239,8 @@ subroutine Hcheck_last_QA_Z(ntry, switch, G_Q, J_A, Gtensor, ng_RL, n, t)
     G_add_qp   = 0._/**/QREALKIND
     g_RL_qp = get_coupling_qp(ng_RL)
     do h = 1, n(3)  ! helicity summation
-      call check_last_QA_Z_qp(switch, G_Q%j_qp(:,:,:,h), J_A(t(1,h))%j_qp, G_add_qp, g_RL_qp)
+      call check_last_QA_Z_qp(switch, G_Q%j_qp(:,:,:,h), &
+        cmplx(J_A(t(1,h))%j,kind=qp), G_add_qp, g_RL_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_Q)
@@ -288,7 +291,8 @@ subroutine Hcheck_last_AQ_W(ntry, switch, G_A, J_Q, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp   = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
-      call check_last_AQ_W_qp(switch, G_A%j_qp(:,:,:,h), J_Q(t(1,h))%j_qp, G_add_qp)
+      call check_last_AQ_W_qp(switch, G_A%j_qp(:,:,:,h), &
+        cmplx(J_Q(t(1,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_A)
@@ -339,7 +343,8 @@ subroutine Hcheck_last_QA_W(ntry, switch, G_Q, J_A, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp   = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
-      call check_last_QA_W_qp(switch, G_Q%j_qp(:,:,:,h), J_A(t(1,h))%j_qp, G_add_qp)
+      call check_last_QA_W_qp(switch, G_Q%j_qp(:,:,:,h), &
+        cmplx(J_A(t(1,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_Q)
@@ -361,7 +366,8 @@ subroutine Hcheck_last_A_Q(ntry, switch, G_A, mom, M, Gtensor, n)
   use ol_kinematics_/**/REALKIND, only: get_LC_5,get_mass
 #ifdef PRECISION_dp
   use ol_last_step_/**/QREALKIND, only: check_last_A_Q_qp=>check_last_A_Q
-  use ol_kinematics_/**/QREALKIND, only: get_LC_5_qp=>get_LC_5,get_mass_qp=>get_mass
+  use ol_kinematics_/**/QREALKIND, only: get_mass_qp=>get_mass
+  use ol_kinematics_/**/DREALKIND, only: get_LC_5_qp
 #endif
   implicit none
   integer,           intent(in)    :: switch, mom
@@ -415,7 +421,8 @@ subroutine Hcheck_last_Q_A(ntry, switch, G_Q, mom, M, Gtensor, n)
   use ol_kinematics_/**/REALKIND, only: get_LC_5,get_mass
 #ifdef PRECISION_dp
   use ol_last_step_/**/QREALKIND, only: check_last_Q_A_qp => check_last_Q_A
-  use ol_kinematics_/**/QREALKIND, only: get_LC_5_qp=>get_LC_5,get_mass_qp=>get_mass
+  use ol_kinematics_/**/QREALKIND, only: get_mass_qp=>get_mass
+  use ol_kinematics_/**/DREALKIND, only: get_LC_5_qp
 #endif
   implicit none
   integer,           intent(in)    :: switch,mom
@@ -469,7 +476,7 @@ subroutine Hcheck_last_UV_W(ntry, switch, Gin_V, moml, J_V, momt, Gtensor, n, t)
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
   use ol_last_step_/**/QREALKIND, only: check_last_UV_W_qp => check_last_UV_W
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
 #endif
   implicit none
   integer,           intent(in)    :: switch,moml,momt
@@ -501,7 +508,8 @@ subroutine Hcheck_last_UV_W(ntry, switch, Gin_V, moml, J_V, momt, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp   = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
-      call check_last_UV_W_qp(switch, Gin_V%j_qp(:,:,:,h),get_LC_4_qp(moml),J_V(t(1,h))%j_qp, &
+      call check_last_UV_W_qp(switch, Gin_V%j_qp(:,:,:,h),get_LC_4_qp(moml), &
+        cmplx(J_V(t(1,h))%j,kind=qp), &
                     get_LC_4_qp(momt), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
@@ -524,7 +532,7 @@ subroutine Hcheck_last_UW_V(ntry, switch, Gin_V, moml, J_V, momt,Gtensor,n,t)
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
   use ol_last_step_/**/QREALKIND, only: check_last_UW_V_qp=>check_last_UW_V
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
 #endif
   implicit none
   integer,           intent(in)    :: switch
@@ -558,7 +566,7 @@ subroutine Hcheck_last_UW_V(ntry, switch, Gin_V, moml, J_V, momt,Gtensor,n,t)
     G_add_qp   = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
       call check_last_UW_V_qp(switch, Gin_V%j_qp(:,:,:,h),get_LC_4_qp(moml), &
-                              J_V(t(1,h))%j_qp,get_LC_4_qp(momt), G_add_qp)
+                              cmplx(J_V(t(1,h))%j,kind=qp),get_LC_4_qp(momt), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_V)
@@ -610,8 +618,8 @@ subroutine Hcheck_last_VE_V(ntry, switch, Gin, J1, J2, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp   = 0._/**/QREALKIND
     do h = 1, n(4)  ! helicity summation
-      call check_last_VE_V_qp(switch, Gin%j_qp(:,:,:,h), J1(t(1,h))%j_qp, &
-                              J2(t(2,h))%j_qp, G_add_qp)
+      call check_last_VE_V_qp(switch, Gin%j_qp(:,:,:,h), cmplx(J1(t(1,h))%j,kind=qp), &
+                              cmplx(J2(t(2,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin)
@@ -663,8 +671,8 @@ subroutine Hcheck_last_EV_V(ntry, switch, Gin, J1, J2, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! helicity summation
-      call check_last_EV_V_qp(switch, Gin%j_qp(:,:,:,h), J1(t(1,h))%j_qp, &
-                           J2(t(2,h))%j_qp, G_add_qp)
+      call check_last_EV_V_qp(switch, Gin%j_qp(:,:,:,h), cmplx(J1(t(1,h))%j,kind=qp), &
+                           cmplx(J2(t(2,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin)
@@ -717,8 +725,8 @@ subroutine Hcheck_last_GGG_G_23(ntry, switch, Gin, J1, J2, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp   = 0._/**/QREALKIND
     do h = 1, n(4)  ! helicity summation
-      call check_last_GGG_G_23_qp(switch, Gin%j_qp(:,:,:,h), J1(t(1,h))%j_qp, &
-              J2(t(2,h))%j_qp, G_add_qp)
+      call check_last_GGG_G_23_qp(switch, Gin%j_qp(:,:,:,h), cmplx(J1(t(1,h))%j,kind=qp), &
+              cmplx(J2(t(2,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin)
@@ -770,8 +778,9 @@ subroutine Hcheck_last_GGG_G_12(ntry, switch, Gin, J1, J2, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp   = 0._/**/QREALKIND
     do h = 1, n(4)  ! helicity summation
-      call check_last_GGG_G_12_qp(switch, Gin%j_qp(:,:,:,h), J1(t(1,h))%j_qp, &
-            J2(t(2,h))%j_qp, G_add_qp)
+      call check_last_GGG_G_12_qp(switch, Gin%j_qp(:,:,:,h), &
+        cmplx(J1(t(1,h))%j,kind=qp), &
+            cmplx(J2(t(2,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin)
@@ -793,7 +802,7 @@ subroutine Hcheck_last_CV_D(ntry, switch, Gin, moml, J_V, momt, Gtensor,n,t)
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
   use ol_last_step_/**/QREALKIND, only: check_last_CV_D_qp => check_last_CV_D
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
 #endif
   implicit none
   integer,           intent(in)    :: switch,moml,momt
@@ -825,7 +834,8 @@ subroutine Hcheck_last_CV_D(ntry, switch, Gin, moml, J_V, momt, Gtensor,n,t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp   = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
-      call check_last_CV_D_qp(switch, Gin%j_qp(:,:,:,h), get_LC_4_qp(moml), J_V(t(1,h))%j_qp, &
+      call check_last_CV_D_qp(switch, Gin%j_qp(:,:,:,h), get_LC_4_qp(moml), &
+        cmplx(J_V(t(1,h))%j,kind=qp), &
               get_LC_4_qp(momt), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
@@ -848,7 +858,7 @@ subroutine Hcheck_last_DV_C(ntry, switch, Gin, moml, J_V, Gtensor, n, t)
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
   use ol_last_step_/**/QREALKIND, only: check_last_DV_C_qp => check_last_DV_C
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
 #endif
   implicit none
   integer,           intent(in)    :: switch,moml
@@ -879,7 +889,8 @@ subroutine Hcheck_last_DV_C(ntry, switch, Gin, moml, J_V, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp       = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
-      call check_last_DV_C_qp(switch, Gin%j_qp(:,:,:,h), get_LC_4_qp(moml), J_V(t(1,h))%j_qp, G_add_qp)
+      call check_last_DV_C_qp(switch, Gin%j_qp(:,:,:,h), get_LC_4_qp(moml), &
+        cmplx(J_V(t(1,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin)
@@ -937,7 +948,8 @@ subroutine Hcheck_last_QA_S(ntry, switch, G_Q, J_A, Gtensor, ng_RL, n, t)
     G_add_qp   = 0._/**/QREALKIND
     g_RL_qp = get_coupling_qp(ng_RL)
     do h = 1, n(3)  ! helicity summation
-      call check_last_QA_S_qp(switch, G_Q%j_qp(:,:,:,h), J_A(t(1,h))%j_qp, G_add_qp, g_RL_qp)
+      call check_last_QA_S_qp(switch, G_Q%j_qp(:,:,:,h), &
+        cmplx(J_A(t(1,h))%j,kind=qp), G_add_qp, g_RL_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_Q)
@@ -995,7 +1007,8 @@ subroutine Hcheck_last_AQ_S(ntry, switch, G_A, J_Q, Gtensor, ng_RL, n, t)
     G_add_qp = 0._/**/QREALKIND
     g_RL_qp = get_coupling_qp(ng_RL)
     do h = 1, n(3)  ! helicity summation
-      call check_last_AQ_S_qp(switch, G_A%j_qp(:,:,:,h), J_Q(t(1,h))%j_qp, G_add_qp, g_RL_qp)
+      call check_last_AQ_S_qp(switch, G_A%j_qp(:,:,:,h), &
+        cmplx(J_Q(t(1,h))%j,kind=qp), G_add_qp, g_RL_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_A)
@@ -1046,7 +1059,8 @@ subroutine Hcheck_last_VV_S(ntry, switch, G_V, J_V, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
-      call check_last_VV_S_qp(switch, G_V%j_qp(:,:,:,h), J_V(t(1,h))%j_qp, G_add_qp)
+      call check_last_VV_S_qp(switch, G_V%j_qp(:,:,:,h), &
+        cmplx(J_V(t(1,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_V)
@@ -1097,7 +1111,8 @@ subroutine Hcheck_last_VS_V(ntry, switch, G_V, J_S, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
-      call check_last_VS_V_qp(switch, G_V%j_qp(:,:,:,h), J_S(t(1,h))%j_qp, G_add_qp)
+      call check_last_VS_V_qp(switch, G_V%j_qp(:,:,:,h), &
+        cmplx(J_S(t(1,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_V)
@@ -1148,7 +1163,8 @@ subroutine Hcheck_last_SV_V(ntry, switch, G_S, J_V, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
-      call check_last_SV_V_qp(switch, G_S%j_qp(:,:,:,h), J_V(t(1,h))%j_qp, G_add_qp)
+      call check_last_SV_V_qp(switch, G_S%j_qp(:,:,:,h), &
+        cmplx(J_V(t(1,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_S)
@@ -1170,7 +1186,7 @@ subroutine Hcheck_last_SV_T(ntry, switch, G_S, moml, J_V, momt, Gtensor, n, t)
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
   use ol_last_step_/**/QREALKIND, only: check_last_SV_T_qp=>check_last_SV_T
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
 #endif
   implicit none
   integer,           intent(in)    :: switch
@@ -1204,7 +1220,7 @@ subroutine Hcheck_last_SV_T(ntry, switch, G_S, moml, J_V, momt, Gtensor, n, t)
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
       call check_last_SV_T_qp(switch, G_S%j_qp(:,:,:,h), get_LC_4_qp(moml), &
-                              J_V(t(1,h))%j_qp, get_LC_4_qp(momt), G_add_qp)
+                              cmplx(J_V(t(1,h))%j,kind=qp), get_LC_4_qp(momt), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_S)
@@ -1226,7 +1242,7 @@ subroutine Hcheck_last_TV_S(ntry, switch, G_S, moml, J_V, momt, Gtensor, n, t)
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
   use ol_last_step_/**/QREALKIND, only: check_last_TV_S_qp=>check_last_TV_S
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
 #endif
   implicit none
   integer,           intent(in)    :: switch
@@ -1260,7 +1276,7 @@ subroutine Hcheck_last_TV_S(ntry, switch, G_S, moml, J_V, momt, Gtensor, n, t)
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
       call check_last_TV_S_qp(switch, G_S%j_qp(:,:,:,h), get_LC_4_qp(moml), &
-                              J_V(t(1,h))%j_qp, get_LC_4_qp(momt), G_add_qp)
+                              cmplx(J_V(t(1,h))%j,kind=qp), get_LC_4_qp(momt), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_S)
@@ -1282,7 +1298,7 @@ subroutine Hcheck_last_VS_T(ntry, switch, G_V, moml, J_S, momt, Gtensor, n, t)
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
   use ol_last_step_/**/QREALKIND, only: check_last_VS_T_qp=>check_last_VS_T
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
 #endif
   implicit none
   integer,           intent(in)    :: switch
@@ -1316,7 +1332,7 @@ subroutine Hcheck_last_VS_T(ntry, switch, G_V, moml, J_S, momt, Gtensor, n, t)
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
       call check_last_VS_T_qp(switch, G_V%j_qp(:,:,:,h), get_LC_4_qp(moml), &
-                              J_S(t(1,h))%j_qp, get_LC_4_qp(momt), G_add_qp)
+                              cmplx(J_S(t(1,h))%j,kind=qp), get_LC_4_qp(momt), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_V)
@@ -1338,7 +1354,7 @@ subroutine Hcheck_last_VT_S(ntry, switch, G_S, moml, J_S, momt, Gtensor, n, t)
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
   use ol_last_step_/**/QREALKIND, only: check_last_VT_S_qp=>check_last_VT_S
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
 #endif
   implicit none
   integer,           intent(in)    :: switch
@@ -1372,7 +1388,7 @@ subroutine Hcheck_last_VT_S(ntry, switch, G_S, moml, J_S, momt, Gtensor, n, t)
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
       call check_last_VT_S_qp(switch, G_S%j_qp(:,:,:,h), get_LC_4_qp(moml), &
-                           J_S(t(1,h))%j_qp, get_LC_4_qp(momt), G_add_qp)
+                           cmplx(J_S(t(1,h))%j,kind=qp), get_LC_4_qp(momt), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_S)
@@ -1394,7 +1410,7 @@ subroutine Hcheck_last_ST_V(ntry, switch, G_S, moml, J_S, momt, Gtensor, n, t)
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
   use ol_last_step_/**/QREALKIND, only: check_last_ST_V_qp=>check_last_ST_V
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
 #endif
   implicit none
   integer,           intent(in)    :: switch
@@ -1428,7 +1444,7 @@ subroutine Hcheck_last_ST_V(ntry, switch, G_S, moml, J_S, momt, Gtensor, n, t)
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
       call check_last_ST_V_qp(switch, G_S%j_qp(:,:,:,h), get_LC_4_qp(moml), &
-                              J_S(t(1,h))%j_qp, get_LC_4_qp(momt), G_add_qp)
+                              cmplx(J_S(t(1,h))%j,kind=qp), get_LC_4_qp(momt), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_S)
@@ -1450,7 +1466,7 @@ subroutine Hcheck_last_TS_V(ntry, switch, G_S, moml, J_S, momt, Gtensor, n, t)
   use ol_kinematics_/**/REALKIND, only: get_LC_4
 #ifdef PRECISION_dp
   use ol_last_step_/**/QREALKIND, only: check_last_TS_V_qp=>check_last_TS_V
-  use ol_kinematics_/**/QREALKIND, only: get_LC_4_qp=>get_LC_4
+  use ol_kinematics_/**/DREALKIND, only: get_LC_4_qp
 #endif
   implicit none
   integer,           intent(in)    :: switch
@@ -1484,7 +1500,7 @@ subroutine Hcheck_last_TS_V(ntry, switch, G_S, moml, J_S, momt, Gtensor, n, t)
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
       call check_last_TS_V_qp(switch, G_S%j_qp(:,:,:,h), get_LC_4_qp(moml), &
-                         J_S(t(1,h))%j_qp, get_LC_4_qp(momt), G_add_qp)
+                         cmplx(J_S(t(1,h))%j,kind=qp), get_LC_4_qp(momt), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_S)
@@ -1535,7 +1551,8 @@ subroutine Hcheck_last_SS_S(ntry, switch, G_S, J_S, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(3)  ! helicity summation
-      call check_last_SS_S_qp(switch, G_S%j_qp(:,:,:,h), J_S(t(1,h))%j_qp, G_add_qp)
+      call check_last_SS_S_qp(switch, G_S%j_qp(:,:,:,h), &
+        cmplx(J_S(t(1,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(G_S)
@@ -1587,8 +1604,9 @@ subroutine Hcheck_last_SSS_S(ntry, switch, Gin_S, J_S1, J_S2, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! helicity summation
-      call check_last_SSS_S_qp(switch, Gin_S%j_qp(:,:,:,h), J_S1(t(1,h))%j_qp, &
-                               J_S2(t(2,h))%j_qp, G_add_qp)
+      call check_last_SSS_S_qp(switch, Gin_S%j_qp(:,:,:,h), &
+                               cmplx(J_S1(t(1,h))%j,kind=qp), &
+                               cmplx(J_S2(t(2,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_S)
@@ -1640,8 +1658,9 @@ subroutine Hcheck_last_VVS_S(ntry, switch, Gin_V, J_V, J_S, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! helicity summation
-      call check_last_VVS_S_qp(switch, Gin_V%j_qp(:,:,:,h), J_V(t(1,h))%j_qp, &
-                            J_S(t(2,h))%j_qp, G_add_qp)
+      call check_last_VVS_S_qp(switch, Gin_V%j_qp(:,:,:,h), &
+                               cmplx(J_V(t(1,h))%j,kind=qp), &
+                               cmplx(J_S(t(2,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_V)
@@ -1693,8 +1712,9 @@ subroutine Hcheck_last_SSV_V(ntry, switch, Gin_S, J_S, J_V, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! helicity summation
-      call check_last_SSV_V_qp(switch, Gin_S%j_qp(:,:,:,h), J_S(t(1,h))%j_qp, &
-                               J_V(t(2,h))%j_qp, G_add_qp)
+      call check_last_SSV_V_qp(switch, Gin_S%j_qp(:,:,:,h), &
+        cmplx(J_S(t(1,h))%j,kind=qp), &
+                               cmplx(J_V(t(2,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_S)
@@ -1746,8 +1766,9 @@ subroutine Hcheck_last_VSS_V(ntry, switch, Gin_V, J_S1, J_S2, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! helicity summation
-      call check_last_VSS_V_qp(switch, Gin_V%j_qp(:,:,:,h), J_S1(t(1,h))%j_qp, &
-                            J_S2(t(2,h))%j_qp, G_add_qp)
+      call check_last_VSS_V_qp(switch, Gin_V%j_qp(:,:,:,h), &
+        cmplx(J_S1(t(1,h))%j,kind=qp), &
+                            cmplx(J_S2(t(2,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_V)
@@ -1799,8 +1820,9 @@ subroutine Hcheck_last_SVV_S(ntry, switch, Gin_S, J_V1, J_V2, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! helicity summation
-      call check_last_SVV_S_qp(switch, Gin_S%j_qp(:,:,:,h), J_V1(t(1,h))%j_qp, &
-                            J_V2(t(2,h))%j_qp, G_add_qp)
+      call check_last_SVV_S_qp(switch, Gin_S%j_qp(:,:,:,h), &
+        cmplx(J_V1(t(1,h))%j,kind=qp), &
+                            cmplx(J_V2(t(2,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_S)
@@ -1852,8 +1874,9 @@ subroutine Hcheck_last_WWV_V(ntry, switch, Gin_V, J_V1, J_V2, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! helicity summation
-      call check_last_WWV_V_qp(switch, Gin_V%j_qp(:,:,:,h), J_V1(t(1,h))%j_qp, &
-                               J_V2(t(2,h))%j_qp, G_add_qp)
+      call check_last_WWV_V_qp(switch, Gin_V%j_qp(:,:,:,h), &
+        cmplx(J_V1(t(1,h))%j,kind=qp), &
+                               cmplx(J_V2(t(2,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_V)
@@ -1905,8 +1928,9 @@ subroutine Hcheck_last_VWW_V(ntry, switch, Gin_V, J_V1, J_V2, Gtensor, n, t)
     Gtensor%cmp_qp = 0._/**/QREALKIND
     G_add_qp = 0._/**/QREALKIND
     do h = 1, n(4)  ! helicity summation
-      call check_last_VWW_V_qp(switch, Gin_V%j_qp(:,:,:,h), J_V1(t(1,h))%j_qp, &
-                               J_V2(t(2,h))%j_qp, G_add_qp)
+      call check_last_VWW_V_qp(switch, Gin_V%j_qp(:,:,:,h), &
+        cmplx(J_V1(t(1,h))%j,kind=qp), &
+                               cmplx(J_V2(t(2,h))%j,kind=qp), G_add_qp)
       Gtensor%cmp_qp = Gtensor%cmp_qp + G_add_qp
     end do
     call hol_dealloc_hybrid(Gin_V)

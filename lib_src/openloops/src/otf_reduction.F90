@@ -784,6 +784,9 @@ subroutine construct_redset4(mom1,mom2,mom3,RedBasis12,RedBasis13,RedBasis23,Red
   use ofred_basis_construction_/**/QREALKIND, only: &
       construct_RedBasis_qp=>construct_RedBasis, &
       construct_p3scalars_qp=>construct_p3scalars
+  use ol_external_decl_/**/DREALKIND, only: init_qp
+  use ol_kinematics_/**/DREALKIND, only: init_qp_kinematics
+  use ol_parameters_decl_/**/REALKIND, only: hp_qp_kinematics_init_mode
 #endif
   implicit none
   integer, intent(in)  :: mom1, mom2, mom3
@@ -852,6 +855,7 @@ subroutine construct_redset4(mom1,mom2,mom3,RedBasis12,RedBasis13,RedBasis23,Red
 
 #ifdef PRECISION_dp
   if (hp_switch .eq. 1 .and. -log10(sqrt(abs(gd3))) .gt. hp_redset_gd3_thres) then
+    if (hp_qp_kinematics_init_mode .gt. 0 .and. .not. init_qp) call init_qp_kinematics
     call construct_RedBasis_qp(RedSet%redbasis%mom1,RedSet%redbasis%mom2,Redbasis_qp)
     call construct_p3scalars_qp(RedSet%mom3,Redbasis_qp,scalars_qp,gd2_qp,gd3_qp)
     RedSet_qp = redset4_qp(redbasis=Redbasis_qp, &
@@ -4686,12 +4690,13 @@ subroutine Hotf_4pt_red(Gin_A,RedSet_4,msq,Gout_A,Gout_A0,Gout_A1,Gout_A2, &
   integer,       intent(in)    :: msq(0:3)
   integer,       intent(in)    :: nhel
   type(hol),     intent(inout) :: Gin_A,Gout_A,Gout_A0,Gout_A1,Gout_A2,Gout_A3
-  integer           :: h, mode_in
+  integer           :: h, mode_in, phys_hel
 #ifdef PRECISION_dp
   type(redset4_qp) :: RedSet_4_qp
 #endif
 
   mode_in = Gin_A%mode
+  phys_hel = size(Gin_A%hf)
 
   if (.not. valid_4pt(Gin_A, Gout_A,Gout_A0,Gout_A1,Gout_A2,Gout_A3)) return
   call err_estim_4pt(RedSet_4,Gin_A,Gout_A,Gout_A0,Gout_A1,Gout_A2,Gout_A3)
@@ -4700,7 +4705,7 @@ subroutine Hotf_4pt_red(Gin_A,RedSet_4,msq,Gout_A,Gout_A0,Gout_A1,Gout_A2, &
 #ifdef PRECISION_dp
   if (Gin_A%mode .ne. hybrid_qp_mode) then
 #endif
-    do h = 1, nhel
+    do h = 1, phys_hel
       call otf_4pt_red(Gin_A%j(:,:,:,h),   &
                        RedSet_4,           &
                        get_mass2(msq),     &
@@ -4727,7 +4732,7 @@ subroutine Hotf_4pt_red(Gin_A,RedSet_4,msq,Gout_A,Gout_A0,Gout_A1,Gout_A2, &
   if (req_qp_cmp(Gout_A)) then
 
     call upgrade_redset4(RedSet_4, RedSet_4_qp)
-    do h = 1, nhel
+    do h = 1, phys_hel
       call otf_4pt_red_qp(Gin_A%j_qp(:,:,:,h),   &
                           RedSet_4_qp,           &
                           get_mass2_qp(msq),     &
@@ -4781,12 +4786,13 @@ subroutine Hotf_4pt_red_R1(Gin_A,RedSet_4,msq,Gout_A,Gout_A0,Gout_A1,Gout_A2, &
   type(hol),     intent(inout) :: Gin_A,Gout_A,Gout_A0,Gout_A1,Gout_A2,Gout_A3, &
                                   Gout_R1
   integer,       intent(in)    :: nhel
-  integer :: h, mode_in
+  integer :: h, mode_in, phys_hel
 #ifdef PRECISION_dp
   type(redset4_qp) :: RedSet_4_qp
 #endif
 
   mode_in = Gin_A%mode
+  phys_hel = size(Gin_A%hf)
 
   if (.not. valid_4pt(Gin_A, Gout_A,Gout_A0,Gout_A1,Gout_A2,Gout_A3,Gout_R1)) return
   call err_estim_4pt(RedSet_4,Gin_A,Gout_A,Gout_A0,Gout_A1,Gout_A2,Gout_A3,Gout_R1)
@@ -4795,7 +4801,7 @@ subroutine Hotf_4pt_red_R1(Gin_A,RedSet_4,msq,Gout_A,Gout_A0,Gout_A1,Gout_A2, &
 #ifdef PRECISION_dp
   if (Gin_A%mode.ne.hybrid_qp_mode) then
 #endif
-    do h = 1, nhel
+    do h = 1, phys_hel
       call otf_4pt_red(Gin_A%j(:,:,:,h),   &
                        RedSet_4,           &
                        get_mass2(msq),     &
@@ -4821,7 +4827,7 @@ subroutine Hotf_4pt_red_R1(Gin_A,RedSet_4,msq,Gout_A,Gout_A0,Gout_A1,Gout_A2, &
 #ifdef PRECISION_dp
   if (req_qp_cmp(Gout_A)) then
     call upgrade_redset4(RedSet_4, RedSet_4_qp)
-    do h = 1, nhel
+    do h = 1, phys_hel
      call otf_4pt_red_qp(Gin_A%j_qp(:,:,:,h),   &
                          RedSet_4_qp,           &
                          get_mass2_qp(msq),     &
@@ -4879,12 +4885,13 @@ subroutine Hotf_5pt_red(Gin_A,RedSet_5,msq,Gout_A,Gout_A0,Gout_A1,Gout_A2, &
   type(hol),     intent(inout) :: Gin_A,Gout_A,Gout_A0,Gout_A1,Gout_A2, &
                                   Gout_A3,Gout_A4
   integer,       intent(in)    :: nhel
-  integer :: h, mode_in
+  integer :: h, mode_in, phys_hel
 #ifdef PRECISION_dp
   type(redset5_qp) :: RedSet_5_qp
 #endif
 
   mode_in = Gin_A%mode
+  phys_hel = size(Gin_A%hf)
 
   if (.not. valid_5pt(Gin_A, Gout_A,Gout_A0,Gout_A1,Gout_A2,Gout_A3,Gout_A4)) return
   call err_estim_5pt(RedSet_5,Gin_A,Gout_A,Gout_A0,Gout_A1,Gout_A2,Gout_A3,Gout_A4)
@@ -4892,7 +4899,7 @@ subroutine Hotf_5pt_red(Gin_A,RedSet_5,msq,Gout_A,Gout_A0,Gout_A1,Gout_A2, &
 #ifdef PRECISION_dp
   if (Gin_A%mode .ne. hybrid_qp_mode) then
 #endif
-    do h = 1, nhel
+    do h = 1, phys_hel
         call otf_5pt_red(Gin_A%j(:,:,:,h),   &
                          RedSet_5,           &
                          get_mass2(msq),      &
@@ -4957,7 +4964,7 @@ subroutine Hotf_5pt_red(Gin_A,RedSet_5,msq,Gout_A,Gout_A0,Gout_A1,Gout_A2, &
 #ifdef PRECISION_dp
   if (req_qp_cmp(Gout_A)) then
     call upgrade_redset5(RedSet_5,RedSet_5_qp)
-    do h = 1, nhel
+    do h = 1, phys_hel
       call otf_5pt_red_qp(Gin_A%j_qp(:,:,:,h),   &
                           RedSet_5_qp,           &
                           get_mass2_qp(msq),      &
@@ -5013,12 +5020,13 @@ subroutine Hotf_5pt_red_R1(Gin_A,RedSet_5,msq,Gout_A,Gout_A0,Gout_A1, &
   type(hol),     intent(inout) :: Gin_A,Gout_A,Gout_A0,Gout_A1,Gout_A2, &
                                   Gout_A3,Gout_A4,Gout_R1
   integer,       intent(in)    :: nhel
-  integer :: h,mode_in
+  integer :: h, mode_in, phys_hel
 #ifdef PRECISION_dp
   type(redset5_qp) :: RedSet_5_qp
 #endif
 
   mode_in = Gin_A%mode
+  phys_hel = size(Gin_A%hf)
 
   if (.not. valid_5pt(Gin_A,Gout_A,Gout_A0,Gout_A1,Gout_A2,Gout_A3,Gout_A4,Gout_R1)) return
   call err_estim_5pt(RedSet_5,Gin_A,Gout_A,Gout_A0,Gout_A1,Gout_A2,Gout_A3,Gout_A4,Gout_R1)
@@ -5026,7 +5034,7 @@ subroutine Hotf_5pt_red_R1(Gin_A,RedSet_5,msq,Gout_A,Gout_A0,Gout_A1, &
 #ifdef PRECISION_dp
   if (Gin_A%mode.ne.hybrid_qp_mode) then
 #endif
-    do h = 1, nhel
+    do h = 1, phys_hel
         call otf_5pt_red(Gin_A%j(:,:,:,h),   &
                          RedSet_5,           &
                          get_mass2(msq),      &
@@ -5092,7 +5100,7 @@ subroutine Hotf_5pt_red_R1(Gin_A,RedSet_5,msq,Gout_A,Gout_A0,Gout_A1, &
 #ifdef PRECISION_dp
   if (req_qp_cmp(Gout_A)) then
     call upgrade_redset5(RedSet_5, RedSet_5_qp)
-    do h = 1, nhel
+    do h = 1, phys_hel
       call otf_5pt_red_qp(Gin_A%j_qp(:,:,:,h),   &
                           RedSet_5_qp,           &
                           get_mass2_qp(msq),      &

@@ -29,6 +29,7 @@
 # * Take proclib_dir from OL config?
 # * proclib_dir is currently relative to the working directory.
 
+from __future__ import print_function
 
 import os
 import sys
@@ -38,7 +39,15 @@ import collections
 from ctypes import c_int, c_double, c_char_p, byref, POINTER
 import OLBaseConfig
 
+try:
+    strtype = basestring
+except NameError:
+    strtype = str
+
 config = OLBaseConfig.get_config()
+
+if config['print_python_version']:
+    print('openloops.py uses Python', sys.version)
 
 proclib_dir = 'proclib'
 
@@ -93,30 +102,30 @@ setparameter_int_c = ol.ol_setparameter_int
 setparameter_int_c.argtypes = [c_char_p, c_int]
 setparameter_int_c.restype = None
 def setparameter_int(key, val):
-    setparameter_int_c(c_char_p(key.encode('utf-8')), val)
+    setparameter_int_c(c_char_p(key.encode()), val)
 
 setparameter_bool_c = ol.ol_setparameter_bool
 setparameter_bool_c.argtypes = [c_char_p, c_int]
 setparameter_bool_c.restype = None
 def setparameter_bool(key, val):
   if val:
-    setparameter_bool_c(c_char_p(key.encode('utf-8')), 1)
+    setparameter_bool_c(c_char_p(key.encode()), 1)
   else:
-    setparameter_bool_c(c_char_p(key.encode('utf-8')), 0)
+    setparameter_bool_c(c_char_p(key.encode()), 0)
 
 # (const char* key, double val)
 setparameter_double_c = ol.ol_setparameter_double
 setparameter_double_c.argtypes = [c_char_p, c_double]
 setparameter_double_c.restype = None
 def setparameter_double(key, val):
-    setparameter_double_c(c_char_p(key.encode('utf-8')), val)
+    setparameter_double_c(c_char_p(key.encode()), val)
 
 # (const char* key, char* val)
 setparameter_string_c = ol.ol_setparameter_string
 setparameter_string_c.argtypes = [c_char_p, c_char_p]
 setparameter_string_c.restype = None
 def setparameter_string(key, val):
-    setparameter_string_c(c_char_p(key.encode('utf-8')), c_char_p(val.encode('utf-8')))
+    setparameter_string_c(c_char_p(key.encode()), c_char_p(val.encode()))
 
 # (const char* key, int[1] val)
 getparameter_int_c = ol.ol_getparameter_int
@@ -133,7 +142,7 @@ register_process_c = ol.ol_register_process
 register_process_c.argtypes = [c_char_p, c_int]
 register_process_c.restype = int
 def register_process(proc, amptype):
-    return register_process_c(c_char_p(proc.encode('utf-8')), amptype)
+    return register_process_c(c_char_p(proc.encode()), amptype)
 
 # (int id) -> int
 n_external = ol.ol_n_external
@@ -246,7 +255,7 @@ def set_parameter(key, val):
         setparameter_bool(key, val)
     elif isinstance(val, float):
         setparameter_double(key, val)
-    elif isinstance(val, str):
+    elif isinstance(val, strtype):
         if key.startswith('alpha') and '/' in val:
             try:
                 valnum, valden = val.split('/')
@@ -263,12 +272,12 @@ def set_parameter(key, val):
 
 def get_parameter_int(key):
     val_c = c_int()
-    getparameter_int_c(c_char_p(key.encode('utf-8')), byref(val_c))
+    getparameter_int_c(c_char_p(key.encode()), byref(val_c))
     return val_c.value
 
 def get_parameter_double(key):
     val_c = c_double()
-    getparameter_double_c(c_char_p(key.encode('utf-8')), byref(val_c))
+    getparameter_double_c(c_char_p(key.encode()), byref(val_c))
     return val_c.value
 
 
@@ -398,12 +407,12 @@ class Process(object):
         typearg = amptype
         needs_tree = False
         needs_pt = False
-        if isinstance(amptype, str):
+        if isinstance(amptype, strtype):
             try:
                 amptype = AMPTYPES[amptype.lower()]
             except KeyError:
                 pass
-        if isinstance(amptype, str):
+        if isinstance(amptype, strtype):
             if not set(typearg) - set(loopspec_flags):
                 if 's' in typearg and 'l' in typearg:
                     amptype = LOOP2

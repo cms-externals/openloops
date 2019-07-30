@@ -44,6 +44,9 @@ else:
 commandline_options = [arg.split('=',1) for arg in sys.argv[1:] if ('=' in arg and not arg.startswith('-'))]
 config = OLBaseConfig.get_config(commandline_options)
 
+if config['print_python_version']:
+    print('download_process.py uses Python', sys.version)
+
 parser = argparse.ArgumentParser(
     description="""Download process code from a web server if a newer version
                    is available which is compatible with the installed
@@ -111,14 +114,14 @@ def update_channel_db(repo):
         local_hash = None
     try:
         if remote_channel_url.startswith('/'):
-            rfh = open(remote_channel_url, 'r')
+            rfh = open(remote_channel_url, 'rb')
         else:
             rfh = urlopen(remote_channel_url)
-    except URLError, e:
+    except (URLError, IOError) as e:
         print('Warning: Channel database update for repository ' + repo_name +
               ' failed (' + str(e) + '). Skip this repository.')
         return False
-    hash_line = rfh.readline()
+    hash_line = rfh.readline().decode()
     if local_hash != hash_line.split()[0]:
         local_hash = hashlib.md5()
         tmp_file = local_channel_file + '.~' + str(os.getpid())
@@ -126,7 +129,7 @@ def update_channel_db(repo):
         lfh.write(hash_line.strip() + '  ' +
                   time.strftime(OLToolbox.timeformat) + '\n')
         for line in rfh:
-            lfh.write(line)
+            lfh.write(line.decode())
             local_hash.update(line.strip())
         lfh.close()
         local_hash = local_hash.hexdigest()
@@ -216,7 +219,7 @@ def download(process, dbs, libmaps):
             rf = open(remote_archive, 'rb')
         else:
             rf = urlopen(remote_archive)
-    except URLError:
+    except (URLError, IOError):
         print('*** DOWNLOAD FAILED ***')
         if args.ignore:
             return
