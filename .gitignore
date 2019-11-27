@@ -1,8 +1,9 @@
 .sconsign.dblite
-process_def
+process_def*
 process_obj
 process_src
 proclib
+openloops.cfg
 *.pyc
 __pycache__
 lib
