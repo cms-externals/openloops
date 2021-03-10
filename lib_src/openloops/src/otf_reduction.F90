@@ -854,7 +854,7 @@ subroutine construct_redset4(mom1,mom2,mom3,RedBasis12,RedBasis13,RedBasis23,Red
   end if
 
 #ifdef PRECISION_dp
-  if (hp_switch .eq. 1 .and. -log10(sqrt(abs(gd3))) .gt. hp_redset_gd3_thres) then
+  if (hp_switch .eq. 1 .and. sqrt(abs(gd3)) .lt. hp_redset_gd3_thres) then
     if (hp_qp_kinematics_init_mode .gt. 0 .and. .not. init_qp) call init_qp_kinematics
     call construct_RedBasis_qp(RedSet%redbasis%mom1,RedSet%redbasis%mom2,Redbasis_qp)
     call construct_p3scalars_qp(RedSet%mom3,Redbasis_qp,scalars_qp,gd2_qp,gd3_qp)
@@ -1766,10 +1766,10 @@ subroutine twopoint_reduction(Gin,p,msq,B0coeff)
     !Bubble with same masses, both different from zero
     else if (msq(0) == msq(1)) then
       f2 = p(5)/msq(0)
-      PPmunu_psq = PPmunu/(3*p(5))
 
       !Exact formula
       if(ABS(f2) > thres_exp) then
+        PPmunu_psq = PPmunu/(3*p(5))
         tempcoeff(1) = msq(0)*((4*one-f2)*Gmunu + (f2-one)*PPmunu_psq )
         tempcoeff(2) =(2*Gmunu + PPmunu_psq)
         tempcoeff(4) = -msq(0)*(two-f2/3)*(PPmunu_psq-4*Gmunu)/2

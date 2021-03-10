@@ -768,17 +768,18 @@ subroutine clean_mom_in(P_in, m_ext2, P, n)
   use KIND_TYPES, only: REALKIND
   use ol_debug, only: ol_msg
   use ol_generic, only: to_string
-  use ol_parameters_decl_/**/DREALKIND, only: psp_tolerance
+  use ol_parameters_decl_/**/DREALKIND, only: psp_tolerance, no_cleaning, cleaning_via_hardness
   implicit none
   real(REALKIND), intent(in)  :: P_in(0:3,n)
   integer,        intent(in)  :: n
   real(REALKIND), intent(in)  :: m_ext2(n)
   real(REALKIND), intent(out) :: P(0:3,n)
   real(REALKIND)  :: E_ref, P0(n), P2(n)
+  real(REALKIND)  :: softness, collinearity, hardness(3:n)
   real(REALKIND)  :: E0(2), E1(2), E2(2)
   real(REALKIND)  :: E0_tot, E1_tot, E2_tot
   real(REALKIND)  :: eps1, eps
-  integer         :: nex, i, pout_max_pos, pout_max_pos_arr(1)
+  integer         :: nex, i, j, pout_max_pos, pout_max_pos_arr(1)
   real            :: prec
 
   P = P_in
@@ -817,8 +818,31 @@ subroutine clean_mom_in(P_in, m_ext2, P, n)
     end if
   end do
 
-  ! position of the outgoing momentum with the largest energy
-  pout_max_pos_arr = maxloc(abs(P(0,3:)))
+  if (no_cleaning) return
+
+  if (cleaning_via_hardness) then
+    ! determine position of the hardest momentum. hardness h is defined as
+    ! h_i = min(softness_i, collinearity_i1, collinearity_i2, ... ) with
+    !   softness_i = E_i/E_ref
+    !   collinearity_ij = p_i . p_j / (E_i E_j)  i != j
+    do i = 3, n
+      softness = abs(P(0,i)/E_ref)
+      hardness(i) = softness
+    end do
+    do i = 3, n
+      do j = 1, i-1
+        collinearity = abs((P(0,i)*P(0,j) - P(1,i)*P(1,j) - P(2,i)*P(2,j) - P(3,i)*P(3,j))/(P(0,i)*P(0,j)))
+        hardness(i) = min(hardness(i), collinearity)
+        if (j .gt. 2) then
+          hardness(j) = min(hardness(j), collinearity)
+        end if
+      end do
+    end do
+    pout_max_pos_arr = maxloc(hardness(3:))
+  else
+    ! position of the outgoing momentum with the largest energy
+    pout_max_pos_arr = maxloc(abs(P(0,3:)))
+  end if
   pout_max_pos = 2 + pout_max_pos_arr(1)
   ! fix 3-momentum by momentum conservation
   do i = 1, 3
@@ -1062,7 +1086,7 @@ subroutine conv_mom_scatt2in_mexpl(P_scatt, m_ext2, P_in_clean, perm_inv, n)
     m_ext2_perm(perm_inv(k)) = m_ext2(k)
   end do
   P_in(:,1:n_scatt) =   scalefactor * P_scatt(:,1:n_scatt)
-  P_in(:,n_scatt+1:)  = - scalefactor * P_scatt(:,n_scatt+1:)
+  P_in(:,n_scatt+1:n)  = - scalefactor * P_scatt(:,n_scatt+1:n)
   if (n_scatt == 2 .and. n > 2) then
     ! Clean momenta to get full numerical precision.
     ! Do the cleaning in the original permutation where the first two momenta are incoming.
@@ -1118,7 +1142,7 @@ subroutine conv_mom_scatt2in_cache(P_in_clean,n)
     m_ext2_perm(inverse_crossing_dp(k)) = get_rmass2(M_ex_dp(k))
   end do
   P_in(:,1:n_scatt) =   scalefactor * P_ex(:,1:n_scatt)
-  P_in(:,n_scatt+1:)  = - scalefactor * P_ex(:,n_scatt+1:)
+  P_in(:,n_scatt+1:n)  = - scalefactor * P_ex(:,n_scatt+1:n)
   if (n_scatt == 2 .and. n > 2) then
     ! Clean momenta to get full numerical precision.
     ! Do the cleaning in the original permutation where the first two momenta are incoming.

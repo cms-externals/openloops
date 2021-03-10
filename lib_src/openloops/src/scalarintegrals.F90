@@ -450,5 +450,89 @@ module ol_self_energy_integrals_/**/REALKIND
   end function calcRdB1
 
 
+  function calcC0(p12_in,p22_in,p32_in,m12_in,m22_in,m32_in)
+#ifdef USE_COLLIER
+    use collier_coefs, only: C0_cll
+#endif
+#ifdef USE_ONELOOP
+    use avh_olo_/**/REALKIND
+#endif
+    complex(REALKIND) calcC0
+    complex(REALKIND), intent(in) :: p12_in, p22_in, p32_in
+    complex(REALKIND), intent(in) :: m12_in, m22_in, m32_in
+    complex(DREALKIND) p12, p22, p32
+    complex(DREALKIND) m12, m22, m32
+    complex(DREALKIND) C0_coli
+#ifdef USE_ONELOOP
+    complex(REALKIND) :: rslt(0:2)
+#endif
+
+    calcC0 = 0
+
+#ifdef USE_COLLIER
+    if (se_integral_switch == 1 .or. se_integral_switch == 7) then
+      p12  = p12_in
+      p22  = p22_in
+      p32  = p32_in
+      m12 = m12_in
+      m22 = m22_in
+      m32 = m32_in
+      call C0_cll(C0_coli,p12,p22,p32,m12,m22,m32) ! check order
+      calcC0 = C0_coli
+    end if
+#endif
+
+#ifdef USE_ONELOOP
+    if (se_integral_switch == 3) then
+      call olo_c0(rslt,p12_in,p22_in,p32_in,m12_in,m22_in,m32_in) ! check order
+      calcC0 = rslt(0) + rslt(1)*de1_UV
+    end if
+#endif
+
+      return
+  end function calcC0
+
+  function calcC1(p12,p02,p22,m02,m12,m22)
+    complex(REALKIND) calcC1
+    complex(REALKIND), intent(in) :: p12, p02, p22
+    complex(REALKIND), intent(in) :: m02, m12, m22
+    complex(REALKIND) :: k2, R31, R32
+
+    ! C.34/C.36 of Denner
+
+    k2     = kappa2(p02,p12,p22)
+    R31    = 0.5*(calcB0(p22,m02,m22)-(p12-m12+m02)*calcC0(p12,p02,p22,m02,m12,m22) &
+                 - calcB0(p02,m22,m12))
+    R31    = 0.5*(calcB0(p12,m02,m12)-(p22-m22+m02)*calcC0(p12,p02,p22,m02,m12,m22) &
+                 - calcB0(p02,m22,m12))
+    calcC1 = -4./k2*(p22*R31+0.5*(p02-p12-p22)*R32)
+
+    return
+  end function calcC1
+
+  function calcC2(p12,p02,p22,m02,m12,m22)
+    complex(REALKIND) calcC2
+    complex(REALKIND), intent(in) :: p12, p02, p22
+    complex(REALKIND), intent(in) :: m02, m12, m22
+    complex(REALKIND) :: k2, R31, R32
+
+    ! C.34/C.36 of Denner
+
+    k2     = kappa2(p02,p12,p22)
+    R31    = 0.5*(calcB0(p22,m02,m22)-(p12-m12+m02)*calcC0(p12,p02,p22,m02,m12,m22) &
+                 - calcB0(p02,m22,m12))
+    R31    = 0.5*(calcB0(p12,m02,m12)-(p22-m22+m02)*calcC0(p12,p02,p22,m02,m12,m22) &
+                 - calcB0(p02,m22,m12))
+    calcC2 = -4./k2*(0.5*(p02-p12-p22)*R31+p12*R32)
+
+    return
+  end function calcC2
+
+  function kappa2(x,y,z)
+    complex(REALKIND) kappa2
+    complex(REALKIND), intent(in) :: x,y,z
+    kappa2 = x*x+y*y+z*z-2.*(x*y+y*z+z*x)
+  end function kappa2
+
 end module ol_self_energy_integrals_/**/REALKIND
 

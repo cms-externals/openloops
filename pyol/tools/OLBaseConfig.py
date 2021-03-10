@@ -126,6 +126,7 @@ def get_config(args=[]):
     parse_option(config, 'cxx')
     parse_option(config, 'ccflags', converter=split_list)
     parse_option(config, 'cxxflags', converter=split_list)
+    parse_option(config, 'cmodel', one_of=['', 'small','medium','large'])
     parse_option(config, 'generator', converter=int, one_of=[0,1,2])
     parse_option(config, 'generator_mode', converter=int, one_of=[-1,0,1,2,3])
     parse_option(config, 'gjobs', converter=int)
@@ -208,6 +209,8 @@ def get_config(args=[]):
         config['link_optimisation'] = ['-O0']
     if config['debug'] in (4,5,6,7):
         config['f_flags'].extend(config['debug_flags_4'])
+    if sys.platform.startswith('linux') and config['cmodel']:
+        config['f_flags'].append('-mcmodel=' + config['cmodel'])
 
     if len(config['release']) > 8:
         exit_error('option \'release\' must have at most 8 characters')

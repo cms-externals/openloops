@@ -62,7 +62,7 @@ subroutine qcd_renormalisation
   zeromasses = [MU==0,MD==0,MS==0,MC==0,MB==0,MT==0]
   N_lf = count(zeromasses(:nf))
 
-  if (N_lf /= 3 .and. N_lf /= 4 .and. N_lf /= 5) then
+  if (N_lf /= 0 .and. N_lf /= 3 .and. N_lf /= 4 .and. N_lf /= 5) then
     call ol_error(2, 'in qcd_renormalisation:')
     call ol_msg( 'N_lf = ' // to_string(N_lf) // 'is not supported.')
     call ol_fatal()
@@ -113,7 +113,7 @@ subroutine qcd_renormalisation
     dZc   = dZq
     dZb   = dZq
     dZt   = dZq
-    if (MC /= 0) then
+    if (nf > 3 .and. MC /= 0) then
       dZc  = -cf * (deC_UV + 2*deC_IR + 4) ! massive charm-quark
       if (LambdaMC2 == 0) then
         dZMC = -cf * (4 + 3*(de1_UV+log(mu2_UV/MC2))) ! on-shell
@@ -121,14 +121,14 @@ subroutine qcd_renormalisation
         dZMC = -cf * 3*(de1_UV+log(mu2_UV/LambdaMC2)) ! MSbar
       end if
     end if
-    if (YC /=0) then
+    if (nf > 3 .and. YC /=0) then
       if (LambdaYC2 == 0) then
         dZYC = -cf * (4 + 3*(de1_UV+log(mu2_UV/YC2))) ! on-shell
       else
         dZYC = -cf * 3*(de1_UV+log(mu2_UV/LambdaYC2)) ! MSbar
       end if
     end if
-    if (MB /= 0) then
+    if (nf > 4 .and. MB /= 0) then
       dZb  = -cf * (deB_UV + 2*deB_IR + 4) ! massive bottom-quark
       if (LambdaMB2 == 0) then
         dZMB = -cf * (4 + 3*(de1_UV+log(mu2_UV/MB2))) ! on-shell
@@ -136,7 +136,7 @@ subroutine qcd_renormalisation
         dZMB = -cf * 3*(de1_UV+log(mu2_UV/LambdaMB2)) ! MSbar
       end if
     end if
-    if (YB /=0) then
+    if (nf > 4 .and. YB /=0) then
       if (LambdaYB2 == 0) then
         dZYB = -cf * (4 + 3*(de1_UV+log(mu2_UV/YB2))) ! on-shell
       else
@@ -146,7 +146,7 @@ subroutine qcd_renormalisation
     ! top-mass renormalisation
     ! on-shell at complex pole p^2 = MT^2: dMT = MT * (-cf * (4 + 3*(de1_UV+log(mu2_UV/MT2))) + dZt)
     ! MSbar:                               dMT = MT * (-cf * (3*(de1_UV+log(mu2_UV/LambdaMT2))) + dZt)
-    if (MT /= 0) then
+    if (nf > 5 .and. MT /= 0) then
       dZt   = -cf * (deT_UV + 2*deT_IR + 4) ! massive top-quark
       if (LambdaMT2 == 0) then
         dZMT = -cf * (4 + 3*(de1_UV+log(mu2_UV/MT2))) ! on-shell
@@ -154,7 +154,7 @@ subroutine qcd_renormalisation
         dZMT = -cf * 3*(de1_UV+log(mu2_UV/LambdaMT2)) ! MSbar
       end if
     end if
-    if (LambdaYT2 == 0) then
+    if (nf > 5 .and. LambdaYT2 == 0) then
       dZYT = -cf * (4 + 3*(de1_UV+log(mu2_UV/YT2))) ! on-shell
     else
       dZYT = -cf * 3*(de1_UV+log(mu2_UV/LambdaYT2)) ! MSbar

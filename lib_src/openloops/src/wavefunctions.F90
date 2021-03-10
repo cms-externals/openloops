@@ -618,7 +618,17 @@ subroutine wfIN_V_MG(P, M, POL, EPS)
 
   if (POL == -1 .or. POL == 1) then
 
-    if (P2_T == 0) then
+    if (P_MOD == 0) then
+
+      ea(1)   = 0
+      ea(2)   = 1
+      ea(3:4) = 0
+
+      eb(1:2) = 0
+      eb(3)   = 1
+      eb(4)   = 0
+
+    else if (P2_T == 0) then
 
       ea(1)   = 0
       ea(2)   = 1
@@ -648,16 +658,26 @@ subroutine wfIN_V_MG(P, M, POL, EPS)
     end if
 
   else if (POL == 0) then
-    epss(1) =     P_MOD / M
-    epss(2) = P(1)*P(0) / (M*P_MOD)
-    epss(3) = P(2)*P(0) / (M*P_MOD)
-    epss(4) = P(3)*P(0) / (M*P_MOD)
+    if (P_MOD == 0) then
+      epss(1) =     0
+      epss(2) =     0
+      epss(3) =     0
+      epss(4) =     1
+    else
+      epss(1) =     P_MOD / M
+      epss(2) = P(1)*P(0) / (M*P_MOD)
+      epss(3) = P(2)*P(0) / (M*P_MOD)
+      epss(4) = P(3)*P(0) / (M*P_MOD)
+    end if
   end if
 
   EPS(1) =   epss(1) -      epss(4)
   EPS(2) =   epss(1) +      epss(4)
   EPS(3) = - epss(2) - CI * epss(3)
   EPS(4) = - epss(2) + CI * epss(3)
+
+  ! workaround
+  EPS = EPS + small_real
 
 end subroutine wfIN_V_MG
 

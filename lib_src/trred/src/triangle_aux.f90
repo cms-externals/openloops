@@ -72,7 +72,7 @@ module triangle_aux_DP
 
   function A0(m2)
     complex(dp), intent(in) :: m2
-    real(dp) :: A0
+    complex(dp) :: A0
     A0 = m2*(cone-log(m2/muUV2) + duv)
   end function A0
 
@@ -653,7 +653,7 @@ module triangle_aux_QP
 
   function A0(m2)
     complex(qp), intent(in) :: m2
-    real(qp) :: A0
+    complex(qp) :: A0
     A0 = m2*(cone-log(m2/muUV2) + duv)
   end function A0
 

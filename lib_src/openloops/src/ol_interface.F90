@@ -37,7 +37,9 @@ module openloops
   public :: welcome, openloops_version_string
   ! process interface
   public :: n_external, amplitudetype, phase_space_point, start, finish
+  public :: averagefactor
   public :: tree_colbasis_dim, tree_colbasis, tree_colourflow
+  public :: loop_colbasis_dim, loop_colbasis
   public :: register_process, register_process_id
   public :: evaluate_tree
   public :: evaluate_cc, evaluate_loopcc, evaluate_cc2
@@ -48,6 +50,7 @@ module openloops
   public :: evaluate_scpowheg, evaluate_loopscpowheg, evaluate_scpowheg2
   public :: evaluate_stensor, evaluate_loopstensor, evaluate_stensor2
   public :: evaluate_tree_colvect, evaluate_tree_colvect2
+  public :: evaluate_loop_colvect, evaluate_loop_colvect2
   public :: evaluate_full, evaluate_loop, evaluate_loop2
   public :: evaluate_loopbare, evaluate_ct, evaluate_loopct, evaluate_r2
   public :: evaluate_iop, evaluate_iop2
@@ -113,6 +116,7 @@ module openloops
     integer, allocatable :: last_pol(:)
     logical :: last_zero = .true.
     procedure(), pointer, nopass :: set_permutation => null()
+    procedure(), pointer, nopass :: get_last_perm => null()
     procedure(), pointer, nopass :: pol_init => null()
     procedure(), pointer, nopass :: set_photons => null()
     procedure(), pointer, nopass :: tree => null()
@@ -125,6 +129,10 @@ module openloops
     procedure(), pointer, nopass :: tree_colbasis_dim => null()
     procedure(), pointer, nopass :: tree_colbasis => null()
     procedure(), pointer, nopass :: tree_colvect => null()
+    procedure(), pointer, nopass :: loop_colbasis_dim => null()
+    procedure(), pointer, nopass :: loop_colbasis => null()
+    procedure(), pointer, nopass :: loop_colvect => null()
+    procedure(), pointer, nopass :: get_averagefactor => null()
     procedure(), pointer, nopass :: iop => null()
     procedure(), pointer, nopass :: loopcc => null()
   end type process_handle
@@ -142,6 +150,7 @@ module openloops
     integer :: NF
     integer :: NC
     integer :: CKMORDER
+    integer :: QED
     integer :: POLSEL
     character :: ME, MM, ML, MU, MD, MS, MC, MB
     integer :: YE, YM, YL, YU, YD, YS, YC, YB, YT
@@ -253,6 +262,10 @@ module openloops
     end if
     get_process_handle%library_handle = lib
     get_process_handle%set_permutation => dlsym(lib, "ol_f_set_permutation_" // trim(proc))
+    tmp_fun => dlsym(lib, "ol_f_get_last_perm_" // trim(proc))
+    if (associated(tmp_fun)) then
+      get_process_handle%get_last_perm => tmp_fun
+    end if
     get_process_handle%rambo => dlsym(lib, "ol_f_rambo_" // trim(proc))
     get_process_handle%amplitude_type = amptype
     get_process_handle%tree => dlsym(lib, "ol_f_amp2_" // trim(proc))
@@ -321,6 +334,16 @@ module openloops
     get_process_handle%tree_colbasis_dim => dlsym(lib, "ol_tree_colbasis_dim_" // trim(proc))
     get_process_handle%tree_colbasis => dlsym(lib, "ol_tree_colbasis_" // trim(proc))
     get_process_handle%tree_colvect => dlsym(lib, "ol_tree_colvect_" // trim(proc))
+    tmp_fun => dlsym(lib, "ol_loop_colbasis_dim_" // trim(proc))
+    if (associated(tmp_fun)) then
+      get_process_handle%loop_colbasis_dim => tmp_fun
+      get_process_handle%loop_colbasis => dlsym(lib, "ol_loop_colbasis_" // trim(proc))
+      get_process_handle%loop_colvect => dlsym(lib, "ol_loop_colvect_" // trim(proc))
+    end if
+    tmp_fun => dlsym(lib, "ol_averagefactor_" // trim(proc))
+    if (associated(tmp_fun)) then
+      get_process_handle%get_averagefactor => tmp_fun
+    end if
     ! stability settings
     get_process_handle%a_switch=a_switch
     get_process_handle%a_switch_rescue=a_switch_rescue
@@ -337,7 +360,10 @@ module openloops
     if (associated(tmp_fun)) then
       get_process_handle%iop => tmp_fun
     end if
-    get_process_handle%loopcc => dlsym(lib, "ol_loopcc_" // trim(proc))
+    tmp_fun => dlsym(lib, "ol_loopcc_" // trim(proc))
+    if (associated(tmp_fun)) then
+      get_process_handle%loopcc => tmp_fun
+    end if
   end function get_process_handle
 
   function register_process_lib(libname, proc, content, amptype, n_in, pol, perm, extid, photon_id, qcd_powers)
@@ -491,7 +517,7 @@ module openloops
 
     call get_environment_variable("OpenLoopsPath", tmp)
     if (len_trim(tmp) /= 0) then
-      call set_parameter("install_path", tmp, error)
+      call set_parameter("install_path", trim(tmp), error)
     end if
 
     call ol_msg(3,"registering process: " // trim(process_in) )
@@ -1328,7 +1354,7 @@ module openloops
       & rYE, rYM, rYL, rYU, rYD, rYC, rYS, rYB, rYT, &
       & leadingcolour, coupling_qcd, coupling_ew, &
       & loop_order_ew, loop_order_qcd, &
-      & approximation, CKMORDER, model, allowed_libs, apicheck
+      & approximation, CKMORDER, QED, model, allowed_libs, apicheck
     use ol_loop_parameters_decl_/**/DREALKIND , only: nf, nc
     use ol_version, only: process_api
     implicit none
@@ -1361,6 +1387,7 @@ module openloops
       call check(process_infos(p)%NC == nc, found, "nc NOT ok.")
       call check(process_infos(p)%NF == nf, found, "nf NOT ok.")
       call check(process_infos(p)%CKMorder == CKMORDER, found, "CKM NOT ok.")
+      call check(process_infos(p)%QED == QED, found, "QED NOT ok.")
       call check(index(process_infos(p)%MODEL, trim(model)) == 1, found, "model NOT ok.")
       call check((process_infos(p)%ME /= "0" .and. rME /= 0) .or. rME == 0, found, "mass ME NOT ok.")
       call check((process_infos(p)%MM /= "0" .and. rMM /= 0) .or. rMM == 0, found, "mass MM NOT ok.")
@@ -1599,6 +1626,7 @@ module openloops
       call readInfoInt(lineinfo, 'YukT', infos%YT)
       call readInfo(lineinfo, 'APPROX', infos%APPROX)
       call readInfoInt(lineinfo, 'CKMORDER', infos%CKMorder)
+      call readInfoInt(lineinfo, 'QED', infos%QED)
       call readInfoInt(lineinfo, 'nc', infos%NC)
       call readInfoInt(lineinfo, 'nf', infos%NF)
       call readInfoInt(lineinfo, 'LeadingColour', infos%LeadingColour)
@@ -2396,6 +2424,17 @@ module openloops
     n_external_c = process_handles(int(id))%n_particles
   end function n_external_c
 
+  subroutine averagefactor(id,avgf)
+    implicit none
+    integer, intent(in) :: id
+    real(DREALKIND), intent(out) :: avgf
+    if (id <= 0 .or. id > last_process_id) then
+      avgf = 0
+    else
+      call process_handles(id)%set_permutation(process_handles(id)%permutation)
+      call process_handles(id)%get_averagefactor(avgf)
+    end if
+  end subroutine averagefactor
 
   subroutine phase_space_point(id, sqrt_s, psp)
     implicit none
@@ -2438,12 +2477,17 @@ module openloops
     ! ncolb = number of tree colour basis elements;
     ! colelemsz = number of colour colour indices in a colour basis element
     ! nhel = number of helicity configuration, including those which vanish
+    use ol_generic, only: to_string
     implicit none
     integer, intent(in) :: id
     integer, intent(out) :: ncolb, colelemsz, nhel
     integer :: extcols(n_external(id)), ncoupl, maxpows, ncolext
     call stop_invalid_id(id)
     if (error > 1) return
+    if (.not. btest(process_handles(id)%content, 0)) then
+      call ol_fatal("tree_colbasis_dim routine not available for process " // trim(to_string(id)))
+      return
+    end if
     if (.not. associated(process_handles(id)%tree_colbasis_dim)) then
       call ol_msg("Error: colour basis information is not available")
       call ol_fatal("       for process " // process_handles(id)%process_name)
@@ -2732,6 +2776,187 @@ module openloops
   end subroutine tree_colourflow_c
 
 
+  subroutine loop_colbasis_dim(id, ncolb, colelemsz, nhel)
+    ! for process with id 'id' return
+    ! ncolb = number of loop colour basis elements;
+    ! colelemsz = number of colour colour indices in a colour basis element
+    ! nhel = number of helicity configuration, including those which vanish
+    use ol_generic, only: to_string
+    implicit none
+    integer, intent(in) :: id
+    integer, intent(out) :: ncolb, colelemsz, nhel
+    integer :: extcols(n_external(id)), ncoupl, maxpows, ncolext
+    call stop_invalid_id(id)
+    if (error > 1) return
+    if (.not. btest(process_handles(id)%content, 2)) then
+      call ol_fatal("loop_colbasis_dim routine not available for process " // trim(to_string(id)))
+      return
+    end if
+    if (.not. associated(process_handles(id)%loop_colbasis_dim)) then
+      call ol_msg("Error: colour basis information is not available")
+      call ol_fatal("       for process " // process_handles(id)%process_name)
+      return
+    end if
+    call process_handles(id)%loop_colbasis_dim(extcols, ncolb, ncoupl, maxpows, nhel)
+    ncolext = count(extcols /= 0)
+    colelemsz = ncolext/2 + ncolext - 1
+  end subroutine loop_colbasis_dim
+
+
+  subroutine loop_colbasis_dim_c(id, ncolb, colelemsz, nhel) bind(c,name="ol_loop_colbasis_dim")
+    implicit none
+    integer(c_int), value :: id
+    integer(c_int), intent(out) :: ncolb, colelemsz, nhel
+    integer :: f_ncolb, f_colelemsz, f_nhel
+    ! call stop_invalid_id(id) not needed here
+    call loop_colbasis_dim(int(id), f_ncolb, f_colelemsz, f_nhel)
+    ncolb = f_ncolb
+    colelemsz = f_colelemsz
+    nhel = f_nhel
+  end subroutine loop_colbasis_dim_c
+
+
+  pure function get_loop_colbasis_dim(id)
+    ! number of loop colour basis elements; used to declare array sizes
+    implicit none
+    integer, intent(in) :: id
+    integer :: get_loop_colbasis_dim
+    integer :: extcols(n_external(id)), ncoupl, maxpows, nhel
+    ! call stop_invalid_id(id) not possible here,
+    ! because 'print' and 'stop' are not allowed in pure functions.
+    if (id <= 0 .or. id > last_process_id) then
+      get_loop_colbasis_dim = 0
+    else
+      call process_handles(id)%loop_colbasis_dim(extcols, get_loop_colbasis_dim, ncoupl, maxpows, nhel)
+    end if
+  end function get_loop_colbasis_dim
+
+
+  pure function loop_colbasis_elemsize(id)
+    ! number of coloured external particles; used to declare array sizes
+    implicit none
+    integer, intent(in) :: id
+    integer :: loop_colbasis_elemsize
+    integer :: extcols(n_external(id)), ncolb, ncoupl, maxpows, nhel, ncolext
+    ! call stop_invalid_id(id) not possible here,
+    ! because 'print' and 'stop' are not allowed in pure functions.
+    if (id <= 0 .or. id > last_process_id) then
+      loop_colbasis_elemsize = 0
+    else
+      call process_handles(id)%loop_colbasis_dim(extcols, ncolb, ncoupl, maxpows, nhel)
+      ncolext = count(extcols /= 0)
+      loop_colbasis_elemsize = ncolext/2+ncolext-1
+      if (ncolext == 0) loop_colbasis_elemsize = 0
+    end if
+  end function loop_colbasis_elemsize
+
+
+  pure function get_loop_nhel(id)
+    ! number of helicity configurations (all, not just non-vanishing); used to declare array sizes
+    implicit none
+    integer, intent(in) :: id
+    integer :: get_loop_nhel
+    integer :: extcols(n_external(id)), ncolb, ncoupl, maxpows
+    ! call stop_invalid_id(id) not possible here,
+    ! because 'print' and 'stop' are not allowed in pure functions.
+    if (id <= 0 .or. id > last_process_id) then
+      get_loop_nhel = 0
+    else
+      call process_handles(id)%loop_colbasis_dim(extcols, ncolb, ncoupl, maxpows, get_loop_nhel)
+    end if
+  end function get_loop_nhel
+
+
+  subroutine loop_colbasis(id, basis, needed)
+    use ol_generic, only: compositions2, nth_permutation
+    implicit none
+    integer, intent(in) :: id
+    integer, intent(out) :: basis(:,:)
+    integer, intent(out) :: needed(:,:)
+    integer :: extcols(n_external(id)), ncolb, ncoupl, maxpows, nhel
+    integer, allocatable :: pbasis(:,:), selected_powers(:,:), perm(:), compos(:,:), compo(:), basiselem(:)
+    integer :: ncolext, i, j, k, m, needij
+    integer :: ncol2ext(n_external(id)), invextperm(n_external(id))
+    logical :: powok
+    call stop_invalid_id(id)
+    if (error > 1) return
+    call process_handles(id)%loop_colbasis_dim(extcols, ncolb, ncoupl, maxpows, nhel)
+    ! number of coloured external particles
+    ncolext = 0
+    do i = 1, size(extcols)
+      if (extcols(i) /= 0) then
+        ncolext = ncolext + 1
+        ncol2ext(ncolext) = i
+      end if
+    end do
+    do i = 1, size(invextperm)
+      invextperm(process_handles(id)%permutation(i)) = i
+    end do
+    allocate(pbasis(ncoupl+2,ncolb))
+    allocate(selected_powers(maxpows,ncoupl))
+    allocate(perm(ncolext))
+    call compositions2(compos, ncolext)
+    allocate(compo(size(compos,1)))
+    allocate(basiselem(ncolext/2+ncolext-1))
+    call process_handles(id)%loop_colbasis(pbasis, selected_powers)
+    do i = 1, ncolb
+      do j = i, ncolb
+        needij = 1
+        do k = 1, ncoupl
+          powok = .false.
+          do m = 1, maxpows
+            if (pbasis(2+k,i) + pbasis(2+k,j) == selected_powers(m,k)) then
+              powok = .true.
+              exit
+            end if
+          end do
+          if (.not. powok) then
+            needij = 0
+            exit
+          end if
+        end do
+        needed(i,j) = needij
+        needed(j,i) = needij
+      end do
+      ! TODO:
+      ! - apply crossing
+      compo = compos(:,pbasis(1,i))
+      perm = nth_permutation([(k, k=1, ncolext)], pbasis(2,i))
+      basiselem = 0
+      m = 1
+      do j = 1, count(compo > 0)
+        do k = 1, compo(j)
+          basiselem(m+j-1) = invextperm(ncol2ext(perm(m)))
+          m = m + 1
+        end do
+      end do
+      basis(:,i) = basiselem
+    end do
+    deallocate(pbasis)
+    deallocate(selected_powers)
+    deallocate(perm)
+    deallocate(compos)
+    deallocate(compo)
+    deallocate(basiselem)
+  end subroutine loop_colbasis
+
+
+  subroutine loop_colbasis_c(id, basis, needed) bind(c,name="ol_loop_colbasis")
+    implicit none
+    integer(c_int), value :: id
+    integer(c_int), intent(out) :: basis(loop_colbasis_elemsize(id),get_loop_colbasis_dim(id))
+    integer(c_int), intent(out) :: needed(get_loop_colbasis_dim(id),get_loop_colbasis_dim(id))
+    integer :: f_basis(loop_colbasis_elemsize(id),get_loop_colbasis_dim(id))
+    integer :: f_needed(get_loop_colbasis_dim(id),get_loop_colbasis_dim(id))
+    ! call stop_invalid_id(id) not needed here
+    call loop_colbasis(int(id), f_basis, f_needed)
+    basis = f_basis
+    needed = f_needed
+  end subroutine loop_colbasis_c
+
+
+
+
   subroutine start() bind(c,name="ol_start")
     use ol_parameters_decl_/**/DREALKIND,  only: &
       & write_params_at_start, stability_logdir_not_created, stability_log, stability_logdir, &
@@ -2829,6 +3054,7 @@ module openloops
 
 
   subroutine evaluate_tree_colvect_c(id, pp, amp, nhel) bind(c,name="ol_evaluate_tree_colvect")
+    use ol_ew_renormalisation_/**/REALKIND, only: photon_factors
     implicit none
     integer(c_int), value :: id
     real(c_double), intent(in) :: pp(5*n_external(id))
@@ -2837,8 +3063,11 @@ module openloops
     real(c_double) :: res
     complex(DREALKIND) :: f_amp(get_tree_colbasis_dim(id),get_nhel(id))
     integer :: f_nhel, k, h
+    real(DREALKIND) :: f_bornphotonfactor
     call evaluate_tree_c(id, pp, res) ! fill colour vector cache
     call process_handles(int(id))%tree_colvect(f_amp, f_nhel)
+    call photon_factors(process_handles(id)%photon_id, 0, f_bornphotonfactor)
+    f_amp = f_amp * sqrt(f_bornphotonfactor)
     do h = 1, f_nhel
       do k = 1, size(f_amp,1)
         amp(2*k-1,h) = real(f_amp(k,h))
@@ -2873,6 +3102,7 @@ module openloops
 
 
   subroutine evaluate_tree_colvect2_c(id, pp, m2arr) bind(c,name="ol_evaluate_tree_colvect2")
+    use ol_ew_renormalisation_/**/REALKIND, only: photon_factors
     implicit none
     integer(c_int), value :: id
     real(c_double), intent(in) :: pp(5*n_external(id))
@@ -2880,10 +3110,147 @@ module openloops
     integer :: nhel
     real(c_double) :: res
     complex(DREALKIND) :: amp(get_tree_colbasis_dim(id),get_nhel(id))
+    real(DREALKIND) :: bornphotonfactor
     call evaluate_tree_c(id, pp, res) ! fill colour vector cache
     call process_handles(int(id))%tree_colvect(amp, nhel)
     m2arr = sum(real(amp(:,1:nhel)*conjg(amp(:,1:nhel))), 2)
+    call photon_factors(process_handles(id)%photon_id, 0, bornphotonfactor)
+    m2arr = m2arr * bornphotonfactor
   end subroutine evaluate_tree_colvect2_c
+
+
+  subroutine evaluate_loop_colvect(id, psp, M2amp, nhel, acc)
+    ! Loop amplitude as colour vectors for each helicity configuration.
+    ! (only available for s-type ampltudes)
+    ! [in] id: process id as set by register_process
+    ! [in] psp: phase space point
+    ! [out] amp: amp(:,h) is the colour vector for helicity configuration h
+    ! [out] nhel: number of non-zero helicity configurations,
+    !       amp(:,nhel+1:) contains no information
+    use ol_data_types_/**/DREALKIND, only: correlator
+    use ol_ew_renormalisation_/**/REALKIND, only: photon_factors
+    implicit none
+    integer, intent(in) :: id
+    real(DREALKIND), intent(in) :: psp(:,:)
+    complex(DREALKIND), intent(out) :: M2amp(:,:)
+    real(DREALKIND), intent(out), optional :: acc
+    real(DREALKIND) :: m2l0, m2l1(0:2), ir1(0:2), m2l2(0:4), ir2(0:4), f_acc
+    type(correlator) :: Lcc
+    integer, intent(out) :: nhel
+    real(DREALKIND) :: bornphotonfactor
+    if (.not. associated(process_handles(id)%loop_colvect)) then
+      call ol_msg("Error: loop colour vector information is not available")
+      call ol_fatal("       for process " // process_handles(id)%process_name)
+      return
+    end if
+    Lcc%type=100
+    call evaluate_fullcr(id, psp, m2l0, m2l1, ir1, m2l2, ir2, Lcc, f_acc) ! fill colour vector cache
+    call process_handles(id)%loop_colvect(M2amp, nhel)
+    call photon_factors(process_handles(id)%photon_id, 0, bornphotonfactor)
+    M2amp = M2amp * sqrt(bornphotonfactor)
+    if (present(acc)) acc = f_acc
+  end subroutine evaluate_loop_colvect
+
+
+  subroutine evaluate_loop_colvect_c(id, pp, M2amp, nhel, acc) bind(c,name="ol_evaluate_loop_colvect")
+    use ol_data_types_/**/DREALKIND, only: correlator
+    use ol_ew_renormalisation_/**/REALKIND, only: photon_factors
+    implicit none
+    integer(c_int), value :: id
+    real(c_double), intent(in) :: pp(5*n_external(id))
+    real(c_double), intent(out) :: M2amp(2*get_loop_colbasis_dim(id),get_loop_nhel(id))
+    integer(c_int), intent(out) :: nhel
+    real(c_double), intent(out), optional :: acc
+    real(DREALKIND) :: psp(0:4,n_external(id))
+    real(DREALKIND) :: m2l0, m2l1(0:2), ir1(0:2), m2l2(0:4), ir2(0:4), f_acc
+    type(correlator) :: Lcc
+    complex(DREALKIND) :: f_M2amp(get_tree_colbasis_dim(id),get_loop_nhel(id))
+    real(DREALKIND) :: f_bornphotonfactor
+    integer :: f_nhel, k, h
+    if (.not. associated(process_handles(id)%loop_colvect)) then
+      call ol_msg("Error: loop colour vector information is not available")
+      call ol_fatal("       for process " // process_handles(id)%process_name)
+      return
+    end if
+    Lcc%type=100
+    psp = reshape(pp, [5,process_handles(id)%n_particles])
+    call evaluate_fullcr(id, psp, m2l0, m2l1, ir1, m2l2, ir2, Lcc, f_acc) ! fill colour vector cache
+    call process_handles(int(id))%loop_colvect(f_M2amp, f_nhel)
+    call photon_factors(process_handles(id)%photon_id, 0, f_bornphotonfactor)
+    f_M2amp = f_M2amp * sqrt(f_bornphotonfactor)
+    do h = 1, f_nhel
+      do k = 1, size(f_M2amp,1)
+        M2amp(2*k-1,h) = real(f_M2amp(k,h))
+        M2amp(2*k,h) = aimag(f_M2amp(k,h))
+      end do
+    end do
+    nhel = f_nhel
+    if (present(acc)) acc = f_acc
+  end subroutine evaluate_loop_colvect_c
+
+
+  subroutine evaluate_loop_colvect2(id, psp, m2arr, acc)
+    ! Helicity summed squared tree colour vector.
+    ! Apart from the missing colour factor these are the squared matrix elements
+    ! for each colour flow.
+    ! [in] id: process id as set by register_process
+    ! [in] psp: phase space point
+    ! [out] m2arr: array of squared matrix elements per colour flow
+    use ol_data_types_/**/DREALKIND, only: correlator
+    use ol_ew_renormalisation_/**/REALKIND, only: photon_factors
+    implicit none
+    integer, intent(in) :: id
+    real(DREALKIND), intent(in) :: psp(:,:)
+    real(DREALKIND), intent(out) :: m2arr(:)
+    real(DREALKIND), intent(out), optional :: acc
+    integer :: nhel
+    real(DREALKIND) :: m2l0, m2l1(0:2), ir1(0:2), m2l2(0:4), ir2(0:4), f_acc
+    real(DREALKIND) :: bornphotonfactor
+    complex(DREALKIND) :: amp(get_loop_colbasis_dim(id),get_loop_nhel(id))
+    type(correlator) :: Lcc
+    if (.not. associated(process_handles(id)%loop_colvect)) then
+      call ol_msg("Error: loop colour vector information is not available")
+      call ol_fatal("       for process " // process_handles(id)%process_name)
+      return
+    end if
+    Lcc%type=100
+    call evaluate_fullcr(id, psp, m2l0, m2l1, ir1, m2l2, ir2, Lcc, f_acc) ! fill colour vector cache
+    call process_handles(id)%loop_colvect(amp, nhel)
+    m2arr = sum(real(amp(:,1:nhel)*conjg(amp(:,1:nhel))), 2)
+    call photon_factors(process_handles(id)%photon_id, 0, bornphotonfactor)
+    m2arr = m2arr * bornphotonfactor
+    if (present(acc)) acc = f_acc
+  end subroutine evaluate_loop_colvect2
+
+
+  subroutine evaluate_loop_colvect2_c(id, pp, m2arr, acc) bind(c,name="ol_evaluate_loop_colvect2")
+    use ol_data_types_/**/DREALKIND, only: correlator
+    use ol_ew_renormalisation_/**/REALKIND, only: photon_factors
+    implicit none
+    integer(c_int), value :: id
+    real(c_double), intent(in) :: pp(5*n_external(id))
+    real(c_double), intent(out) :: m2arr(get_tree_colbasis_dim(id))
+    real(c_double), intent(out), optional :: acc
+    real(DREALKIND) :: psp(0:4,n_external(id))
+    integer :: nhel
+    real(DREALKIND) :: m2l0, m2l1(0:2), ir1(0:2), m2l2(0:4), ir2(0:4), f_acc
+    type(correlator) :: Lcc
+    complex(DREALKIND) :: amp(get_tree_colbasis_dim(id),get_loop_nhel(id))
+    real(DREALKIND) :: bornphotonfactor
+    if (.not. associated(process_handles(id)%loop_colvect)) then
+      call ol_msg("Error: loop colour vector information is not available")
+      call ol_fatal("       for process " // process_handles(id)%process_name)
+      return
+    end if
+    Lcc%type=100
+    psp = reshape(pp, [5,process_handles(id)%n_particles])
+    call evaluate_fullcr(id, psp, m2l0, m2l1, ir1, m2l2, ir2, Lcc, f_acc) ! fill colour vector cache
+    call process_handles(int(id))%loop_colvect(amp, nhel)
+    call photon_factors(process_handles(id)%photon_id, 0, bornphotonfactor)
+    amp = amp * bornphotonfactor
+    m2arr = sum(real(amp(:,1:nhel)*conjg(amp(:,1:nhel))), 2)
+    if (present(acc)) acc = f_acc
+  end subroutine evaluate_loop_colvect2_c
 
 
   subroutine evaluate_cc(id, psp, tree, cc, ewcc)
@@ -4109,15 +4476,20 @@ module openloops
     use ol_stability
     use ol_generic, only: to_string, to_string
     use ol_data_types_/**/DREALKIND, only: correlator
+    use ol_parameters_decl_/**/DREALKIND, only: alpha_QCD
+    use ol_loop_parameters_decl_/**/DREALKIND, only: muren_unscaled
     use ol_loop_parameters_decl_/**/DREALKIND, only: loop_parameters_status
+    use ol_parameters_decl_/**/DREALKIND, only: use_me_cache
     implicit none
     integer, intent(in) :: id
     real(DREALKIND), intent(in) :: psp(:,:)
     real(DREALKIND), intent(out) :: m2l0, m2l1(0:2), ir1(0:2), m2l2(0:4), ir2(0:4)
     real(DREALKIND), intent(out) :: acc
-    type(correlator) :: cr
+    type(correlator), intent(inout) :: cr
     type(process_handle)  :: subprocess
     logical has_loopcc
+    integer :: use_me_cache_bak
+    integer :: last_permutation(n_external(id))
     call stop_invalid_id(id)
     if (error > 1) return
     subprocess = process_handles(id)
@@ -4130,20 +4502,35 @@ module openloops
     m2l2=0
     ir2=0
     n_scatt = subprocess%n_in
+    if (associated(subprocess%get_last_perm)) then
+      call subprocess%get_last_perm(last_permutation)
+    else
+      last_permutation = 0
+    end if
     call subprocess%set_permutation(subprocess%permutation)
     call subprocess%pol_init(subprocess%pol)
     if (any(subprocess%photon_id /= 0)) call subprocess%set_photons(subprocess%photon_id)
+    if (associated(subprocess%loopcc)) then
+      call subprocess%loopcc(.true., has_loopcc)
+    else
+      has_loopcc = .false.
+    end if
     call parameters_flush()
-    if (cr%type > 10) call subprocess%loopcc(.true., has_loopcc)
     if (any(subprocess%last_psp /= psp) .or. &
       & any(subprocess%last_perm /= subprocess%permutation) .or. &
+      & any(last_permutation /= subprocess%permutation) .or. &
       & any(subprocess%last_pol /= subprocess%pol) .or. &
+      & subprocess%last_alpha_QCD /= alpha_QCD .or. &
+      & subprocess%last_muren /= muren_unscaled .or. &
       & subprocess%loop_parameters_status /= loop_parameters_status .or. &
         .not. has_loopcc &
       ) then
       call ol_msg(3, "me-cache for correlators: " // trim(subprocess%process_name) &
                  &  // trim(to_string(subprocess%permutation,.true.)) // ' reevaluate' )
+      use_me_cache_bak = use_me_cache
+      use_me_cache = 0
       call evaluate_full(id, psp, m2l0, m2l1, ir1, m2l2, ir2, acc)  ! fill colour/helicity vector cache
+      use_me_cache = use_me_cache_bak
       if (m2l1(0) == 0 .and. m2l2(0) == 0) then
         cr%rescc = 0
         cr%resmunu = 0
@@ -4151,14 +4538,15 @@ module openloops
       end if
     else
       call ol_msg(3, "me-cache for correlators: " // trim(subprocess%process_name) &
-                 &  // trim(to_string(subprocess%permutation,.true.)) // ' taken from the cache' )
+                 &  // trim(to_string(subprocess%permutation,.true.)) // ' available in cache' )
+      call evaluate_full(id, psp, m2l0, m2l1, ir1, m2l2, ir2, acc)  ! retrieve from cache
       if (subprocess%last_zero) then
         cr%rescc = 0
         cr%resmunu = 0
         return ! return for unstable points
       end if
     end if
-    if (cr%type < 1) then
+    if (cr%type < 1 .or. cr%type == 100) then
       return
     else if (cr%type < 14) then
       call subprocess%loopcr(psp, m2l0, m2l1(0), m2l2(0), &
@@ -4583,12 +4971,12 @@ module openloops
     m2iop = f_m2iop
   end subroutine evaluate_iop_c
 
-
-  subroutine evaluate_schsf(id, psp, m2l0, m2schsf) bind(c,name="ol_evaluate_schsf")
+  subroutine evaluate_schsf(id, psp, m2l0, pind_1, pind_2, m2schsf)
     use ol_stability
     use ol_generic, only: to_string
     implicit none
     integer, intent(in)  :: id
+    integer, intent(in)  :: pind_1, pind_2
     real(DREALKIND), intent(in)  :: psp(:,:)
     real(DREALKIND), intent(out) :: m2l0, m2schsf
     type(process_handle)  :: subprocess
@@ -4607,9 +4995,28 @@ module openloops
     call subprocess%set_permutation(subprocess%permutation)
     call subprocess%pol_init(subprocess%pol)
     if (any(subprocess%photon_id /= 0)) call subprocess%set_photons(subprocess%photon_id)
-    call subprocess%schsf(psp, m2l0, m2schsf)
+    call subprocess%schsf(psp, m2l0, pind_1, pind_2, m2schsf)
   end subroutine evaluate_schsf
 
+  subroutine evaluate_schsf_c(id, pp, m2l0, pind_1, pind_2, m2schsf) bind(c,name="ol_evaluate_schsf")
+    implicit none
+    integer(c_int), value :: id
+    real(c_double), intent(in) :: pp(5*n_external(id))
+    integer(c_int), value :: pind_1, pind_2
+    real(c_double), intent(out) :: m2l0, m2schsf
+    integer :: f_id, f_pind_1, f_pind_2
+    real(DREALKIND) :: f_pp(0:4,n_external(id))
+    real(DREALKIND) :: f_m2l0, f_m2schsf
+    f_id = id
+    f_pind_1 = pind_1
+    f_pind_2 = pind_2
+    call stop_invalid_id(f_id) ! needed because of reshape
+    if (error > 1) return
+    f_pp = reshape(pp, [5,process_handles(id)%n_particles])
+    call evaluate_schsf(f_id, f_pp(0:3,:), f_m2l0, f_pind_1, f_pind_2, f_m2schsf)
+    m2l0 = f_m2l0
+    m2schsf = f_m2schsf
+  end subroutine evaluate_schsf_c
 
 
   subroutine evaluate_r2(id, psp, m2l0, m2ct)

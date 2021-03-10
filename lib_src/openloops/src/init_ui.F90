@@ -355,6 +355,8 @@ module ol_init
         ti_monitor = val
       case ("nf", "n_quarks")
         call set_if_modified(nf, val)
+      case ("nfa")
+        call set_if_modified(nfa, val)
       case ("nq_nondecoupled", "minnf_alphasrun", "nf_alphasrun")
         call set_if_modified(nq_nondecoupl, val)
       case ("nc", "ncolours", "ncolors")
@@ -376,7 +378,6 @@ module ol_init
         coupling_ew(0) = val
       case ("coupling_ew_1", "coupling_ew_l", "coupling_ew_loop")
         coupling_ew(1) = val
-        call set_if_modified(do_ew_renorm, 1)
       case ("add_associated_ew")
         add_associated_ew = val
       case ("order_ew", "oew")
@@ -389,7 +390,6 @@ module ol_init
         coupling_ew(1) = -1
         coupling_qcd(0) = val
         coupling_qcd(1) = 0
-        call set_if_modified(do_ew_renorm, 1)
       case ("loop_order_ew", "loew")
         coupling_ew = -1
         coupling_qcd = -1
@@ -422,6 +422,20 @@ module ol_init
             flavour_mapping_on = 2
           end if
         end if
+      case ("qed")
+        if (val < 0 .or. val > 3) then
+          call ol_error("QED not supported: " // to_string(val))
+        else
+          QED = val
+        end if
+      case ("photon_selfenergy")
+        if (val == 0) then
+          call set_if_modified(photon_selfenergy, .false.)
+        else if (val == 1) then
+          call set_if_modified(photon_selfenergy, .true.)
+        else
+          call ol_error("photon_selfenergy not supported: " // to_string(val))
+        end if
       case ("ioperator_mode")
         call set_if_modified(ioperator_mode, val)
       case ("polecheck","truepoles","truepoles_on")
@@ -431,7 +445,6 @@ module ol_init
         else if (val == 2) then
           call set_if_modified(coli_cache_use, 0)
           call set_if_modified(polecheck_is, 1)
-          call set_if_modified(do_ew_renorm, 1)
           call set_if_modified(ir_is_on, 2)
         end if
       case ("fermion_loops")
@@ -471,35 +484,32 @@ module ol_init
         else
           call set_if_modified(bubble_vertex, 0)
         end if
+      case ("debug_ew_renorm")
+        call set_if_modified(debug_ew_renorm, val)
       case ("qcd_renorm")
         call set_if_modified(do_qcd_renorm, val)
       case ("se_integral_switch")
         call set_if_modified(se_integral_switch, val)
       case ("ew_scheme", "ewscheme")
-        if (val < 0 .or. val > 4) then
+        if (val /= 0 .and. val /= 1 .and. val /= 2 .and. val /= 20 .and. val /= 21 .and. val /= 22) then
           call ol_error(1,"unrecognised ew_scheme: " // to_string(val))
         else
           call set_if_modified(ew_scheme, val)
           call set_if_modified(ew_renorm_scheme, abs(val))
         end if
       case ("ew_renorm_scheme")
-        if (val /= 0 .and. val /= 1 .and. val /= 2) then
+        if (val /= 0 .and. val /= 1 .and. val /= 2 .and. val /= 20 .and. val /= 21 .and. val /= 22) then
           call ol_error(1,"unrecognised ew_renorm_scheme:" // to_string(val))
         else
           call set_if_modified(ew_renorm_scheme, val)
         end if
-      case ("select_ew")
+      case ("qedreg_on", "qedmassreg_on")
         if (val == 0) then
-          call set_if_modified(qed_on, .true.)
-          call set_if_modified(weak_on, .true.)
+          call set_if_modified(qedreg_on, .false.)
         else if (val == 1) then
-          call set_if_modified(qed_on, .true.)
-          call set_if_modified(weak_on, .false.)
-        else if (val == 2) then
-          call set_if_modified(qed_on, .false.)
-          call set_if_modified(weak_on, .true.)
+          call set_if_modified(qedreg_on, .true.)
         else
-          call ol_error("select_ew not available:" // trim(to_string(val)))
+          call ol_error("qedreg_on not available:" // trim(to_string(val)))
         end if
       case ("onshell_photons_lsz", "onshell_photon_lsz")
         if (val == 1) then
@@ -571,6 +581,18 @@ module ol_init
           do_not_stop = .true.
         else
           do_not_stop = .false.
+        end if
+      case ("psp_cleaning")
+        if (val == 0) then
+          no_cleaning = .true.
+        else
+          no_cleaning = .false.
+        end if
+      case ("psp_cleaning_hardness")
+        if (val == 0) then
+          cleaning_via_hardness = .false.
+        else
+          cleaning_via_hardness = .true.
         end if
       case ("no_splash", "nosplash")
         if (val == 0) then
@@ -1538,9 +1560,12 @@ module ol_init
 
     call ol_msg(5, "setparameter_string: " // trim(param)  // " " // trim(val))
 
-    if (len(val) > max_parameter_length - 80) then
+    ! TODO (pm): why is max_parameter_length-80 used for all parameters?
+    !   This should only be necessary for install_path,
+    !   where the library name is appended, right?
+    if (len_trim(val) > max_parameter_length - 80) then
       call ol_fatal("ol_setparameter_string: " // trim(param) // " value must not exceed " // &
-             & trim(to_string(max_parameter_length)) // " characters. If necessary, increase " // &
+             & trim(to_string(max_parameter_length-80)) // " characters. If necessary, increase " // &
              & "the limit by setting max_string_length in your openloops.cfg and recompile.")
       return
     end if
@@ -1557,7 +1582,7 @@ module ol_init
       case ("tmp_dir")
         tmp_dir = val
       case ("allowed_libs", "allowed_libraries", "allowedlibs", "allowedlibraries")
-        if (len(val) > max_parameter_length-2) then
+        if (len_trim(val) > max_parameter_length-2) then
           ! needs a leading and a trailing space
           call ol_fatal("ol_setparameter_string: " // trim(param) // " value must not exceed " // &
                  & trim(to_string(max_parameter_length-2)) // " characters")
@@ -1610,13 +1635,37 @@ module ol_init
           case ("hpoprodmfv_ufo", "hpoprodmfv_ufo_fixed", "higgspo")
             call set_if_modified(model, "higgspo")
             call set_if_modified(nf, 6)
-        case default
-          call ol_error(1, "unknown model: " // trim(val) // ", model set to: " // trim(model))
-        end select
-
-
+          case ("qed_electronic")
+            call set_if_modified(model, "qed_electronic")  
+          case default
+            call ol_error(1, "unknown model: " // trim(val) // ", model set to: " // trim(model))
+          end select
+      case ("ew_scheme", "ewscheme")
+        select case (to_lowercase(trim(val)))
+          case ("alpha0_mz_mw")
+            call set_if_modified(ew_scheme, 0)
+          case ("gmu_mz_mw")
+            call set_if_modified(ew_scheme, 1)
+          case ("alphaz_mz_mw")
+            call set_if_modified(ew_scheme, 2)
+          case ("alpha0_mz_sw2eff")
+            call set_if_modified(ew_scheme, 20)
+          case ("gmu_mz_sw2eff")
+            call set_if_modified(ew_scheme, 21)
+          case ("alphaz_mz_sw2eff")
+            call set_if_modified(ew_scheme, 22)
+          case default
+            read(val,*,iostat=error) real_parameter
+            if (error == 0) then
+              call setparameter_double(param, real_parameter)
+            else
+              error = 1
+            end if
+            if (error == 1 .and. init_error_fatal == 1) then
+              call ol_error(1, "unknown ew_scheme: " // trim(val) // ", ew_scheme set to: " // to_string(ew_scheme))
+            end if
+          end select
       case default
-
         error = 1
         ! if the string can be converted to a real number, foward it to ol_setparameter_double();
         ! note that integers will be forwarded to ol_setparameter_int() automatically

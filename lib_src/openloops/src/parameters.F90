@@ -331,7 +331,7 @@ module ol_parameters_decl_/**/REALKIND
   ! internal, do not touch change
   real(REALKIND), save :: hp_err_thres = 8._/**/REALKIND  ! accumulated error threshold
   real(REALKIND), save :: hp_step_thres = 0.5_/**/REALKIND ! step threshold
-  real(REALKIND), save :: hp_redset_gd3_thres = 3.5_/**/REALKIND
+  real(REALKIND), save :: hp_redset_gd3_thres = 3e-4_/**/REALKIND
 
   ! merging dp and qp channel the dp channel is upgraded to qp (which comes at zero cost.)
   logical, save :: hp_automerge = .true.
@@ -457,6 +457,8 @@ module ol_parameters_decl_/**/REALKIND
   logical, save :: delta_alphamz_dimreg = .false.
   ! select renorm scheme for on-shell external photons: 0: off, 1: a(0)/a(Gmu/MZ) + dZe LSZ shift
   logical, save :: onshell_photons_lsz = .true.
+  ! switch on/off photon self energy
+  logical, save :: photon_selfenergy = .true.
   ! coupling order
   integer :: coupling_qcd(0:1) = -1
   integer :: coupling_ew(0:1) = -1
@@ -465,6 +467,7 @@ module ol_parameters_decl_/**/REALKIND
   integer :: loop_order_ew = -1
   integer :: loop_order_qcd = -1
   integer :: CKMORDER = 0
+  integer :: QED = 0
   ! select scalar integral library for self energies: 0 = none, 1 = Coli, 3=OneLOop, 7 = DD
   ! automatically set according to redlib (redlib=1->1,7->7,other->3)
   integer, save :: se_integral_switch = 1
@@ -483,6 +486,8 @@ module ol_parameters_decl_/**/REALKIND
   logical, save :: auto_preset = .true.
   ! expert_mode: allows to set stability options manually
   real(DREALKIND), save :: psp_tolerance = 1.e-9
+  logical, save :: no_cleaning =  .false.
+  logical, save :: cleaning_via_hardness =  .false.
   ! wf_V_select: select external vector boson wavfunction, 1=default, 2=ABC, 3: MG
   integer, save :: wf_v_select = 1
 #ifdef EXPERT
@@ -739,6 +744,7 @@ module ol_loop_parameters_decl_/**/REALKIND
   integer,        save :: maxrank = 6, maxrank_active = -1
   integer,        save :: norm_swi = 0     ! switch controlling normalisation of UV/IR poles
   character(10),  save :: norm_name
+  integer,        save :: debug_ew_renorm = 0
   ! switch on UV counterterms, R2 terms, IR dipoles
   integer,        save :: SwF = 1 ! factors to multiply diagrams with fermion loops
   integer,        save :: SwB = 1 ! factors to multiply diagrams with non-fermion loops
@@ -747,8 +753,6 @@ module ol_loop_parameters_decl_/**/REALKIND
   integer,        save :: R2_is_on = 1 ! switch on/off R2 contributions
   integer,        save :: TP_is_on = 1 ! switch on/off tadpole-like contributions
   integer,        save :: IR_is_on = 1 ! 0 = off, 1 = return poles, 2 = add I operator
-  logical,        save :: qed_on = .true.     ! QED contributions
-  logical,        save :: weak_on = .true.    ! weak contributions
   logical,        save :: qedreg_on = .false. ! regularise IR singularities in QED via finite photon mass = MZ
   ! i-operator mode: 1 = QCD, 2 = EM, 0 = QCD+EM, none otherwise;
   integer,        save :: ioperator_mode = 0
@@ -808,6 +812,7 @@ module ol_loop_parameters_decl_/**/REALKIND
 
   integer,        save      :: nc    = 3          ! number of colours
   integer,        save      :: nf = 6, nf_up = 3, nf_down =3 ! number of quarks (total, up-type, down-type)
+  integer,        save      :: nfa= 5             ! fermionic contributions to photon selfenergy
   integer,        save      :: nq_nondecoupl = 0  ! number of quarks which do not decouple above threshold,
                                                   ! i.e. always contribute to the alpha_s running
   integer,        save      :: N_lf  = 5          ! number of massless quark flavours
@@ -821,15 +826,19 @@ module ol_loop_parameters_decl_/**/REALKIND
   real(REALKIND), save      :: cf    = 4._/**/REALKIND/3 ! fundamental Casimir
   real(REALKIND), save      :: tf    = 0.5_/**/REALKIND  ! generator normalisation
 
-  real(REALKIND), parameter      :: Qu   = 4._/**/REALKIND/3. ! up-type quark electrical charge squared
-  real(REALKIND), parameter      :: Qd   = -1._/**/REALKIND/3. ! down-type quark electrical charge squared
-  real(REALKIND), parameter      :: Ql   = -1 ! lepton electrical charge squared
+  complex(REALKIND), parameter      :: Qu   = 4._/**/REALKIND/3. ! up-type quark electrical charge squared
+  complex(REALKIND), parameter      :: Qd   = -1._/**/REALKIND/3. ! down-type quark electrical charge squared
+  complex(REALKIND), parameter      :: Ql   = -1 ! lepton electrical charge squared
 
-  real(REALKIND), parameter      :: Qu2   = 4._/**/REALKIND/9. ! up-type quark electrical charge squared
-  real(REALKIND), parameter      :: Qd2   = 1._/**/REALKIND/9. ! down-type quark electrical charge squared
-  real(REALKIND), parameter      :: Ql2   = 1 ! lepton electrical charge squared
+  complex(REALKIND), parameter      :: Qu2   = 4._/**/REALKIND/9. ! up-type quark electrical charge squared
+  complex(REALKIND), parameter      :: Qd2   = 1._/**/REALKIND/9. ! down-type quark electrical charge squared
+  complex(REALKIND), parameter      :: Ql2   = 1 ! lepton electrical charge squared
 
-  real(REALKIND), save      :: Qf2sum   = 20._/**/REALKIND/3. ! sum_f ( Qf^2 ) for gamma -> FF QED splittings in I-Operator
+  complex(REALKIND), parameter      :: Qu3   = 8._/**/REALKIND/27. ! up-type quark electrical charge cubed
+  complex(REALKIND), parameter      :: Qd3   = -1._/**/REALKIND/27. ! down-type quark electrical charge cubed
+  complex(REALKIND), parameter      :: Ql3   = -1 ! lepton electrical charge cubed
+
+  complex(REALKIND), save      :: Qf2sum   = 20._/**/REALKIND/3. ! sum_f ( Qf^2 ) for gamma -> FF QED splittings in I-Operator
 
   real(REALKIND), save      :: polescale   = 1 ! used as pole values in VAMP2chk to determine the true poles
   real(REALKIND), save      :: de1_UV      = 0 ! numerical value of single UV pole (independent of norm-convention)
@@ -956,9 +965,11 @@ module ol_loop_parameters_decl_/**/REALKIND
   complex(REALKIND), save :: thdmctPHpGG, thdmctHpHpGG
 
   ! EW_renormalisation renormalisation constants
-  complex(REALKIND), save :: dZMBEW     = 0 ! bottom-quark mass RC       : MB_bare = MB+dZMBEW)
-  complex(REALKIND), save :: dZMTEW     = 0 ! top-quark mass RC          : MT_bare = MT+dZMTEW)
-  complex(REALKIND), save :: dZMLEW     = 0 ! tau-lepton mass RC         : ML_bare = ML+dZMLEW)
+  complex(REALKIND), save :: dZMBEW     = 0 ! bottom-quark mass RC       : MB_bare = MB+dZMBEW
+  complex(REALKIND), save :: dZMTEW     = 0 ! top-quark mass RC          : MT_bare = MT+dZMTEW
+  complex(REALKIND), save :: dZMLEW     = 0 ! tau-lepton mass RC         : ML_bare = ML+dZMLEW
+  complex(REALKIND), save :: dZMEEW     = 0 ! electron mass RC           : ME_bare = ME+dZMLEW
+  complex(REALKIND), save :: dZMMEW     = 0 ! muon mass RC               : MM_bare = MM+dZMLEW
   complex(REALKIND), save :: dZMW2EW    = 0 ! W mass RC                  : MW^2_bare = MW^2+dZMW2EW^2
   complex(REALKIND), save :: dZMZ2EW    = 0 ! Z mass RC                  : MZ^2_bare = MZ^2+dZMZ2EW^2
   complex(REALKIND), save :: dZMH2EW    = 0 ! H mass RC                  : MH^2_bare = MH^2+dZMH2EW^2
@@ -975,8 +986,10 @@ module ol_loop_parameters_decl_/**/REALKIND
   complex(REALKIND), save :: dZbREW     = 0 ! R-bottom-quark field RC     : idem
   complex(REALKIND), save :: dZtLEW     = 0 ! L-top-quark field RC        : idem
   complex(REALKIND), save :: dZtREW     = 0 ! R-top-quark field RC        : idem
-  complex(REALKIND), save :: dZeLEW     = 0 ! L-lepton field RC           : idem
-  complex(REALKIND), save :: dZeREW     = 0 ! R-lepton field RC           : idem
+  complex(REALKIND), save :: dZeLEW     = 0 ! L-electron field RC         : idem
+  complex(REALKIND), save :: dZeREW     = 0 ! R-electron field RC         : idem
+  complex(REALKIND), save :: dZmuLEW    = 0 ! L-muon field RC             : idem
+  complex(REALKIND), save :: dZmuREW    = 0 ! R-muon field RC             : idem
   complex(REALKIND), save :: dZnLEW     = 0 ! L-neutrino field RC         : idem
   complex(REALKIND), save :: dZnlLEW    = 0 ! L-tau-neutrino field RC     : idem
   complex(REALKIND), save :: dZlLEW     = 0 ! L-tau-lepton field RC       : idem
@@ -989,8 +1002,10 @@ module ol_loop_parameters_decl_/**/REALKIND
   complex(REALKIND), save :: dZbREWcc   = 0 ! R-bottom-quark field RC     : idem
   complex(REALKIND), save :: dZtLEWcc   = 0 ! L-top-quark field RC        : idem
   complex(REALKIND), save :: dZtREWcc   = 0 ! R-top-quark field RC        : idem
-  complex(REALKIND), save :: dZeLEWcc   = 0 ! L-lepton field RC           : idem
-  complex(REALKIND), save :: dZeREWcc   = 0 ! R-lepton field RC           : idem
+  complex(REALKIND), save :: dZeLEWcc   = 0 ! L-electron field RC         : idem
+  complex(REALKIND), save :: dZeREWcc   = 0 ! R-electron field RC         : idem
+  complex(REALKIND), save :: dZmuLEWcc  = 0 ! L-muon field RC             : idem
+  complex(REALKIND), save :: dZmuREWcc  = 0 ! R-muon field RC             : idem
   complex(REALKIND), save :: dZnLEWcc   = 0 ! L-neutrino field RC         : idem
   complex(REALKIND), save :: dZnlLEWcc  = 0 ! L-tau-neutrino field RC     : idem
   complex(REALKIND), save :: dZlLEWcc   = 0 ! L-tau-lepton field RC       : idem
@@ -1017,155 +1032,160 @@ module ol_loop_parameters_decl_/**/REALKIND
 
   ! Counter terms for EW corrections
   ! VV Vector propagators
-  complex(REALKIND), save :: EWctWW(3)
-  complex(REALKIND), save :: EWctZZ(3)
-  complex(REALKIND), save :: EWctAZ(3)
-  complex(REALKIND), save :: EWctAA(3)
+  complex(REALKIND), save :: EWctWW(3)      = 0
+  complex(REALKIND), save :: EWctZZ(3)      = 0
+  complex(REALKIND), save :: EWctAZ(3)      = 0
+  complex(REALKIND), save :: EWctAA(3)      = 0
   ! SS scalar propagators
-  complex(REALKIND), save :: EWctHH(2)
-  complex(REALKIND), save :: EWctXX(2)
-  complex(REALKIND), save :: EWctPP(2)
+  complex(REALKIND), save :: EWctHH(2)      = 0
+  complex(REALKIND), save :: EWctXX(2)      = 0
+  complex(REALKIND), save :: EWctPP(2)      = 0
   ! SV scalar-vector mixing
-  complex(REALKIND), save :: EWctXA
-  complex(REALKIND), save :: EWctXZ
-  complex(REALKIND), save :: EWctPW
+  complex(REALKIND), save :: EWctXA      = 0
+  complex(REALKIND), save :: EWctXZ      = 0
+  complex(REALKIND), save :: EWctPW      = 0
   ! FF fermionic propagators
-  complex(REALKIND), save :: EWctuu(4)
-  complex(REALKIND), save :: EWctdd(4)
-  complex(REALKIND), save :: EWcttt(4)
-  complex(REALKIND), save :: EWctbb(4)
-  complex(REALKIND), save :: EWctee(4)
-  complex(REALKIND), save :: EWctLL(4)
-  complex(REALKIND), save :: EWctnn(4)
-  complex(REALKIND), save :: EWctnlnl(4)
+  complex(REALKIND), save :: EWctuu(4)      = 0
+  complex(REALKIND), save :: EWctdd(4)      = 0
+  complex(REALKIND), save :: EWcttt(4)      = 0
+  complex(REALKIND), save :: EWctbb(4)      = 0
+  complex(REALKIND), save :: EWctee(4)      = 0
+  complex(REALKIND), save :: EWctmm(4)      = 0
+  complex(REALKIND), save :: EWctLL(4)      = 0
+  complex(REALKIND), save :: EWctnn(4)      = 0
+  complex(REALKIND), save :: EWctnlnl(4)      = 0
   !VVVV
-  complex(REALKIND), save :: EWctWWWW(2)
-  complex(REALKIND), save :: EWctWWZZ(2)
-  complex(REALKIND), save :: EWctWWAZ(2)
-  complex(REALKIND), save :: EWctWWAA(2)
+  complex(REALKIND), save :: EWctWWWW(2)      = 0
+  complex(REALKIND), save :: EWctWWZZ(2)      = 0
+  complex(REALKIND), save :: EWctWWAZ(2)      = 0
+  complex(REALKIND), save :: EWctWWAA(2)      = 0
   !VVVV pure R2
-  complex(REALKIND), save :: EWctR2AAAA
-  complex(REALKIND), save :: EWctR2AAAZ
-  complex(REALKIND), save :: EWctR2AAZZ
-  complex(REALKIND), save :: EWctR2AZZZ
-  complex(REALKIND), save :: EWctR2ZZZZ
+  complex(REALKIND), save :: EWctR2AAAA      = 0
+  complex(REALKIND), save :: EWctR2AAAZ      = 0
+  complex(REALKIND), save :: EWctR2AAZZ      = 0
+  complex(REALKIND), save :: EWctR2AZZZ      = 0
+  complex(REALKIND), save :: EWctR2ZZZZ      = 0
   !VVV
-  complex(REALKIND), save :: EWctAWW
-  complex(REALKIND), save :: EWctZWW
+  complex(REALKIND), save :: EWctAWW      = 0
+  complex(REALKIND), save :: EWctZWW      = 0
   !SSSS
-  complex(REALKIND), save :: EWctSSSS1
-  complex(REALKIND), save :: EWctSSSS2
-  complex(REALKIND), save :: EWctSSSS3
-  complex(REALKIND), save :: EWctHHHH
-  complex(REALKIND), save :: EWctHHXX
-  complex(REALKIND), save :: EWctHHPP
-  complex(REALKIND), save :: EWctXXXX
-  complex(REALKIND), save :: EWctXXPP
-  complex(REALKIND), save :: EWctPPPP
+  complex(REALKIND), save :: EWctSSSS1      = 0
+  complex(REALKIND), save :: EWctSSSS2      = 0
+  complex(REALKIND), save :: EWctSSSS3      = 0
+  complex(REALKIND), save :: EWctHHHH      = 0
+  complex(REALKIND), save :: EWctHHXX      = 0
+  complex(REALKIND), save :: EWctHHPP      = 0
+  complex(REALKIND), save :: EWctXXXX      = 0
+  complex(REALKIND), save :: EWctXXPP      = 0
+  complex(REALKIND), save :: EWctPPPP      = 0
   !SSS
-  complex(REALKIND), save :: EWctHHH
-  complex(REALKIND), save :: EWctHXX
-  complex(REALKIND), save :: EWctHPP
+  complex(REALKIND), save :: EWctHHH      = 0
+  complex(REALKIND), save :: EWctHXX      = 0
+  complex(REALKIND), save :: EWctHPP      = 0
   !VVSS
-  complex(REALKIND), save :: EWctWWXX
-  complex(REALKIND), save :: EWctWWHH
-  complex(REALKIND), save :: EWctWWPP
-  complex(REALKIND), save :: EWctZZPP
-  complex(REALKIND), save :: EWctZAPP
-  complex(REALKIND), save :: EWctAAPP
-  complex(REALKIND), save :: EWctZZHH
-  complex(REALKIND), save :: EWctZZXX
-  complex(REALKIND), save :: EWctZAHH
-  complex(REALKIND), save :: EWctZAXX
-  complex(REALKIND), save :: EWctWZPH
-  complex(REALKIND), save :: EWctWAPH
-  complex(REALKIND), save :: EWctWZPX
-  complex(REALKIND), save :: EWctWAPX
+  complex(REALKIND), save :: EWctWWXX      = 0
+  complex(REALKIND), save :: EWctWWHH      = 0
+  complex(REALKIND), save :: EWctWWPP      = 0
+  complex(REALKIND), save :: EWctZZPP      = 0
+  complex(REALKIND), save :: EWctZAPP      = 0
+  complex(REALKIND), save :: EWctAAPP      = 0
+  complex(REALKIND), save :: EWctZZHH      = 0
+  complex(REALKIND), save :: EWctZZXX      = 0
+  complex(REALKIND), save :: EWctZAHH      = 0
+  complex(REALKIND), save :: EWctZAXX      = 0
+  complex(REALKIND), save :: EWctWZPH      = 0
+  complex(REALKIND), save :: EWctWAPH      = 0
+  complex(REALKIND), save :: EWctWZPX      = 0
+  complex(REALKIND), save :: EWctWAPX      = 0
   !VVSS R2
-  complex(REALKIND), save :: EWctAAHH
-  complex(REALKIND), save :: EWctAAXX
+  complex(REALKIND), save :: EWctAAHH      = 0
+  complex(REALKIND), save :: EWctAAXX      = 0
   !VSS
-  complex(REALKIND), save :: EWctAXH
-  complex(REALKIND), save :: EWctZXH
-  complex(REALKIND), save :: EWctAPP
-  complex(REALKIND), save :: EWctZPP
-  complex(REALKIND), save :: EWctWPH
-  complex(REALKIND), save :: EWctWPX
+  complex(REALKIND), save :: EWctAXH      = 0
+  complex(REALKIND), save :: EWctZXH      = 0
+  complex(REALKIND), save :: EWctAPP      = 0
+  complex(REALKIND), save :: EWctZPP      = 0
+  complex(REALKIND), save :: EWctWPH      = 0
+  complex(REALKIND), save :: EWctWPX      = 0
   !SVV
-  complex(REALKIND), save :: EWctHWW
-  complex(REALKIND), save :: EWctHZZ
-  complex(REALKIND), save :: EWctHZA
-  complex(REALKIND), save :: EWctPWZ
-  complex(REALKIND), save :: EWctPWA
+  complex(REALKIND), save :: EWctHWW      = 0
+  complex(REALKIND), save :: EWctHZZ      = 0
+  complex(REALKIND), save :: EWctHZA      = 0
+  complex(REALKIND), save :: EWctPWZ      = 0
+  complex(REALKIND), save :: EWctPWA      = 0
   ! pure R2 SVV
-  complex(REALKIND), save :: EWctHAA
+  complex(REALKIND), save :: EWctHAA      = 0
   !VFF
   ! Aff
-  complex(REALKIND), save :: EWctAuu(2)
-  complex(REALKIND), save :: EWctAdd(2)
-  complex(REALKIND), save :: EWctAtt(2)
-  complex(REALKIND), save :: EWctAbb(2)
-  complex(REALKIND), save :: EWctAee(2)
-  complex(REALKIND), save :: EWctALL(2)
-  complex(REALKIND), save :: EWctAnn(2)
+  complex(REALKIND), save :: EWctAuu(2)      = 0
+  complex(REALKIND), save :: EWctAdd(2)      = 0
+  complex(REALKIND), save :: EWctAtt(2)      = 0
+  complex(REALKIND), save :: EWctAbb(2)      = 0
+  complex(REALKIND), save :: EWctAee(2)      = 0
+  complex(REALKIND), save :: EWctAmm(2)      = 0
+  complex(REALKIND), save :: EWctALL(2)      = 0
+  complex(REALKIND), save :: EWctAnn(2)      = 0
   ! Zff
-  complex(REALKIND), save :: dgZu(2)
-  complex(REALKIND), save :: dgZd(2)
-  complex(REALKIND), save :: dgZl(2)
-  complex(REALKIND), save :: dgZn(2)
-  complex(REALKIND), save :: EWctVuu(2)
-  complex(REALKIND), save :: EWctVdd(2)
-  complex(REALKIND), save :: EWctVtt(2)
-  complex(REALKIND), save :: EWctVbb(2)
-  complex(REALKIND), save :: EWctVee(2)
-  complex(REALKIND), save :: EWctVLL(2)
-  complex(REALKIND), save :: EWctVnn(2)
-  complex(REALKIND), save :: EWctVnlnl(2)
+  complex(REALKIND), save :: dgZu(2)      = 0
+  complex(REALKIND), save :: dgZd(2)      = 0
+  complex(REALKIND), save :: dgZl(2)      = 0
+  complex(REALKIND), save :: dgZn(2)      = 0
+  complex(REALKIND), save :: EWctVuu(2)      = 0
+  complex(REALKIND), save :: EWctVdd(2)      = 0
+  complex(REALKIND), save :: EWctVtt(2)      = 0
+  complex(REALKIND), save :: EWctVbb(2)      = 0
+  complex(REALKIND), save :: EWctVee(2)      = 0
+  complex(REALKIND), save :: EWctVmm(2)      = 0
+  complex(REALKIND), save :: EWctVLL(2)      = 0
+  complex(REALKIND), save :: EWctVnn(2)      = 0
+  complex(REALKIND), save :: EWctVnlnl(2)      = 0
   ! Wff
-  complex(REALKIND), save :: EWctVdu
-  complex(REALKIND), save :: EWctVbt
-  complex(REALKIND), save :: EWctVen
-  complex(REALKIND), save :: EWctVLn
-  complex(REALKIND), save :: EWctVud
-  complex(REALKIND), save :: EWctVtb
-  complex(REALKIND), save :: EWctVne
-  complex(REALKIND), save :: EWctVnL
+  complex(REALKIND), save :: EWctVdu      = 0
+  complex(REALKIND), save :: EWctVbt      = 0
+  complex(REALKIND), save :: EWctVen      = 0
+  complex(REALKIND), save :: EWctVLn      = 0
+  complex(REALKIND), save :: EWctVud      = 0
+  complex(REALKIND), save :: EWctVtb      = 0
+  complex(REALKIND), save :: EWctVne      = 0
+  complex(REALKIND), save :: EWctVnL      = 0
   ! Gff mixed EW/QCD
-  complex(REALKIND), save ::  EWctGuu(2)
-  complex(REALKIND), save ::  EWctGdd(2)
-  complex(REALKIND), save ::  EWctGtt(2)
-  complex(REALKIND), save ::  EWctGbb(2)
+  complex(REALKIND), save ::  EWctGuu(2)      = 0
+  complex(REALKIND), save ::  EWctGdd(2)      = 0
+  complex(REALKIND), save ::  EWctGtt(2)      = 0
+  complex(REALKIND), save ::  EWctGbb(2)      = 0
   !SFF
-  complex(REALKIND), save :: EWctHee(2)
-  complex(REALKIND), save :: EWctHtt(2)
-  complex(REALKIND), save :: EWctHbb(2)
-  complex(REALKIND), save :: EWctHLL(2)
-  complex(REALKIND), save :: EWctXee(2)
-  complex(REALKIND), save :: EWctXtt(2)
-  complex(REALKIND), save :: EWctXbb(2)
-  complex(REALKIND), save :: EWctXLL(2)
-  complex(REALKIND), save :: EWctPud(2)
-  complex(REALKIND), save :: EWctPdu(2)
-  complex(REALKIND), save :: EWctPtb(2)
-  complex(REALKIND), save :: EWctPbt(2)
-  complex(REALKIND), save :: EWctPne(2)
-  complex(REALKIND), save :: EWctPen(2)
-  complex(REALKIND), save :: EWctPnL(2)
-  complex(REALKIND), save :: EWctPLn(2)
+  complex(REALKIND), save :: EWctHee(2)      = 0
+  complex(REALKIND), save :: EWctHmm(2)      = 0
+  complex(REALKIND), save :: EWctHLL(2)      = 0
+  complex(REALKIND), save :: EWctHtt(2)      = 0
+  complex(REALKIND), save :: EWctHbb(2)      = 0
+  complex(REALKIND), save :: EWctXee(2)      = 0
+  complex(REALKIND), save :: EWctXmm(2)      = 0
+  complex(REALKIND), save :: EWctXtt(2)      = 0
+  complex(REALKIND), save :: EWctXbb(2)      = 0
+  complex(REALKIND), save :: EWctXLL(2)      = 0
+  complex(REALKIND), save :: EWctPud(2)      = 0
+  complex(REALKIND), save :: EWctPdu(2)      = 0
+  complex(REALKIND), save :: EWctPtb(2)      = 0
+  complex(REALKIND), save :: EWctPbt(2)      = 0
+  complex(REALKIND), save :: EWctPne(2)      = 0
+  complex(REALKIND), save :: EWctPen(2)      = 0
+  complex(REALKIND), save :: EWctPnL(2)      = 0
+  complex(REALKIND), save :: EWctPLn(2)      = 0
   ! VUU
-  complex(REALKIND), save :: EWctAUWUW
-  complex(REALKIND), save :: EWctZUWUW
-  complex(REALKIND), save :: EWctWUWUZ
-  complex(REALKIND), save :: EWctWUZUW
-  complex(REALKIND), save :: EWctWUWUA
-  complex(REALKIND), save :: EWctWUAUW
+  complex(REALKIND), save :: EWctAUWUW      = 0
+  complex(REALKIND), save :: EWctZUWUW      = 0
+  complex(REALKIND), save :: EWctWUWUZ      = 0
+  complex(REALKIND), save :: EWctWUZUW      = 0
+  complex(REALKIND), save :: EWctWUWUA      = 0
+  complex(REALKIND), save :: EWctWUAUW      = 0
   ! SUU
-  complex(REALKIND), save :: EWctHUZUZ
-  complex(REALKIND), save :: EWctHUWUW
-  complex(REALKIND), save :: EWctXUWUW
-  complex(REALKIND), save :: EWctPUZUW
-  complex(REALKIND), save :: EWctPUWUZ
-  complex(REALKIND), save :: EWctPUWUA
+  complex(REALKIND), save :: EWctHUZUZ      = 0
+  complex(REALKIND), save :: EWctHUWUW      = 0
+  complex(REALKIND), save :: EWctXUWUW      = 0
+  complex(REALKIND), save :: EWctPUZUW      = 0
+  complex(REALKIND), save :: EWctPUWUZ      = 0
+  complex(REALKIND), save :: EWctPUWUA      = 0
 
   ! Additional parameters for R2 EW
   complex(REALKIND), save :: sumMQ2
