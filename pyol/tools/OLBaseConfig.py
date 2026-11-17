@@ -101,10 +101,10 @@ def get_config(args=[]):
           (if the same option is given more than once,
            only the last set value is used)
     """
-    config = configparser.SafeConfigParser()
+    config = configparser.ConfigParser()
     # default configuration
     with open(os.path.join(prefix, default_config_file), 'r') as fh:
-        config.readfp(fh)
+        config.read_file(fh)
     # override with user configuration
     config.read([os.path.join(prefix, user_config_file)])
     config = dict(config.items('OpenLoops'))
